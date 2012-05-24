@@ -1,3 +1,5 @@
+- 2.3.14:* also drop privileges when reinitializing or refreshing credentials,
+           for the sake of login (#822493)
 - 2.3.13:* don't bother creating a v5 ccache in "external" mode
 	 * add a "trace" option to enable libkrb5 tracing, if available
 	 * avoid trying to get password-change creds twice

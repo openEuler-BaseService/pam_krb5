@@ -1,6 +1,6 @@
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
-Version: 2.3.13
+Version: 2.3.14
 Release: 1%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}-1.tar.gz
 License: BSD or LGPLv2+
@@ -20,11 +20,16 @@ The included pam_krb5afs module also gets AFS tokens if so configured.
 %setup -q -n pam_krb5-%{version}-1
 
 %build
+configure_flags=
+%if 0%{?fedora} > 17 || 0%{?rhel} > 6
+configure_flags=--enable-default-ccname-template=FILE:/run/user/%u/krb5cc_XXXXXX
+%endif
 %configure --libdir=/%{_lib} \
 	--with-default-use-shmem="sshd" \
 	--with-default-external="sshd sshd-rekey gssftp" \
 	--with-default-multiple-ccaches="su su-l" \
-	--with-default-no-cred-session="sshd"
+	--with-default-no-cred-session="sshd" \
+	${configure_flags}
 make %{?_smp_mflags}
 
 %install
@@ -54,6 +59,14 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %{_mandir}/man8/*
 
 %changelog
+* Thu May 24 2012 Nalin Dahyabhai <nalin@redhat.com> - 2.3.14-1
+- update to 2.3.14
+  - attempt to drop to the user's privileges when reinitializing/refreshing
+    credentials, which newer versions of login seem to do while they're still
+    running as root (#822493)
+- on Fedora 18 and later, override the default ccname template and specify that
+  it be FILE:/run/user/%%u/krb5cc_XXXXXX
+
 * Thu Jul 28 2011 Nalin Dahyabhai <nalin@redhat.com> - 2.3.13-1
 - update to 2.3.13
   - don't treat setcred() as session open/close in sshd (#720609, #725797)

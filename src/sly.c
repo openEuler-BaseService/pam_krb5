@@ -33,7 +33,9 @@
 #include "../config.h"
 
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <errno.h>
+#include <grp.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,34 +102,113 @@ sly_v4(krb5_context ctx, const char *v4tktfile,
 }
 #endif
 
-/* Store the v5 TGT in $KRB5CCNAME. */
+/* Store the v5 TGT in $KRB5CCNAME.  Use a child process to possibly drop
+ * privileges while we're doing it. */
 static int
 sly_v5(krb5_context ctx, const char *v5ccname,
        struct _pam_krb5_user_info *userinfo, struct _pam_krb5_stash *stash)
 {
 	krb5_ccache ccache;
 	krb5_principal princ;
-	int i;
+	int i, outpipe[2];
+	unsigned char result;
+	pid_t child;
+	struct sigaction saved_sigchld_handler, saved_sigpipe_handler;
+	struct sigaction ignore_handler, default_handler;
 
-	ccache = NULL;
-	i = krb5_cc_resolve(ctx, v5ccname, &ccache);
-	if (i == 0) {
-		princ = NULL;
-		if (krb5_cc_get_principal(ctx, ccache, &princ) == 0) {
-			if (krb5_principal_compare(ctx, princ,
-						   userinfo->principal_name) == FALSE) {
-				krb5_free_principal(ctx, princ);
-				krb5_cc_close(ctx, ccache);
-				return PAM_SERVICE_ERR;
-			}
-			krb5_free_principal(ctx, princ);
-		}
-		i = krb5_cc_initialize(ctx, ccache, userinfo->principal_name);
-		if (i == 0) {
-			i = krb5_cc_store_cred(ctx, ccache, &stash->v5creds);
-		}
-		krb5_cc_close(ctx, ccache);
+	/* We use the pipe to relay the PAM status. */
+	if (pipe(outpipe) == -1) {
+		return -1;
 	}
+	/* Set signal handlers here, before the child has a chance to exit
+	 * before we can notice. */
+	memset(&default_handler, 0, sizeof(default_handler));
+	default_handler.sa_handler = SIG_DFL;
+	if (sigaction(SIGCHLD, &default_handler, &saved_sigchld_handler) != 0) {
+		close(outpipe[0]);
+		close(outpipe[1]);
+		return -1;
+	}
+	memset(&ignore_handler, 0, sizeof(ignore_handler));
+	ignore_handler.sa_handler = SIG_IGN;
+	if (sigaction(SIGPIPE, &ignore_handler, &saved_sigpipe_handler) != 0) {
+		sigaction(SIGCHLD, &saved_sigchld_handler, NULL);
+		close(outpipe[0]);
+		close(outpipe[1]);
+		return -1;
+	}
+	switch (child = fork()) {
+	case -1:
+		sigaction(SIGCHLD, &saved_sigchld_handler, NULL);
+		sigaction(SIGPIPE, &saved_sigpipe_handler, NULL);
+		close(outpipe[0]);
+		close(outpipe[1]);
+		return -1;
+		break;
+	case 0:
+		/* We're the child. */
+		close(outpipe[0]);
+		for (i = 0; i < sysconf(_SC_OPEN_MAX); i++) {
+			if ((i != outpipe[1]) &&
+			    (i != STDIN_FILENO) &&
+			    (i != STDOUT_FILENO) &&
+			    (i != STDERR_FILENO)) {
+				close(i);
+			}
+		}
+		setgroups(0, NULL);
+		/* Now, attempt to assume the desired uid/gid pair.  Note that
+		 * if we're not root, this is allowed to fail. */
+		if ((userinfo->gid != getgid()) || (userinfo->gid != getegid())) {
+			setregid(userinfo->gid, userinfo->gid);
+		}
+		if ((userinfo->uid != getuid()) || (userinfo->uid != geteuid())) {
+			setreuid(userinfo->uid, userinfo->uid);
+		}
+		/* Store the user's credentials. */
+		ccache = NULL;
+		i = krb5_cc_resolve(ctx, v5ccname, &ccache);
+		if (i == 0) {
+			princ = NULL;
+			if (krb5_cc_get_principal(ctx, ccache, &princ) == 0) {
+				if (krb5_principal_compare(ctx, princ,
+							   userinfo->principal_name) == FALSE) {
+					krb5_free_principal(ctx, princ);
+					krb5_cc_close(ctx, ccache);
+					result = PAM_SERVICE_ERR;
+					if (write(outpipe[1], &result, 1)) {
+						close(outpipe[1]);
+					}
+					_exit(result);
+				}
+				krb5_free_principal(ctx, princ);
+			}
+			i = krb5_cc_initialize(ctx, ccache, userinfo->principal_name);
+			if (i == 0) {
+				i = krb5_cc_store_cred(ctx, ccache, &stash->v5creds);
+			}
+			krb5_cc_close(ctx, ccache);
+		}
+		result = (i == 0) ? PAM_SUCCESS : PAM_SERVICE_ERR;
+		if (write(outpipe[1], &result, 1)) {
+			close(outpipe[1]);
+		}
+		_exit(result);
+		break;
+	default:
+		/* parent */
+		close(outpipe[1]);
+		if (read(outpipe[0], &result, 1) != 1) {
+			result = PAM_SERVICE_ERR;
+		}
+		waitpid(child, NULL, 0);
+		sigaction(SIGCHLD, &saved_sigchld_handler, NULL);
+		sigaction(SIGPIPE, &saved_sigpipe_handler, NULL);
+		close(outpipe[0]);
+		return result;
+		break;
+	}
+	abort(); /* not reached */
 
 	return PAM_SUCCESS;
 }

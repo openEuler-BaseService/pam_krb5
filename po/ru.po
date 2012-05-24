@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: pam_krb5\n"
 "Report-Msgid-Bugs-To: http://git.fedorahosted.org/git/?p=pam_krb5.git;a=blob;"
 "f=AUTHORS;hb=HEAD\n"
-"POT-Creation-Date: 2011-03-24 11:49-0400\n"
+"POT-Creation-Date: 2012-05-24 13:51-0400\n"
 "PO-Revision-Date: 2011-03-22 15:18+0000\n"
 "Last-Translator: nalin <nalin@fedoraproject.org>\n"
 "Language-Team: Russian <trans-ru@lists.fedoraproject.org>\n"
@@ -19,21 +19,21 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
 
-#: src/auth.c:132 src/auth.c:327
+#: src/auth.c:133 src/auth.c:330
 msgid "Password: "
 msgstr "Пароль: "
 
-#: src/password.c:258
+#: src/password.c:291
 #, c-format
 msgid "%s%sPassword: "
 msgstr "%s%sПароль: "
 
-#: src/password.c:364
+#: src/password.c:429
 #, c-format
 msgid "New %s%sPassword: "
 msgstr "Новый %s%sпароль: "
 
-#: src/password.c:367
+#: src/password.c:432
 #, c-format
 msgid "Repeat New %s%sPassword: "
 msgstr "Повторите новый %s%sпароль: "
