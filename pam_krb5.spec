@@ -1,8 +1,9 @@
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
 Version: 2.3.14
-Release: 1%{?dist}
+Release: 2%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}-1.tar.gz
+Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}-1.tar.gz.sig
 License: BSD or LGPLv2+
 Group: System Environment/Base
 URL: https://fedorahosted.org/pam_krb5/
@@ -22,7 +23,7 @@ The included pam_krb5afs module also gets AFS tokens if so configured.
 %build
 configure_flags=
 %if 0%{?fedora} > 17 || 0%{?rhel} > 6
-configure_flags=--enable-default-ccname-template=FILE:/run/user/%u/krb5cc_XXXXXX
+configure_flags=--enable-default-ccname-template=FILE:/run/user/%%U/krb5cc_XXXXXX
 %endif
 %configure --libdir=/%{_lib} \
 	--with-default-use-shmem="sshd" \
@@ -59,6 +60,10 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %{_mandir}/man8/*
 
 %changelog
+* Thu Jul 05 2012 Nalin Dahyabhai <nalin@redhat.com> - 2.3.14-2
+- on Fedora 18 and later, override the default ccname template and specify that
+  it be FILE:/run/user/%%U/krb5cc_XXXXXX
+
 * Thu May 24 2012 Nalin Dahyabhai <nalin@redhat.com> - 2.3.14-1
 - update to 2.3.14
   - attempt to drop to the user's privileges when reinitializing/refreshing
@@ -66,6 +71,9 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
     running as root (#822493)
 - on Fedora 18 and later, override the default ccname template and specify that
   it be FILE:/run/user/%%u/krb5cc_XXXXXX
+
+* Fri Jan 13 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.3.13-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_17_Mass_Rebuild
 
 * Thu Jul 28 2011 Nalin Dahyabhai <nalin@redhat.com> - 2.3.13-1
 - update to 2.3.13
