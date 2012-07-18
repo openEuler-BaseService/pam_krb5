@@ -1387,96 +1387,93 @@ v5_get_creds(krb5_context ctx,
 		      userinfo->unparsed_name, realm_service);
 	}
 	/* Get creds. */
-	{
-		/* Contact the KDC. */
-		prompter_data.ctx = ctx;
-		prompter_data.pamh = pamh;
-		prompter_data.previous_password = password;
-		prompter_data.options = options;
-		prompter_data.userinfo = userinfo;
-		if (options->debug && options->debug_sensitive) {
-			debug("attempting with password=%s%s%s",
-			      password ? "\"" : "",
-			      password ? password : "(null)",
-			      password ? "\"" : "");
-		}
+	prompter_data.ctx = ctx;
+	prompter_data.pamh = pamh;
+	prompter_data.previous_password = password;
+	prompter_data.options = options;
+	prompter_data.userinfo = userinfo;
+	if (options->debug && options->debug_sensitive) {
+		debug("attempting with password=%s%s%s",
+		      password ? "\"" : "",
+		      password ? password : "(null)",
+		      password ? "\"" : "");
+	}
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_PKINIT
-		opt = v5_user_info_subst(ctx, user, userinfo, options,
-					 options->pkinit_identity);
-		if (opt != NULL) {
-			if (strlen(opt) > 0) {
-				if (options->debug) {
-					debug("resolved pkinit identity to "
-					      "\"%s\"", opt);
-				}
-				krb5_get_init_creds_opt_set_pkinit(ctx,
-								   gic_options,
-								   userinfo->principal_name,
-								   opt,
-								   NULL,
+	opt = v5_user_info_subst(ctx, user, userinfo, options,
+				 options->pkinit_identity);
+	if (opt != NULL) {
+		if (strlen(opt) > 0) {
+			if (options->debug) {
+				debug("resolved pkinit identity to "
+				      "\"%s\"", opt);
+			}
+			krb5_get_init_creds_opt_set_pkinit(ctx,
+							   gic_options,
+							   userinfo->principal_name,
+							   opt,
+							   NULL,
 #ifdef KRB5_GET_INIT_CREDS_OPT_SET_PKINIT_TAKES_11_ARGS
-								   NULL,
-								   NULL,
+							   NULL,
+							   NULL,
 #endif
-								   options->pkinit_flags,
-								   prompter,
-								   &prompter_data,
-								   password);
-			} else {
+							   options->pkinit_flags,
+							   prompter,
+							   &prompter_data,
+							   password);
+		} else {
+			if (options->debug) {
+				debug("pkinit identity has no "
+				      "contents, ignoring");
+			}
+		}
+		free(opt);
+	} else {
+		warn("error resolving pkinit identity template \"%s\" "
+		     "to a useful value", options->pkinit_identity);
+	}
+#endif
+#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_PA
+	for (i = 0;
+	     (options->preauth_options != NULL) &&
+	     (options->preauth_options[i] != NULL);
+	     i++) {
+		opt = v5_user_info_subst(ctx, user, userinfo, options,
+					 options->preauth_options[i]);
+		if (opt != NULL) {
+			char *val;
+			val = strchr(opt, '=');
+			if (val != NULL) {
+				*val++ = '\0';
 				if (options->debug) {
-					debug("pkinit identity has no "
-					      "contents, ignoring");
+					debug("setting preauth option "
+					      "\"%s\" = \"%s\"",
+					      opt, val);
+				}
+				if (krb5_get_init_creds_opt_set_pa(ctx,
+								   gic_options,
+								   opt,
+								   val) != 0) {
+					warn("error setting preauth "
+					     "option \"%s\"", opt);
 				}
 			}
 			free(opt);
 		} else {
-			warn("error resolving pkinit identity template \"%s\" "
-			     "to a useful value", options->pkinit_identity);
+			warn("error resolving preauth option \"%s\" "
+			     "to a useful value",
+			     options->preauth_options[i]);
 		}
-#endif
-#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_PA
-		for (i = 0;
-		     (options->preauth_options != NULL) &&
-		     (options->preauth_options[i] != NULL);
-		     i++) {
-			opt = v5_user_info_subst(ctx, user, userinfo, options,
-						 options->preauth_options[i]);
-			if (opt != NULL) {
-				char *val;
-				val = strchr(opt, '=');
-				if (val != NULL) {
-					*val++ = '\0';
-					if (options->debug) {
-						debug("setting preauth option "
-						      "\"%s\" = \"%s\"",
-						      opt, val);
-					}
-					if (krb5_get_init_creds_opt_set_pa(ctx,
-									   gic_options,
-									   opt,
-									   val) != 0) {
-						warn("error setting preauth "
-						     "option \"%s\"", opt);
-					}
-				}
-				free(opt);
-			} else {
-				warn("error resolving preauth option \"%s\" "
-				     "to a useful value",
-				     options->preauth_options[i]);
-			}
-		}
-#endif
-		i = krb5_get_init_creds_password(ctx,
-						 creds,
-						 userinfo->principal_name,
-						 password,
-						 prompter,
-						 &prompter_data,
-						 0,
-						 realm_service,
-						 gic_options);
 	}
+#endif
+	i = krb5_get_init_creds_password(ctx,
+					 creds,
+					 userinfo->principal_name,
+					 password,
+					 prompter,
+					 &prompter_data,
+					 0,
+					 realm_service,
+					 gic_options);
 	/* Let the caller see the krb5 result code. */
 	if (options->debug) {
 		debug("krb5_get_init_creds_password(%s) returned %d (%s)",
