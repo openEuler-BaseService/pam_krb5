@@ -1387,64 +1387,7 @@ v5_get_creds(krb5_context ctx,
 		      userinfo->unparsed_name, realm_service);
 	}
 	/* Get creds. */
-	if (options->existing_ticket) {
-		/* Try to read the TGT from the existing ccache. */
-		i = KRB5_CC_NOTFOUND;
-		memset(&service_principal, 0, sizeof(service_principal));
-		if (krb5_parse_name(ctx, realm_service,
-				    &service_principal) == 0) {
-			if (options->debug) {
-				debug("attempting to read existing credentials "
-				      "from %s", krb5_cc_default_name(ctx));
-			}
-			memset(&ccache, 0, sizeof(ccache));
-			/* In case we're setuid/setgid, switch to the caller's
-			 * permissions. */
-			saved_perms = _pam_krb5_switch_perms();
-			if ((saved_perms != NULL) &&
-			    (krb5_cc_default(ctx, &ccache) == 0)) {
-				tmpcreds.client = userinfo->principal_name;
-				tmpcreds.server = service_principal;
-				i = krb5_cc_retrieve_cred(ctx, ccache, 0,
-							  &tmpcreds, creds);
-				/* FIXME: check if the creds are expired?
-				 * What's the right error code if we check, and
-				 * they are? */
-				memset(&tmpcreds, 0, sizeof(tmpcreds));
-				krb5_cc_close(ctx, ccache);
-				/* In case we're setuid/setgid, restore the
-				 * previous permissions. */
-				if (saved_perms != NULL) {
-					if (_pam_krb5_restore_perms(saved_perms) != 0) {
-						krb5_free_cred_contents(ctx, creds);
-						memset(creds, 0, sizeof(*creds));
-						krb5_free_principal(ctx, service_principal);
-						return PAM_SYSTEM_ERR;
-					}
-					saved_perms = NULL;
-				}
-			} else {
-				warn("error opening default ccache");
-				i = KRB5_CC_NOTFOUND;
-			}
-			/* In case we're setuid/setgid, switch back to the
-			 * previous permissions if we didn't already. */
-			if (saved_perms != NULL) {
-				if (_pam_krb5_restore_perms(saved_perms) != 0) {
-					krb5_free_cred_contents(ctx, creds);
-					memset(creds, 0, sizeof(*creds));
-					krb5_free_principal(ctx, service_principal);
-					return PAM_SYSTEM_ERR;
-				}
-				saved_perms = NULL;
-			}
-			krb5_free_principal(ctx, service_principal);
-		} else {
-			warn("error parsing TGT principal name (%s) "
-			     "(shouldn't happen)", realm_service);
-			i = KRB5_REALM_CANT_RESOLVE;
-		}
-	} else {
+	{
 		/* Contact the KDC. */
 		prompter_data.ctx = ctx;
 		prompter_data.pamh = pamh;

@@ -213,28 +213,6 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 
 	retval = PAM_AUTH_ERR;
 
-	/* If we're configured to use an existing ccache, try that. */
-	if ((retval != PAM_SUCCESS) && (options->existing_ticket)) {
-		if (options->debug) {
-			debug("trying existing credentials for '%s'", user);
-		}
-		retval = v5_get_creds(ctx, pamh,
-				      &stash->v5creds, user, userinfo,
-				      options,
-				      KRB5_TGS_NAME,
-				      NULL,
-				      gic_options,
-				      _pam_krb5_always_fail_prompter,
-				      &stash->v5expired,
-				      &stash->v5result);
-		stash->v5external = 0;
-		stash->v5attempted = 1;
-		if (options->debug) {
-			debug("got result %d (%s)", stash->v5result,
-			      v5_error_message(stash->v5result));
-		}
-	}
-
 	/* Ideally we're only going to let libkrb5 ask questions once, and
 	 * after that we intend to lie to it. */
 	use_third_pass = options->use_third_pass;

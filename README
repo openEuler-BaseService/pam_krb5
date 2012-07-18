@@ -51,11 +51,6 @@ o cred_session
 o debug
   debug = service1 service2
   Log debug messages to syslog with priority LOG_DEBUG.
-o existing_ticket
-  Use the presence of a TGT for the user's realm in the default ccache as
-  sufficient proof of the user's identity.  If you're not also validating
-  credentials every time and in every way they are obtained, then THIS IS VERY
-  DANGEROUS.
 o external
   external = service1 service2
   Attempt to reuse credentials stored in a ccache pointed to by the KRB5CCNAME

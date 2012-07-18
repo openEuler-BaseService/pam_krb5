@@ -47,7 +47,6 @@ struct _pam_krb5_options {
 	int cred_session;
 	int debug_sensitive;
 	int external;
-	int existing_ticket;
 	int forwardable;
 	int ignore_afs;
 	int ignore_k5login;

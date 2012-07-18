@@ -726,15 +726,6 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 	}
 
 	/* private option */
-	options->existing_ticket = option_b(argc, argv,
-					    ctx, options->realm,
-					    service, NULL, NULL,
-					    "existing_ticket", 0);
-	if (options->debug && options->existing_ticket) {
-		debug("flag: existing_ticket");
-	}
-
-	/* private option */
 	options->multiple_ccaches = option_b(argc, argv,
 					     ctx, options->realm,
 					     service,
