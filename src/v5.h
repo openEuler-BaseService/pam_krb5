@@ -79,6 +79,8 @@ int v5_save_for_tokens(krb5_context ctx,
 void v5_destroy(krb5_context ctx, struct _pam_krb5_stash *stash,
 	        struct _pam_krb5_options *options);
 
+krb5_error_code v5_cc_copy(krb5_context ctx, krb5_ccache occache,
+			   krb5_ccache *nccache);
 int v5_creds_check_initialized(krb5_context ctx, krb5_creds *creds);
 int v5_creds_check_initialized_pwc(krb5_context ctx, krb5_creds *creds);
 int v5_creds_get_etype(krb5_creds *creds);
