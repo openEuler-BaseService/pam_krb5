@@ -1,5 +1,5 @@
 /*
- * Copyright 2004,2006 Red Hat, Inc.
+ * Copyright 2004,2006,2012 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -126,10 +126,10 @@ main(int argc, const char **argv)
 		setgroups(0, &current_gid);
 	}
 	if (getgid() != gid) {
-		setregid(gid, gid);
+		fd = setregid(gid, gid);
 	}
 	if (getuid() != uid) {
-		setreuid(uid, uid);
+		fd = setreuid(uid, uid);
 	}
 
 	/* Create a temporary file. */

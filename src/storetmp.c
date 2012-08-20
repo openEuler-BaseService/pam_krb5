@@ -209,10 +209,10 @@ _pam_krb5_storetmp_data(const unsigned char *data, ssize_t data_len,
 		/* Now, attempt to assume the desired uid/gid pair.  Note that
 		 * if we're not root, this is allowed to fail. */
 		if ((gid != getgid()) || (gid != getegid())) {
-			setregid(gid, gid);
+			i = setregid(gid, gid);
 		}
 		if ((uid != getuid()) || (uid != geteuid())) {
-			setreuid(uid, uid);
+			i = setreuid(uid, uid);
 		}
 		execl(PKGSECURITYDIR "/pam_krb5_storetmp", "pam_krb5_storetmp",
 		      pattern, uidstr, gidstr, NULL);

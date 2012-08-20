@@ -65,7 +65,8 @@ _pam_krb5_switch_perms(void)
 			ret = NULL;
 		} else {
 			if (setreuid(ret->euid, ret->ruid) == -1) {
-				setregid(ret->rgid, ret->egid);
+				int i;
+				i = setregid(ret->rgid, ret->egid);
 				free(ret);
 				ret = NULL;
 			}
