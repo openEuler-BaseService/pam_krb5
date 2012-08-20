@@ -50,13 +50,6 @@
 #endif
 
 #include KRB5_H
-#ifdef USE_KRB4
-#include KRB4_DES_H
-#include KRB4_KRB_H
-#ifdef KRB4_KRB_ERR_H
-#include KRB4_KRB_ERR_H
-#endif
-#endif
 
 #include "log.h"
 #include "map.h"

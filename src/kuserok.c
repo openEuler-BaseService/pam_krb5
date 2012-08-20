@@ -54,13 +54,6 @@
 #endif
 
 #include KRB5_H
-#ifdef USE_KRB4
-#include KRB4_DES_H
-#include KRB4_KRB_H
-#ifdef KRB4_KRB_ERR_H
-#include KRB4_KRB_ERR_H
-#endif
-#endif
 
 #include "init.h"
 #include "log.h"
@@ -69,7 +62,6 @@
 #include "storetmp.h"
 #include "tokens.h"
 #include "userinfo.h"
-#include "v4.h"
 #include "v5.h"
 
 #include "kuserok.h"
@@ -146,10 +138,6 @@ _pam_krb5_kuserok(krb5_context ctx,
 		}
 		/* Try to get tokens. */
 		if ((options->ignore_afs == 0) && tokens_useful()) {
-			if (stash->v4present) {
-				v4_save_for_tokens(ctx, stash, userinfo,
-						   options, NULL);
-			}
 			tokens_obtain(ctx, stash, options, userinfo, 1);
 		}
 		/* Set up the user's Kerberos 5 creds, too. If the naming
@@ -206,11 +194,6 @@ _pam_krb5_kuserok(krb5_context ctx,
 			if (options->debug) {
 				debug("destroyed ccache '%s'",
 				      envstr + strlen("KRB5CCNAME="));
-			}
-		}
-		if ((options->ignore_afs == 0) && tokens_useful()) {
-			if (stash->v4present) {
-				v4_destroy(ctx, stash, options);
 			}
 		}
 		result = (allowed == 1);

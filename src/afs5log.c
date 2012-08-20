@@ -41,13 +41,6 @@
 #include <unistd.h>
 
 #include KRB5_H
-#ifdef USE_KRB4
-#include KRB4_DES_H
-#include KRB4_KRB_H
-#ifdef KRB4_KRB_ERR_H
-#include KRB4_KRB_ERR_H
-#endif
-#endif
 #include <security/pam_appl.h>
 
 #include "init.h"
@@ -68,10 +61,6 @@ set_methods(const char *strategy, int *methods, int max_methods,
 	struct {
 		const char *name; int method;
 	} method_names[] = {
-#ifdef USE_KRB4
-		{"v4", MINIKAFS_METHOD_V4},
-		{"524", MINIKAFS_METHOD_V5_V4},
-#endif
 		{"2b", MINIKAFS_METHOD_V5_2B},
 		{"rxk5", MINIKAFS_METHOD_RXK5}
 	};
@@ -115,11 +104,7 @@ main(int argc, char **argv)
 	uid_t uid;
 
 	/* Iterate through every parameter, assuming they're names of cells. */
-#ifdef USE_KRB4
-	try_v5_2b_only = 0;
-#else
 	try_v5_2b_only = 1;
-#endif
 	try_rxk5_only = 0;
 	cells = 0;
 	log_progname = "afs5log";

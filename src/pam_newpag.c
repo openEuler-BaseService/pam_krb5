@@ -46,14 +46,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include KRB5_H
-#ifdef USE_KRB4
-#include KRB4_DES_H
-#include KRB4_KRB_H
-#ifdef KRB4_KRB_ERR_H
-#include KRB4_KRB_ERR_H
-#endif
-#endif
 
 #include "init.h"
 #include "log.h"
@@ -65,7 +59,6 @@
 #include "tokens.h"
 #include "userinfo.h"
 #include "v5.h"
-#include "v4.h"
 #include "xstr.h"
 
 static int

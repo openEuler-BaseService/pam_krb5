@@ -1,6 +1,6 @@
-AM_CFLAGS = @KRB5_CFLAGS@ @KRB4_CFLAGS@
+AM_CFLAGS = @KRB5_CFLAGS@
 LD_AS_NEEDED = @LD_AS_NEEDED@
-KRB_LIBS = @KRB5_LIBS@ @KRB4_LIBS@ @KEYUTILS_LIBS@
+KRB_LIBS = @KRB5_LIBS@ @KEYUTILS_LIBS@
 
 securitydir = $(libdir)/security
 security_LTLIBRARIES = pam_krb5.la
@@ -59,8 +59,6 @@ libpam_krb5_la_SOURCES = \
 	userinfo.h \
 	xstr.c \
 	xstr.h \
-	v4.c \
-	v4.h \
 	v5.c \
 	v5.h
 	
@@ -118,7 +116,6 @@ harness_LDADD = \
 	logstdio.lo \
 	perms.lo \
 	sly.lo \
-	v4.lo \
 	v5.lo
 harness_LDADD += libpam_krb5.la @PAM_LIBS@ $(KRB_LIBS)
 
@@ -130,7 +127,6 @@ harness_newpag_LDADD = \
 	pam_newpag.lo \
 	logstdio.lo \
 	perms.lo \
-	v4.lo \
 	v5.lo
 harness_newpag_LDADD += libpam_krb5.la @PAM_LIBS@ $(KRB_LIBS)
 

@@ -51,13 +51,6 @@
 #endif
 
 #include KRB5_H
-#ifdef USE_KRB4
-#include KRB4_DES_H
-#include KRB4_KRB_H
-#ifdef KRB4_KRB_ERR_H
-#include KRB4_KRB_ERR_H
-#endif
-#endif
 
 #include "init.h"
 #include "log.h"
@@ -67,40 +60,6 @@
 #include "tokens.h"
 #include "userinfo.h"
 #include "v5.h"
-#include "v4.h"
-
-#ifdef USE_KRB4
-/* Store the v4 TGT in $KRBTKFILE. */
-static void
-sly_v4(krb5_context ctx, const char *v4tktfile,
-       struct _pam_krb5_user_info *userinfo, struct _pam_krb5_stash *stash)
-{
-	int i;
-	char name[ANAME_SZ + 1], instance[INST_SZ + 1], realm[REALM_SZ + 1];
-
-	i = krb5_524_conv_principal(ctx, userinfo->principal_name,
-				    name, instance, realm);
-	if (i != 0) {
-		return;
-	}
-
-	tf_init((char *) v4tktfile, W_TKT_FIL);
-	v4_in_tkt(name, instance, realm);
-	v4_save_credentials(KRB5_TGS_NAME, realm, realm,
-			    stash->v4creds.session,
-			    stash->v4creds.lifetime,
-			    stash->v4creds.kvno,
-			    &stash->v4creds.ticket_st,
-			    stash->v4creds.issue_date);
-	tf_close();
-}
-#else
-static void
-sly_v4(krb5_context ctx, const char *v4tktfile,
-       struct _pam_krb5_user_info *userinfo, struct _pam_krb5_stash *stash)
-{
-}
-#endif
 
 /* Store the v5 TGT in $KRB5CCNAME.  Use a child process to possibly drop
  * privileges while we're doing it. */
@@ -239,10 +198,7 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 	int i, retval, stored;
 	uid_t uid;
 	gid_t gid;
-	const char *v5ccname, *v5filename, *v4tktfile;
-#ifdef TKT_ROOT
-	char v4tktfilebuf[PATH_MAX];
-#endif
+	const char *v5ccname, *v5filename;
 
 	/* Inexpensive checks. */
 	switch (_pam_krb5_sly_looks_unsafe()) {
@@ -412,55 +368,6 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 			      v5ccname);
 		}
 		retval = PAM_SUCCESS;
-	}
-
-	v4tktfile = getenv("KRBTKFILE");
-#ifdef TKT_ROOT
-	if ((v4tktfile == NULL) && (options->user_check)) {
-		snprintf(v4tktfilebuf, sizeof(v4tktfilebuf), "%s%ld",
-			 TKT_ROOT, (long) uid);
-		v4tktfile = v4tktfilebuf;
-	}
-#endif
-	if ((stash->v4present) && (v4tktfile != NULL)) {
-		if (access(v4tktfile, R_OK | W_OK) == 0) {
-			if (lstat(v4tktfile, &st) == 0) {
-				if (S_ISREG(st.st_mode) &&
-				    ((st.st_mode & S_IRWXG) == 0) &&
-				    ((st.st_mode & S_IRWXO) == 0) &&
-				    (st.st_uid == uid) &&
-				    (st.st_gid == gid)) {
-					if (options->debug) {
-						debug("updating ticket file "
-						      "'%s' for '%s'",
-						      v4tktfile, user);
-					}
-					sly_v4(ctx, v4tktfile, userinfo, stash);
-					stored = 1;
-				} else {
-					if (options->debug) {
-						debug("not updating '%s'",
-						      v4tktfile);
-					}
-				}
-			} else {
-				if (errno == ENOENT) {
-					/* We have nothing to do. */
-					if (options->debug) {
-						debug("no preexisting ticket "
-						      "file found");
-					}
-					retval = PAM_SUCCESS;
-				}
-			}
-		} else {
-			/* Touch nothing. */
-			if (options->debug) {
-				debug("unable to access preexisting ticket "
-				      "file");
-			}
-			retval = PAM_SUCCESS;
-		}
 	}
 
 	if (stored && !options->ignore_afs) {

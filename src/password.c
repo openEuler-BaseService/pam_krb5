@@ -48,14 +48,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include KRB5_H
-#ifdef USE_KRB4
-#include KRB4_DES_H
-#include KRB4_KRB_H
-#ifdef KRB4_KRB_ERR_H
-#include KRB4_KRB_ERR_H
-#endif
-#endif
 
 #include "conv.h"
 #include "init.h"
@@ -67,7 +61,6 @@
 #include "stash.h"
 #include "userinfo.h"
 #include "v5.h"
-#include "v4.h"
 #include "xstr.h"
 
 int
@@ -523,16 +516,6 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 					 &stash->v5result);
 			stash->v5attempted = 1;
 			if (i == PAM_SUCCESS) {
-				if ((options->v4 == 1) || (options->v4_for_afs == 1)) {
-					v4_get_creds(ctx, pamh, stash, userinfo,
-						     options, password, &i);
-					if (i != 0) {
-						if (options->debug) {
-							debug("error obtaining initial credentials using newly-set password: %d (%s)",
-							      i, v5_error_message(i));
-						}
-					}
-				}
 				if (options->use_shmem) {
 					_pam_krb5_stash_shm_write(pamh, stash,
 								  options,

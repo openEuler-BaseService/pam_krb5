@@ -47,14 +47,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include KRB5_H
-#ifdef USE_KRB4
-#include KRB4_DES_H
-#include KRB4_KRB_H
-#ifdef KRB4_KRB_ERR_H
-#include KRB4_KRB_ERR_H
-#endif
-#endif
 
 #include "conv.h"
 #include "init.h"
@@ -70,7 +64,6 @@
 #include "tokens.h"
 #include "userinfo.h"
 #include "v5.h"
-#include "v4.h"
 #include "xstr.h"
 
 int
@@ -264,29 +257,10 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 			}
 		}
 		if ((retval == PAM_SUCCESS) &&
-		    ((options->v4 == 1) || (options->v4_for_afs == 1))) {
-			v4_get_creds(ctx, pamh, stash, userinfo, options,
-				     first_pass, &i);
-			if ((i != 0) && (options->debug)) {
-				debug("error obtaining v4 creds: %d (%s)",
-				      i, v5_error_message(i));
-			}
-			if (stash->v4present &&
-			    (options->ignore_afs == 0) &&
-			    (options->tokens == 1) &&
-			    tokens_useful()) {
-				v4_save_for_tokens(ctx, stash, userinfo,
-						   options, NULL);
-				tokens_obtain(ctx, stash, options, userinfo, 1);
-				v4_destroy(ctx, stash, options);
-			}
-		} else {
-			if ((retval == PAM_SUCCESS) &&
-			    (options->ignore_afs == 0) &&
-			    (options->tokens == 1) &&
-			    tokens_useful()) {
-				tokens_obtain(ctx, stash, options, userinfo, 1);
-			}
+		    (options->ignore_afs == 0) &&
+		    (options->tokens == 1) &&
+		    tokens_useful()) {
+			tokens_obtain(ctx, stash, options, userinfo, 1);
 		}
 	}
 
@@ -353,29 +327,10 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 			}
 		}
 		if ((retval == PAM_SUCCESS) &&
-		    ((options->v4 == 1) || (options->v4_for_afs == 1))) {
-			v4_get_creds(ctx, pamh, stash, userinfo, options,
-				     second_pass, &i);
-			if ((i != 0) && (options->debug)) {
-				debug("error obtaining v4 creds: %d (%s)",
-				      i, v5_error_message(i));
-			}
-			if (stash->v4present &&
-			    (options->ignore_afs == 0) &&
-			    (options->tokens == 1) &&
-			    tokens_useful()) {
-				v4_save_for_tokens(ctx, stash, userinfo,
-						   options, NULL);
-				tokens_obtain(ctx, stash, options, userinfo, 1);
-				v4_destroy(ctx, stash, options);
-			}
-		} else {
-			if ((retval == PAM_SUCCESS) &&
-			    (options->ignore_afs == 0) &&
-			    (options->tokens == 1) &&
-			    tokens_useful()) {
-				tokens_obtain(ctx, stash, options, userinfo, 1);
-			}
+		    (options->ignore_afs == 0) &&
+		    (options->tokens == 1) &&
+		    tokens_useful()) {
+			tokens_obtain(ctx, stash, options, userinfo, 1);
 		}
 	}
 
@@ -408,29 +363,10 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 			      v5_error_message(stash->v5result));
 		}
 		if ((retval == PAM_SUCCESS) &&
-		    ((options->v4 == 1) || (options->v4_for_afs == 1))) {
-			v4_get_creds(ctx, pamh, stash, userinfo, options,
-				     second_pass, &i);
-			if ((i != 0) && (options->debug)) {
-				debug("error obtaining v4 creds: %d (%s)",
-				      i, v5_error_message(i));
-			}
-			if (stash->v4present &&
-			    (options->ignore_afs == 0) &&
-			    (options->tokens == 1) &&
-			    tokens_useful()) {
-				v4_save_for_tokens(ctx, stash, userinfo,
-						   options, NULL);
-				tokens_obtain(ctx, stash, options, userinfo, 1);
-				v4_destroy(ctx, stash, options);
-			}
-		} else {
-			if ((retval == PAM_SUCCESS) &&
-			    (options->ignore_afs == 0) &&
-			    (options->tokens == 1) &&
-			    tokens_useful()) {
-				tokens_obtain(ctx, stash, options, userinfo, 1);
-			}
+		    (options->ignore_afs == 0) &&
+		    (options->tokens == 1) &&
+		    tokens_useful()) {
+			tokens_obtain(ctx, stash, options, userinfo, 1);
 		}
 	}
 

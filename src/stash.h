@@ -49,14 +49,6 @@ struct _pam_krb5_stash {
 	int v5setenv;
 	int v5shm;
 	pid_t v5shm_owner;
-	int v4present;
-#ifdef USE_KRB4
-	CREDENTIALS v4creds;
-	struct _pam_krb5_ccname_list *v4tktfiles;
-	int v4setenv;
-	int v4shm;
-	pid_t v4shm_owner;
-#endif
 	int afspag;
 };
 
@@ -69,17 +61,10 @@ void _pam_krb5_stash_clone_v5(krb5_context ctx, struct _pam_krb5_stash *stash,
 			      const char *user,
 			      struct _pam_krb5_user_info *userinfo,
 			      uid_t uid, gid_t gid);
-void _pam_krb5_stash_clone_v4(struct _pam_krb5_stash *stash,
-			      uid_t uid, gid_t gid);
 int _pam_krb5_stash_push_v5(krb5_context ctx, struct _pam_krb5_stash *stash,
 			    struct _pam_krb5_options *options,
 			    const char *ccname);
 int _pam_krb5_stash_pop_v5(krb5_context ctx, struct _pam_krb5_stash *stash,
-			   struct _pam_krb5_options *options);
-int _pam_krb5_stash_push_v4(krb5_context ctx, struct _pam_krb5_stash *stash,
-			    struct _pam_krb5_options *options,
-			    const char *tktfile);
-int _pam_krb5_stash_pop_v4(krb5_context ctx, struct _pam_krb5_stash *stash,
 			   struct _pam_krb5_options *options);
 void _pam_krb5_stash_shm_read(pam_handle_t *pamh,
 			      const char *partial_key,

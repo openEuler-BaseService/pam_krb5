@@ -93,10 +93,7 @@ except for this list of services: "\fI@DEFAULT_NO_CRED_SESSION@\fR".
 .IP "external = \fItrue\fR|\fIfalse\fR|\fIsshd ftp [...]\fR"
 tells pam_krb5.so to use Kerberos credentials provided by the calling
 application during session setup.
-@MAN_KRB4@This is most often useful for obtaining
-@MAN_KRB4@@MAN_AFS@AFS tokens or a
-@MAN_KRB4@krb4 ticket.
-@NO_MAN_KRB4@@MAN_AFS@This is most often useful for obtaining AFS tokens.
+@MAN_AFS@This is most often useful for obtaining AFS tokens.
 The default is "\fI@DEFAULT_EXTERNAL@\fR".
 
 .IP "forwardable = \fItrue\fR|\fIfalse\fR|\fIservice [...]\fR"
@@ -142,30 +139,6 @@ in validating TGTs.  The location can be specified on a per-service basis
 by specifying a list of locations in the form \fIpam_service\fR=\fIlocation\fR.
 The default is \fI@DEFAULT_KEYTAB@\fR.
 
-@MAN_KRB4@.IP "krb4_convert = \fItrue\fR|\fIfalse\fR|\fIservice [...]\fR"
-@MAN_KRB4@controls whether or not pam_krb5 tries to get Kerberos IV credentials
-@MAN_KRB4@from the KDC (or using the \fBkrb524d\fR service on the KDC) and
-@MAN_KRB4@create ticket files with them.  Unless you've converted
-@MAN_KRB4@\fIeverything\fR on your network over to use Kerberos 5, you'll want
-@MAN_KRB4@to leave this set to \fBtrue\fR.  Note that this may require valid
-@MAN_KRB4@Kerberos IV configuration data to be present in \fB/etc/krb.conf\fR
-@MAN_KRB4@and \fB/etc/krb.realms\fR.  This option is poorly named.
-@MAN_KRB4@@MAN_AFS@This option defaults to \fItrue\fR if AFS is detected.
-@MAN_KRB4@
-@MAN_KRB4@.IP "krb4_convert_524 = \fItrue\fR|\fIfalse\fR|\fIservice [...]\fR"
-@MAN_KRB4@controls whether or not pam_krb5 tries to get Kerberos IV credentials
-@MAN_KRB4@using the \fBkrb524d\fR service.  This option modifies the
-@MAN_KRB4@\fBkrb4_convert\fP option.  If disabled, pam_krb5 will only attempt
-@MAN_KRB4@to obtain Kerberos IV credentials using the KDC
-@MAN_KRB4@(unless the \fBkrb4_use_as_req\fR option is also disabled).
-@MAN_KRB4@
-@MAN_KRB4@.IP "krb4_use_as_req = \fItrue\fR|\fIfalse\fR|\fIservice [...]\fR"
-@MAN_KRB4@controls whether or not pam_krb5 tries to get Kerberos IV credentials
-@MAN_KRB4@using the KDC.  This option modifies the
-@MAN_KRB4@\fBkrb4_convert\fP option.  If disabled, pam_krb5 will only attempt
-@MAN_KRB4@to obtain Kerberos IV credentials using the \fBkrb524d\fR service
-@MAN_KRB4@(unless the \fBkrb4_convert_524\fR option is also disabled).
-@MAN_KRB4@
 .IP "mappings = \fIregex1 regex2 [...]\fR"
 specifies that pam_krb5 should derive the user's principal name from the Unix
 user name by first checking if the user name matches \fBregex1\fR, and
@@ -277,8 +250,6 @@ default credential lifetime, in seconds.
 @MAN_AFS@Recognized strategy names include:
 @MAN_AFS@ \fIrxk5\fP  rxk5 (requires OpenAFS 1.6 or later)
 @MAN_AFS@ \fI2b\fP    rxkad "2b" (requires OpenAFS 1.2.8 or later)
-@MAN_AFS@@MAN_KRB4@ \fI524\fP   Kerberos 524 service + traditional Kerberos IV
-@MAN_AFS@@MAN_KRB4@ \fIv4\fP    traditional Kerberos IV
 @MAN_AFS@
 @MAN_TRACE@.IP "trace = \fItrue\fR|\fIfalse\fR|\fIservice [...]\fR"
 @MAN_TRACE@turns on libkrb5's library tracing.  Trace messages are
@@ -310,7 +281,6 @@ ccache if validation can't be performed using a keytab.  The default is
     ticket_lifetime = 36000
     renew_lifetime = 36000
     forwardable = true
-@MAN_KRB4@    krb4_convert = true
     validate = true
     ccache_dir = /var/tmp
     external = sshd

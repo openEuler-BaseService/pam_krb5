@@ -65,10 +65,6 @@ struct _pam_krb5_options {
 	int use_shmem;
 	int validate;
 	int validate_user_user;
-	int v4;
-	int v4_for_afs;
-	int v4_use_524;
-	int v4_use_as_req;
 	int warn;
 
 	krb5_deltat ticket_lifetime;

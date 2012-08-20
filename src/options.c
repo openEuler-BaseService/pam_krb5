@@ -50,13 +50,6 @@
 #endif
 
 #include KRB5_H
-#ifdef USE_KRB4
-#include KRB4_DES_H
-#include KRB4_KRB_H
-#ifdef KRB4_KRB_ERR_H
-#include KRB4_KRB_ERR_H
-#endif
-#endif
 
 #include "items.h"
 #include "log.h"
@@ -618,41 +611,6 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 	}
 
 	/* private option */
-	options->v4 = option_b(argc, argv,
-			       ctx, options->realm,
-			       service, NULL, NULL, "krb4_convert", 0);
-	if (options->debug && (options->v4 == 1)) {
-		debug("flag: krb4_convert");
-	}
-	if (options->debug && (options->v4 == 0)) {
-		debug("flag: no krb4_convert");
-	}
-
-	/* private option */
-	options->v4_use_524 = option_b(argc, argv,
-				       ctx, options->realm,
-				       service, NULL, NULL,
-				       "krb4_convert_524", 1);
-	if (options->debug && (options->v4_use_524 == 1)) {
-		debug("flag: krb4_convert_524");
-	}
-	if (options->debug && (options->v4_use_524 == 0)) {
-		debug("flag: no krb4_convert_524");
-	}
-
-	/* private option */
-	options->v4_use_as_req = option_b(argc, argv,
-				          ctx, options->realm,
-					  service, NULL, NULL,
-					  "krb4_use_as_req", 1);
-	if (options->debug && (options->v4_use_as_req == 1)) {
-		debug("flag: krb4_use_as_req");
-	}
-	if (options->debug && (options->v4_use_as_req == 0)) {
-		debug("flag: no krb4_use_as_req");
-	}
-
-	/* private option */
 	options->use_first_pass = 1;
 	options->use_second_pass = 1;
 	options->use_third_pass = 1;
@@ -929,19 +887,11 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 	 * running.  Set up to get tokens for the local cell and attempt to
 	 * get that cell's name if we're not ignoring AFS altogether. */
 	if (!options->ignore_afs) {
-		if (stat("/", &stroot) == 0) {
-			if (stat("/afs", &stafs) == 0) {
-				if (stroot.st_dev != stafs.st_dev) {
-					options->v4_for_afs = 1;
-				}
-			}
-		}
 		list = option_l(argc, argv, ctx, options->realm, "afs_cells",
 				"");
 		if ((list != NULL) && (list[0] != NULL)) {
 			int i;
 			char *p;
-			options->v4_for_afs = 1;
 			/* count the number of cells */
 			for (i = 0; list[i] != NULL; i++) {
 				continue;

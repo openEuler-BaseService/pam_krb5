@@ -46,14 +46,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include KRB5_H
-#ifdef USE_KRB4
-#include KRB4_DES_H
-#include KRB4_KRB_H
-#ifdef KRB4_KRB_ERR_H
-#include KRB4_KRB_ERR_H
-#endif
-#endif
 
 #include "init.h"
 #include "log.h"
@@ -65,7 +59,6 @@
 #include "tokens.h"
 #include "userinfo.h"
 #include "v5.h"
-#include "v4.h"
 #include "xstr.h"
 
 int
@@ -184,23 +177,6 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 				free(segname);
 			}
 		}
-#ifdef USE_KRB4
-		if ((stash->v4shm != -1) && (stash->v4shm_owner != -1)) {
-			if (options->debug) {
-				debug("removing v4 shared memory segment %d"
-				      " creator pid %ld",
-				      stash->v4shm, (long) stash->v4shm_owner);
-			}
-			_pam_krb5_shm_remove(stash->v4shm_owner, stash->v4shm,
-					     options->debug);
-			stash->v4shm = -1;
-			_pam_krb5_stash_shm4_name(options, user, &segname);
-			if (segname != NULL) {
-				pam_putenv(pamh, segname);
-				free(segname);
-			}
-		}
-#endif
 	}
 
 	/* If we don't have any credentials, then we're done. */
@@ -223,15 +199,7 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 	if ((i == PAM_SUCCESS) &&
 	    (options->ignore_afs == 0) &&
 	    tokens_useful()) {
-		if (stash->v4present) {
-			v4_save_for_tokens(ctx, stash, userinfo, options, NULL);
-		}
-
 		tokens_obtain(ctx, stash, options, userinfo, 1);
-
-		if (stash->v4present) {
-			v4_destroy(ctx, stash, options);
-		}
 	}
 
 	/* Create the user's credential cache, but only if we didn't pick them
@@ -270,30 +238,6 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 			stash->v5setenv = 1;
 		}
 	}
-
-#ifdef USE_KRB4
-	/* Keep track of where the v5 ccache is. */
-	if ((ccname == NULL) || (strlen(ccname) == 0)) {
-		ccname = pam_getenv(pamh, "KRB5CCNAME");
-	}
-	/* Only bother to create a v4 tktfile if there's a v5 ccache. */
-	if ((i == PAM_SUCCESS) && (stash->v4present) &&
-	    (ccname != NULL) && (strlen(ccname) > 0)) {
-		if (options->debug) {
-			debug("creating v4 ticket file for '%s'", user);
-		}
-		i = v4_save_for_user(ctx, stash, userinfo, options, &ccname);
-		if (i == PAM_SUCCESS) {
-			if (options->debug) {
-				debug("created v4 ticket file '%s' for "
-				      "'%s'", ccname, user);
-			}
-			sprintf(envstr, "KRBTKFILE=%s", ccname);
-			pam_putenv(pamh, envstr);
-			stash->v4setenv = 1;
-		}
-	}
-#endif
 
 	/* If we didn't create ccache files because we couldn't, just
 	 * pretend everything's fine. */
@@ -443,18 +387,6 @@ _pam_krb5_close_session(pam_handle_t *pamh, int flags,
 		}
 	}
 
-#ifdef USE_KRB4
-	if (stash->v4tktfiles != NULL) {
-		v4_destroy(ctx, stash, options);
-		if (stash->v4setenv) {
-			pam_putenv(pamh, "KRBTKFILE");
-			stash->v4setenv = 0;
-		}
-		if (options->debug) {
-			debug("destroyed v4 ticket file for '%s'", user);
-		}
-	}
-#endif
 	_pam_krb5_user_info_free(ctx, userinfo);
 	if (options->debug) {
 		debug("%s returning %d (%s)", caller,

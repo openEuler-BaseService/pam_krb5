@@ -15,16 +15,13 @@ pam_krb5 \- Kerberos 5 authentication
 .SH DESCRIPTION
 The pam_krb5.so module is designed to allow smooth integration of Kerberos 5
 password-checking for applications which use PAM.
-@NO_MAN_KRB4@It creates session-specific credential cache files.
-@MAN_KRB4@It creates session-specific credential cache files, and can obtain
-@MAN_KRB4@Kerberos IV credentials using a krb524 service.
+It creates session-specific credential caches.
 @MAN_AFS@If the system is an AFS client, it will also attempt to obtain tokens
 @MAN_AFS@for the local cell, the cell which contains the user's home directory,
 @MAN_AFS@and any explicitly-configured cells.
 
 When a user logs in, the module's authentication function performs a simple
 password check and, if possible, obtains Kerberos 5
-@MAN_KRB4@and Kerberos IV
 credentials, caching them for later use.  When the application requests
 initialization of credentials (or opens a session), the usual ticket files are
 created.  When the application subsequently requests deletion of credentials or
@@ -115,10 +112,7 @@ except for services in this list: "\fI@DEFAULT_NO_CRED_SESSION@\fR".
 .IP external=\fIsshd\fR
 tells pam_krb5.so to use Kerberos credentials provided by the calling
 application during session setup.
-@MAN_KRB4@This is most often useful for obtaining
-@MAN_KRB4@@MAN_AFS@AFS tokens or
-@MAN_KRB4@a krb4 ticket.
-@NO_MAN_KRB4@@MAN_AFS@This is most often useful for obtaining AFS tokens.
+@MAN_AFS@This is most often useful for obtaining AFS tokens.
 
 .IP forwardable
 tells pam_krb5.so that credentials it obtains should be forwardable.  This
@@ -151,25 +145,6 @@ name is expired or does not exist.
 tells pam_krb5.so the location of a keytab to use when validating
 credentials obtained from KDCs.
 
-@MAN_KRB4@.IP krb4_convert
-@MAN_KRB4@tells pam_krb5.so to obtain Kerberos IV credentials for users, in
-@MAN_KRB4@addition to Kerberos 5 credentials, using either a v4-capable KDC or
-@MAN_KRB4@a krb524 service.
-@MAN_KRB4@This option is poorly named.
-@MAN_KRB4@@MAN_AFS@This option is automatically enabled if AFS is detected.
-@MAN_KRB4@
-@MAN_KRB4@.IP krb4_convert_524
-@MAN_KRB4@tells pam_krb5.so to obtain Kerberos IV credentials for users using
-@MAN_KRB4@the krb524 service.  This option modifies the \fBkrb4_convert\fP
-@MAN_KRB4@option.  If disabled, pam_krb5 will only attempt
-@MAN_KRB4@to obtain Kerberos IV credentials using the KDC.
-@MAN_KRB4@
-@MAN_KRB4@.IP krb4_use_as_req
-@MAN_KRB4@tells pam_krb5.so to obtain Kerberos IV credentials for users using
-@MAN_KRB4@the KDC.  This option modifies the \fBkrb4_convert\fP
-@MAN_KRB4@option.  If disabled, pam_krb5 will only attempt
-@MAN_KRB4@to obtain Kerberos IV credentials using the krb524 service.
-@MAN_KRB4@
 .IP minimum_uid=\fI0\fR
 tells pam_krb5.so to ignore authentication attempts by users with
 UIDs below the specified number.
@@ -196,7 +171,7 @@ situations when a new password is called for.
 
 .IP no_user_check
 tells pam_krb5.so to not check if a user exists on the local system, to skip
-authorization checks using the user's .k5login file, and to create ccache files
+authorization checks using the user's .k5login file, and to create ccaches
 owned by the current process's UID.  This is useful for situations where a
 non-privileged server process needs to use Kerberized services on behalf of
 remote users who may not have local access.  Note that such a server should

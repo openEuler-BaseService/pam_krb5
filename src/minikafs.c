@@ -32,9 +32,8 @@
  */
 
  /*
-  * A miniature afslog implementation.  Requires a running krb524 server or a
-  * v4-capable KDC, or cells served by OpenAFS 1.2.8 or later in combination
-  * with MIT Kerberos 1.2.6 or later.
+  * A miniature afslog implementation.  Requires cells served by OpenAFS 1.2.8
+  * or later in combination with MIT Kerberos 1.2.6 or later.
   *
   * References:
   *   http://grand.central.org/numbers/pioctls.html
@@ -76,14 +75,6 @@
 #endif
  
 #include KRB5_H
-
-#ifdef USE_KRB4
-#include KRB4_DES_H
-#include KRB4_KRB_H
-#ifdef KRB4_KRB_ERR_H
-#include KRB4_KRB_ERR_H
-#endif
-#endif
 
 #include "init.h"
 #include "log.h"
@@ -578,20 +569,6 @@ minikafs_settoken(const void *ticket, uint32_t ticket_size,
 	return i;
 }
 
-#ifdef USE_KRB4
-/* Stuff the ticket and key from a v4 credentials structure into the kernel. */
-static int
-minikafs_4settoken(const char *cell, uid_t uid, uint32_t start, uint32_t end,
-		   CREDENTIALS *creds)
-{
-	return minikafs_settoken(creds->ticket_st.dat,
-				 creds->ticket_st.length,
-				 creds->kvno,
-				 creds->session,
-				 uid, start, end, 0, cell);
-}
-#endif
-
 /* Stuff the ticket and key from a v5 credentials structure into the kernel. */
 static int
 minikafs_5settoken(const char *cell, krb5_creds *creds, uid_t uid)
@@ -619,49 +596,6 @@ minikafs_unlog(void)
 {
 	return minikafs_pioctl(NULL, minikafs_pioctl_unlog, NULL);
 }
-
-#ifdef USE_KRB4
-/* Try to convert the v5 credentials to v4 credentials using the krb524 service
- * and then attempt to stuff the resulting v4 credentials into the kernel. */
-static int
-minikafs_5convert_and_log(krb5_context ctx, struct _pam_krb5_options *options,
-			  const char *cell, krb5_creds *creds, uid_t uid)
-{
-	CREDENTIALS v4creds;
-	int i, ret;
-	memset(&v4creds, 0, sizeof(v4creds));
-	i = -1;
-#if defined(HAVE_KRB5_524_CONVERT_CREDS)
-	i = krb5_524_convert_creds(ctx, creds, &v4creds);
-#else
-#if defined(HAVE_KRB524_CONVERT_CREDS_KDC)
-	i = krb524_convert_creds_kdc(ctx, creds, &v4creds);
-#endif
-#endif
-	if (i != 0) {
-		if (options->debug) {
-			debug("got error %d (%s) converting v5 creds to v4 for"
-			      " \"%s\"", i, v5_error_message(i), cell);
-		}
-		return i;
-	}
-	if (v4creds.kvno == (0x100 - 0x2b)) {
-		/* Probably a v5 enc_part blob, per the rxkad 2b proposal.  Do
-		 * nothing. */;
-	}
-	ret = minikafs_4settoken(cell, uid,
-				 creds->times.starttime, creds->times.endtime,
-				 &v4creds);
-	return ret;
-}
-#else
-static int
-minikafs_5convert_and_log(krb5_context ctx, struct _pam_krb5_options *options,
-			  const char *cell, krb5_creds *creds, uid_t uid)
-{
-	return -1;
-}
-#endif
 
 /* Ask the kernel which ciphers it supports for use with rxk5. */
 static int
@@ -832,15 +766,6 @@ minikafs_5log_with_principal(krb5_context ctx,
 				krb5_free_principal(ctx, client);
 				krb5_free_principal(ctx, server);
 				return 0;
-			} else
-			if (options->v4_use_524 &&
-			    minikafs_5convert_and_log(ctx, options, cell,
-						      &creds, uid) == 0) {
-				krb5_free_cred_contents(ctx, &creds);
-				v5_free_unparsed_name(ctx, unparsed_client);
-				krb5_free_principal(ctx, client);
-				krb5_free_principal(ctx, server);
-				return 0;
 			}
 			krb5_free_cred_contents(ctx, &creds);
 		}
@@ -868,15 +793,6 @@ minikafs_5log_with_principal(krb5_context ctx,
 			} else
 			if (use_v5_2b &&
 			    (minikafs_5settoken(cell, new_creds, uid) == 0)) {
-				krb5_free_creds(ctx, new_creds);
-				v5_free_unparsed_name(ctx, unparsed_client);
-				krb5_free_principal(ctx, client);
-				krb5_free_principal(ctx, server);
-				return 0;
-			} else
-			if (options->v4_use_524 &&
-			    minikafs_5convert_and_log(ctx, options, cell,
-						      new_creds, uid) == 0) {
 				krb5_free_creds(ctx, new_creds);
 				v5_free_unparsed_name(ctx, unparsed_client);
 				krb5_free_principal(ctx, client);
@@ -1147,242 +1063,6 @@ minikafs_5log(krb5_context context, krb5_ccache ccache,
 	return ret;
 }
 
-#ifdef USE_KRB4
-/* Try to set a token for the given cell using creds for the named principal. */
-static int
-minikafs_4log_with_principal(struct _pam_krb5_options *options,
-			     const char *cell,
-			     char *service, char *instance, char *realm,
-			     uid_t uid)
-{
-	CREDENTIALS creds;
-	uint32_t endtime;
-	int lifetime, ret;
-	char lrealm[PATH_MAX];
-
-	memset(&creds, 0, sizeof(creds));
-	lifetime = 255;
-	/* Get the lifetime from our TGT. */
-	if (krb_get_tf_realm(tkt_string(), lrealm) == 0) {
-		if (krb_get_cred(KRB_TICKET_GRANTING_TICKET, lrealm, lrealm,
-				 &creds) == 0) {
-			lifetime = creds.lifetime;
-		}
-	}
-	/* Read the credential from the ticket file. */
-	if (krb_get_cred(service, instance, realm, &creds) != 0) {
-		if ((ret = get_ad_tkt(service, instance, realm,
-				      lifetime)) != 0) {
-			if (options->debug) {
-				debug("got error %d (%s) obtaining v4 creds for"
-				      " \"%s\"", ret, v5_error_message(ret),
-				      cell);
-			}
-			return -1;
-		}
-		if (krb_get_cred(service, instance, realm, &creds) != 0) {
-			return -1;
-		}
-	}
-#ifdef HAVE_KRB_LIFE_TO_TIME
-	/* Convert the ticket lifetime of the v4 credentials into Unixy
-	 * lifetime, which is the X coordinate along a curve where Y is the
-	 * actual length.  Again, this is magic. */
-
-	endtime = krb_life_to_time(creds.issue_date, creds.lifetime);
-#else
-	/* No life-to-time function means we have to treat this as if we were
-	 * measuring life units in 5-minute increments.  Is this ever right for
-	 * AFS? */
-	endtime = creds.issue_date + (creds.lifetime * (5 * 60));
-#endif
-	ret = minikafs_4settoken(cell, uid, creds.issue_date, endtime, &creds);
-	return ret;
-}
-
-/* Try to obtain tokens for the named cell using the default ticket file and
- * configuration settings. */
-static int
-minikafs_4log(krb5_context context, struct _pam_krb5_options *options,
-	      const char *cell, const char *hint_principal, uid_t uid)
-{
-	int ret;
-	unsigned int i;
-	char localrealm[PATH_MAX], realm[PATH_MAX];
-	char service[PATH_MAX], instance[PATH_MAX];
-	char *base[] = {"afs", "afsx"}, *wcell;
-	krb5_context ctx;
-	krb5_principal principal;
-
-	/* Make sure we have a context. */
-	if (context == NULL) {
-		if (_pam_krb5_init_ctx(&ctx, 0, NULL) != 0) {
-			return -1;
-		}
-	} else {
-		ctx = context;
-	}
-
-	/* If we were given a principal name, try it. */
-	if ((hint_principal != NULL) && (strlen(hint_principal) > 0)) {
-		principal = NULL;
-		if (v5_parse_name(ctx, options,
-				  hint_principal, &principal) != 0) {
-			principal = NULL;
-		}
-		if ((principal == NULL) ||
-		    (krb5_524_conv_principal(ctx, principal,
-					     service, instance, realm) != 0)) {
-			memset(service, '\0', sizeof(service));
-		}
-		ret = -1;
-		if (strlen(service) > 0) {
-			if (options->debug) {
-				debug("attempting to obtain tokens for \"%s\" "
-				      "(\"%s\"(v5)->\"%s%s%s@%s\"(v4))",
-				      cell, hint_principal,
-				      service,
-				      (strlen(service) > 0) ? "." : "",
-				      instance,
-				      realm);
-			}
-			ret = minikafs_4log_with_principal(options, cell,
-							   service, instance,
-							   realm,
-							   uid);
-		}
-		if (principal != NULL) {
-			krb5_free_principal(ctx, principal);
-		}
-		if (ctx != context) {
-			krb5_free_context(ctx);
-		}
-		ctx = NULL;
-		if (ret == 0) {
-			return 0;
-		}
-	}
-
-	if (krb_get_lrealm(localrealm, 1) != 0) {
-		return -1;
-	}
-	if (minikafs_realm_of_cell_with_ctx(ctx, options, cell,
-					    realm, sizeof(realm)) != 0) {
-		strncpy(realm, cell, sizeof(realm));
-		realm[sizeof(realm) - 1] = '\0';
-		for (i = 0; i < sizeof(realm); i++) {
-			realm[i] = toupper(realm[i]);
-		}
-	}
-	wcell = xstrdup(cell);
-	if (wcell == NULL) {
-		return -1;
-	}
-
-	ret = -1;
-	for (i = 0; i < sizeof(base) / sizeof(base[0]); i++) {
-		/* If the realm name and cell name are similar, and use_null
-		 * was set, try the NULL instance. */
-		if ((strcasecmp(realm, cell) == 0) &&
-		    options->null_afs_first) {
-			if (options->debug) {
-				debug("attempting to obtain tokens for \"%s\" "
-				      "(\"%s@%s\")", cell, base[i], realm);
-			}
-			ret = minikafs_4log_with_principal(options, cell,
-							   base[i], "", realm,
-							   uid);
-		}
-		if (ret == 0) {
-			break;
-		}
-		/* Try the cell instance in its own realm. */
-		if (options->debug) {
-			debug("attempting to obtain tokens for \"%s\" "
-			      "(\"%s%s%s@%s\")", cell, base[i],
-			      (strlen(wcell) > 0) ? "." : "",
-			      wcell, realm);
-		}
-		ret = minikafs_4log_with_principal(options, cell,
-						   base[i], wcell, realm, uid);
-		if (ret == 0) {
-			break;
-		}
-		/* If the realm name and cell name are similar, and use_null
-		 * was not set, try the NULL instance. */
-		if ((strcasecmp(realm, cell) == 0) &&
-		    !options->null_afs_first) {
-			if (options->debug) {
-				debug("attempting to obtain tokens for \"%s\" "
-				      "(\"%s@%s\")", cell, base[i], realm);
-			}
-			ret = minikafs_4log_with_principal(options, cell,
-							   base[i], "", realm,
-							   uid);
-		}
-		if (ret == 0) {
-			break;
-		}
-		/* Repeat with the local realm. */
-		if (strcmp(realm, localrealm) != 0) {
-			/* If the realm name and cell name are similar, and
-			 * null_afs was set, try the NULL instance. */
-			if ((strcasecmp(localrealm, cell) == 0) &&
-			    options->null_afs_first) {
-				if (options->debug) {
-					debug("attempting to obtain tokens for "
-					      "\"%s\" (\"%s@%s\")",
-					      cell, base[i], localrealm);
-				}
-				ret = minikafs_4log_with_principal(options,
-								   cell,
-								   base[i], "",
-								   localrealm,
-								   uid);
-			}
-			if (ret == 0) {
-				break;
-			}
-			/* Try the cell instance in its own realm. */
-			if (options->debug) {
-				debug("attempting to obtain tokens for \"%s\" "
-				      "(\"%s%s%s@%s\")", cell, base[i],
-				      (strlen(wcell) > 0) ? "." : "",
-				      wcell, localrealm);
-			}
-			ret = minikafs_4log_with_principal(options, cell,
-							   base[i], wcell,
-							   localrealm, uid);
-			if (ret == 0) {
-				break;
-			}
-			/* If the realm name and cell name are similar, and
-			 * null_afs was not set, try the NULL instance. */
-			if ((strcasecmp(localrealm, cell) == 0) &&
-			    !options->null_afs_first) {
-				if (options->debug) {
-					debug("attempting to obtain tokens for "
-					      "\"%s\" (\"%s@%s\")",
-					      cell, base[i], localrealm);
-				}
-				ret = minikafs_4log_with_principal(options,
-								   cell,
-								   base[i], "",
-								   localrealm,
-								   uid);
-			}
-			if (ret == 0) {
-				break;
-			}
-		}
-	}
-
-	xstrfree(wcell);
-
-	return ret;
-}
-#endif
-
 /* Try to get tokens for the named cell using every available mechanism. */
 int
 minikafs_log(krb5_context ctx, krb5_ccache ccache,
@@ -1400,34 +1080,6 @@ minikafs_log(krb5_context ctx, krb5_ccache ccache,
 	for (method = 0; method < n_methods; method++) {
 		i = -1;
 		switch (methods[method]) {
-#ifdef USE_KRB4
-		case MINIKAFS_METHOD_V4:
-			if (options->debug) {
-				debug("trying with v4 ticket");
-			}
-			i = minikafs_4log(ctx, options, cell,
-					  hint_principal, uid);
-			if (i != 0) {
-				if (options->debug) {
-					debug("v4 afslog failed to \"%s\"",
-					      cell);
-				}
-			}
-			break;
-		case MINIKAFS_METHOD_V5_V4:
-			if (options->debug) {
-				debug("trying with v5 ticket and 524 service");
-			}
-			i = minikafs_5log(ctx, ccache, options, cell,
-					  hint_principal, uid, 0, 0);
-			if (i != 0) {
-				if (options->debug) {
-					debug("v5 with 524 service afslog "
-					      "failed to \"%s\"", cell);
-				}
-			}
-			break;
-#endif
 		case MINIKAFS_METHOD_V5_2B:
 			if (options->debug) {
 				debug("trying with v5 ticket (2b)");

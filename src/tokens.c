@@ -49,13 +49,6 @@
 #endif
 
 #include KRB5_H
-#ifdef USE_KRB4
-#include KRB4_DES_H
-#include KRB4_KRB_H
-#ifdef KRB4_KRB_ERR_H
-#include KRB4_KRB_ERR_H
-#endif
-#endif
 
 #include "log.h"
 #include "minikafs.h"
@@ -103,10 +96,6 @@ tokens_obtain(krb5_context context,
 	const struct {
 		const char *name; int method;
 	} method_names[] = {
-#ifdef USE_KRB4
-		{"v4", MINIKAFS_METHOD_V4},
-		{"524", MINIKAFS_METHOD_V5_V4},
-#endif
 		{"2b", MINIKAFS_METHOD_V5_2B},
 		{"rxk5", MINIKAFS_METHOD_RXK5}
 	};
@@ -141,13 +130,10 @@ tokens_obtain(krb5_context context,
 		stash->afspag = 1;
 	}
 
-	/* If options say we should neither use the 524 service nor contact the
-	 * KDC to get v4 creds, then we need to try to use 2b-style tokens,
-	 * because we'll never get v4-formatted credentials for use with AFS. */
-	use_2b = (!options->v4_use_524) && (!options->v4_use_as_req);
-#ifndef USE_KRB4
+	/* We need to try to use 2b-style tokens, because we'll never get
+	 * v4-formatted credentials for use with AFS. */
 	use_2b = 1;
-#endif
+
 	/* Parse the token_strategy option. */
 	methods = malloc((strlen(options->token_strategy) + 1) * sizeof(int));
 	if (methods == NULL) {
