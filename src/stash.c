@@ -1014,86 +1014,85 @@ _pam_krb5_stash_clone_v5(krb5_context ctx,
 	char *filename, *newname;
 	int fd;
 	krb5_ccache nccache;
-	{
-		/* Straight-up copy.  Open a new ccache using the desired
-		 * pattern.  If it's a FILE: ccache, use mkstemp() to try to
-		 * pre-create it.  In any case, if it's going to have the same
-		 * name as the current ccache, append a "_" in a feeble attempt
-		 * at making its name unique. */
-		nccache = NULL;
-		newname = v5_user_info_subst(ctx, user, userinfo, options,
-					     options->ccname_template);
-		newname = _pam_krb5_stash_guess_unique_ccname(stash, options,
-							      newname, "_");
-		if (newname == NULL) {
-			return;
-		}
-		if (strncmp(newname, "FILE:", 5) == 0) {
-			fd = mkstemp(newname + 5);
-		} else {
-			fd = -1;
-		}
-		if (krb5_cc_resolve(ctx, newname, &nccache) != 0) {
-			warn("error creating ccache \"%s\"", newname);
-			if (fd != -1) {
-				close(fd);
-				unlink(newname + 5);
-			}
-			free(newname);
-			return;
-		}
+
+	/* Straight-up copy.  Open a new ccache using the desired
+	 * pattern.  If it's a FILE: ccache, use mkstemp() to try to
+	 * pre-create it.  In any case, if it's going to have the same
+	 * name as the current ccache, append a "_" in a feeble attempt
+	 * at making its name unique. */
+	nccache = NULL;
+	newname = v5_user_info_subst(ctx, user, userinfo, options,
+				     options->ccname_template);
+	newname = _pam_krb5_stash_guess_unique_ccname(stash, options,
+						      newname, "_");
+	if (newname == NULL) {
+		return;
+	}
+	if (strncmp(newname, "FILE:", 5) == 0) {
+		fd = mkstemp(newname + 5);
+	} else {
+		fd = -1;
+	}
+	if (krb5_cc_resolve(ctx, newname, &nccache) != 0) {
+		warn("error creating ccache \"%s\"", newname);
 		if (fd != -1) {
 			close(fd);
+			unlink(newname + 5);
 		}
-		if (v5_cc_copy(ctx, stash->v5ccache, &nccache) == 0) {
-			if (options->debug) {
-				debug("copied credentials from \"%s:%s\" to "
-				      "\"%s\" for the user",
-				      krb5_cc_get_type(ctx, stash->v5ccache),
-				      krb5_cc_get_name(ctx, stash->v5ccache),
-				      newname);
-			}
-			krb5_cc_close(ctx, nccache);
-			_pam_krb5_stash_push_v5(ctx, stash, options, newname);
-			/* If the destination is a file, re-clone it to get the
-			 * permissions right. */
-			if (strncmp(options->ccname_template,
-				    "FILE:", 5) == 0) {
-				filename = xstrdup(stash->v5ccnames->name + 5);
-				if (filename != NULL) {
-					_pam_krb5_stash_clone_file(&filename, uid, gid);
-					newname = malloc(strlen(filename) + 6);
-					if (newname != NULL) {
-						sprintf(newname, "FILE:%s", filename);
-						xstrfree(stash->v5ccnames->name);
-						stash->v5ccnames->name = newname;
-					}
-					xstrfree(filename);
-				}
-			} else
-			/* If the new ccache is a keyring, give ownership away
-			 * to the designated user. */
-			if (strncmp(options->ccname_template,
-				    "KEYRING:", 8) == 0) {
-				if (_pam_krb5_stash_chown_keyring(ctx, stash,
-								  options, uid,
-								  gid) != 0) {
-					warn("error setting permissions on "
-					     "ccache \"%s\" for the user: %s",
-					     stash->v5ccnames->name,
-					     v5_error_message(errno));
-				}
-			}
-		} else {
-			warn("error copying credentials from \"%s:%s\" to "
-			     "\"%s\" for the user",
-			     krb5_cc_get_type(ctx, stash->v5ccache),
-			     krb5_cc_get_name(ctx, stash->v5ccache),
-			     newname);
-			krb5_cc_destroy(ctx, nccache);
-		}
-		xstrfree(newname);
+		free(newname);
+		return;
 	}
+	if (fd != -1) {
+		close(fd);
+	}
+	if (v5_cc_copy(ctx, stash->v5ccache, &nccache) == 0) {
+		if (options->debug) {
+			debug("copied credentials from \"%s:%s\" to "
+			      "\"%s\" for the user",
+			      krb5_cc_get_type(ctx, stash->v5ccache),
+			      krb5_cc_get_name(ctx, stash->v5ccache),
+			      newname);
+		}
+		krb5_cc_close(ctx, nccache);
+		_pam_krb5_stash_push_v5(ctx, stash, options, newname);
+		/* If the destination is a file, re-clone it to get the
+		 * permissions right. */
+		if (strncmp(options->ccname_template,
+			    "FILE:", 5) == 0) {
+			filename = xstrdup(stash->v5ccnames->name + 5);
+			if (filename != NULL) {
+				_pam_krb5_stash_clone_file(&filename, uid, gid);
+				newname = malloc(strlen(filename) + 6);
+				if (newname != NULL) {
+					sprintf(newname, "FILE:%s", filename);
+					xstrfree(stash->v5ccnames->name);
+					stash->v5ccnames->name = newname;
+				}
+				xstrfree(filename);
+			}
+		} else
+		/* If the new ccache is a keyring, give ownership away
+		 * to the designated user. */
+		if (strncmp(options->ccname_template,
+			    "KEYRING:", 8) == 0) {
+			if (_pam_krb5_stash_chown_keyring(ctx, stash,
+							  options, uid,
+							  gid) != 0) {
+				warn("error setting permissions on "
+				     "ccache \"%s\" for the user: %s",
+				     stash->v5ccnames->name,
+				     v5_error_message(errno));
+			}
+		}
+	} else {
+		warn("error copying credentials from \"%s:%s\" to "
+		     "\"%s\" for the user",
+		     krb5_cc_get_type(ctx, stash->v5ccache),
+		     krb5_cc_get_name(ctx, stash->v5ccache),
+		     newname);
+		krb5_cc_destroy(ctx, nccache);
+	}
+	xstrfree(newname);
 }
 
 #ifdef USE_KRB4
