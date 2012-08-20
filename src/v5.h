@@ -57,12 +57,6 @@ int v5_get_creds(krb5_context ctx,
 		 int *expired,
 		 int *result);
 
-int v5_get_creds_etype(krb5_context ctx,
-		       struct _pam_krb5_user_info *userinfo,
-		       struct _pam_krb5_options *options,
-		       krb5_creds *current_creds, int wanted_etype,
-		       krb5_creds **target_creds);
-
 int v5_save_for_user(krb5_context ctx,
 		     struct _pam_krb5_stash *stash,
 		     const char *user,
