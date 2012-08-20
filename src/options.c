@@ -1,5 +1,5 @@
 /*
- * Copyright 2003,2004,2005,2006,2007,2008,2009,2010,2011 Red Hat, Inc.
+ * Copyright 2003,2004,2005,2006,2007,2008,2009,2010,2011,2012 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1038,6 +1038,8 @@ _pam_krb5_options_free(pam_handle_t *pamh, krb5_context ctx,
 	options->keytab = NULL;
 	free_s(options->pwhelp);
 	options->pwhelp = NULL;
+	free_s(options->token_strategy);
+	options->token_strategy = NULL;
 	free_s(options->realm);
 	options->realm = NULL;
 	free_l(options->hosts);
