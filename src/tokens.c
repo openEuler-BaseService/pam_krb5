@@ -1,5 +1,5 @@
 /*
- * Copyright 2003,2004,2005,2006,2007,2008 Red Hat, Inc.
+ * Copyright 2003,2004,2005,2006,2007,2008,2012 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -99,7 +99,6 @@ tokens_obtain(krb5_context context,
 	     lnk[LINE_MAX];
 	struct stat st;
 	char ccname[PATH_MAX];
-	krb5_ccache ccache;
 	uid_t uid;
 	const struct {
 		const char *name; int method;
@@ -170,19 +169,6 @@ tokens_obtain(krb5_context context,
 		p = q + strspn(q, ",");
 	}
 
-	/* Open the ccache. */
-	memset(&ccache, 0, sizeof(ccache));
-	snprintf(ccname, sizeof(ccname), "MEMORY:_pam_krb5_token_s_%s-%d",
-		 info->unparsed_name, counter++);
-	if (stash &&
-	    (v5_creds_check_initialized(context, &stash->v5creds) == 0) &&
-	    (krb5_cc_resolve(context, ccname, &ccache) == 0) &&
-	    (krb5_cc_initialize(context, ccache, stash->v5creds.client) == 0) &&
-	    (krb5_cc_store_cred(context, ccache, &stash->v5creds) == 0)) {
-	} else {
-		memset(&ccache, 0, sizeof(ccache));
-	}
-
 	/* Get the name of the local cell.  The root.afs volume which is
 	 * mounted in /afs is mounted from the local cell, so we'll use that
 	 * to determine which cell is considered the local cell.  Avoid getting
@@ -195,7 +181,7 @@ tokens_obtain(krb5_context context,
 			debug("obtaining tokens for local cell '%s'",
 			      localcell);
 		}
-		ret = minikafs_log(context, ccache, options,
+		ret = minikafs_log(context, stash->v5ccache, options,
 				   localcell, NULL, uid,
 				   methods, n_methods);
 		if (ret != 0) {
@@ -245,7 +231,7 @@ tokens_obtain(krb5_context context,
 		if (options->debug) {
 			debug("obtaining tokens for home cell '%s'", homecell);
 		}
-		ret = minikafs_log(context, ccache, options,
+		ret = minikafs_log(context, stash->v5ccache, options,
 				   homecell, NULL, uid,
 				   methods, n_methods);
 		if (ret != 0) {
@@ -284,7 +270,7 @@ tokens_obtain(krb5_context context,
 				      options->afs_cells[i].cell);
 			}
 		}
-		ret = minikafs_log(context, ccache, options,
+		ret = minikafs_log(context, stash->v5ccache, options,
 				   options->afs_cells[i].cell,
 				   options->afs_cells[i].principal_name, uid,
 				   methods, n_methods);
@@ -303,10 +289,6 @@ tokens_obtain(krb5_context context,
 				}
 			}
 		}
-	}
-
-	if (ccache != NULL) {
-		krb5_cc_destroy(context, ccache);
 	}
 
 	/* Suppress all errors. */

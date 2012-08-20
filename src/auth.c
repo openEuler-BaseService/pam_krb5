@@ -1,5 +1,5 @@
 /*
- * Copyright 2003,2004,2005,2006,2007,2008,2009,2010 Red Hat, Inc.
+ * Copyright 2003,2004,2005,2006,2007,2008,2009,2010,2012 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -245,7 +245,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 				}
 			}
 			retval = v5_get_creds(ctx, pamh,
-					      &stash->v5creds, user, userinfo,
+					      &stash->v5ccache, user, userinfo,
 					      options,
 					      KRB5_TGS_NAME,
 					      first_pass,
@@ -275,23 +275,17 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 			    (options->ignore_afs == 0) &&
 			    (options->tokens == 1) &&
 			    tokens_useful()) {
-				v5_save_for_tokens(ctx, stash, user, userinfo,
-						   options, NULL);
 				v4_save_for_tokens(ctx, stash, userinfo,
 						   options, NULL);
 				tokens_obtain(ctx, stash, options, userinfo, 1);
 				v4_destroy(ctx, stash, options);
-				v5_destroy(ctx, stash, options);
 			}
 		} else {
 			if ((retval == PAM_SUCCESS) &&
 			    (options->ignore_afs == 0) &&
 			    (options->tokens == 1) &&
 			    tokens_useful()) {
-				v5_save_for_tokens(ctx, stash, user, userinfo,
-						   options, NULL);
 				tokens_obtain(ctx, stash, options, userinfo, 1);
-				v5_destroy(ctx, stash, options);
 			}
 		}
 	}
@@ -340,7 +334,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 				}
 			}
 			retval = v5_get_creds(ctx, pamh,
-					      &stash->v5creds, user, userinfo,
+					      &stash->v5ccache, user, userinfo,
 					      options,
 					      KRB5_TGS_NAME,
 					      second_pass,
@@ -370,23 +364,17 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 			    (options->ignore_afs == 0) &&
 			    (options->tokens == 1) &&
 			    tokens_useful()) {
-				v5_save_for_tokens(ctx, stash, user, userinfo,
-						   options, NULL);
 				v4_save_for_tokens(ctx, stash, userinfo,
 						   options, NULL);
 				tokens_obtain(ctx, stash, options, userinfo, 1);
 				v4_destroy(ctx, stash, options);
-				v5_destroy(ctx, stash, options);
 			}
 		} else {
 			if ((retval == PAM_SUCCESS) &&
 			    (options->ignore_afs == 0) &&
 			    (options->tokens == 1) &&
 			    tokens_useful()) {
-				v5_save_for_tokens(ctx, stash, user, userinfo,
-						   options, NULL);
 				tokens_obtain(ctx, stash, options, userinfo, 1);
-				v5_destroy(ctx, stash, options);
 			}
 		}
 	}
@@ -403,7 +391,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 			      "allowing libkrb5 to prompt for more", user);
 		}
 		retval = v5_get_creds(ctx, pamh,
-				      &stash->v5creds, user, userinfo,
+				      &stash->v5ccache, user, userinfo,
 				      options,
 				      KRB5_TGS_NAME,
 				      NULL,
@@ -431,23 +419,17 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 			    (options->ignore_afs == 0) &&
 			    (options->tokens == 1) &&
 			    tokens_useful()) {
-				v5_save_for_tokens(ctx, stash, user, userinfo,
-						   options, NULL);
 				v4_save_for_tokens(ctx, stash, userinfo,
 						   options, NULL);
 				tokens_obtain(ctx, stash, options, userinfo, 1);
 				v4_destroy(ctx, stash, options);
-				v5_destroy(ctx, stash, options);
 			}
 		} else {
 			if ((retval == PAM_SUCCESS) &&
 			    (options->ignore_afs == 0) &&
 			    (options->tokens == 1) &&
 			    tokens_useful()) {
-				v5_save_for_tokens(ctx, stash, user, userinfo,
-						   options, NULL);
 				tokens_obtain(ctx, stash, options, userinfo, 1);
-				v5_destroy(ctx, stash, options);
 			}
 		}
 	}

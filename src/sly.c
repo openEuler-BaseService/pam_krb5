@@ -160,10 +160,10 @@ sly_v5(krb5_context ctx, const char *v5ccname,
 		/* Now, attempt to assume the desired uid/gid pair.  Note that
 		 * if we're not root, this is allowed to fail. */
 		if ((userinfo->gid != getgid()) || (userinfo->gid != getegid())) {
-			setregid(userinfo->gid, userinfo->gid);
+			i = setregid(userinfo->gid, userinfo->gid);
 		}
 		if ((userinfo->uid != getuid()) || (userinfo->uid != geteuid())) {
-			setreuid(userinfo->uid, userinfo->uid);
+			i = setreuid(userinfo->uid, userinfo->uid);
 		}
 		/* Store the user's credentials. */
 		ccache = NULL;
@@ -183,10 +183,7 @@ sly_v5(krb5_context ctx, const char *v5ccname,
 				}
 				krb5_free_principal(ctx, princ);
 			}
-			i = krb5_cc_initialize(ctx, ccache, userinfo->principal_name);
-			if (i == 0) {
-				i = krb5_cc_store_cred(ctx, ccache, &stash->v5creds);
-			}
+			i = v5_cc_copy(ctx, stash->v5ccache, &ccache);
 			krb5_cc_close(ctx, ccache);
 		}
 		result = (i == 0) ? PAM_SUCCESS : PAM_SERVICE_ERR;
@@ -366,7 +363,7 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 	uid = options->user_check ? userinfo->uid : getuid();
 	gid = options->user_check ? userinfo->gid : getgid();
 
-	if (v5_creds_check_initialized(ctx, &stash->v5creds) == 0) {
+	if (v5_ccache_has_tgt(ctx, stash->v5ccache, NULL) == 0) {
 		if (v5filename != NULL) {
 			/* Check the permissions on the ccache file. */
 			if ((access(v5filename, R_OK | W_OK) == 0) &&

@@ -1,5 +1,5 @@
 /*
- * Copyright 2003,2004,2005,2006,2007,2009,2011 Red Hat, Inc.
+ * Copyright 2003,2004,2005,2006,2007,2009,2011,2012 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -139,7 +139,9 @@ _pam_krb5_stash_cleanup(pam_handle_t *pamh, void *data, int error)
 {
 	struct _pam_krb5_stash *stash = data;
 	struct _pam_krb5_ccname_list *node;
-	krb5_free_cred_contents(stash->v5ctx, &stash->v5creds);
+	if (stash->v5ccache != NULL) {
+		krb5_cc_destroy(stash->v5ctx, stash->v5ccache);
+	}
 	free(stash->key);
 	while (stash->v5ccnames != NULL) {
 		if (stash->v5ccnames->name != NULL) {
@@ -173,9 +175,7 @@ _pam_krb5_stash_shm_read_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 	unsigned char *blob_creds;
 	ssize_t blob_creds_size;
 	int fd;
-	krb5_context ctx;
 	krb5_ccache ccache;
-	krb5_cc_cursor cursor;
 
 	/* Sanity checks. */
 	if (blob_size < sizeof(int) * 3) {
@@ -214,32 +214,9 @@ _pam_krb5_stash_shm_read_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 		return;
 	}
 
-	/* Read the first credential from the file. */
-	if (stash->v5ctx != NULL) {
-		ctx = stash->v5ctx;
-	} else {
-		if (_pam_krb5_init_ctx(&ctx, 0, NULL) != PAM_SUCCESS) {
-			warn("error initializing kerberos");
-			unlink(tktfile + 5);
-			close(fd);
-			return;
-		}
-	}
-	if (krb5_cc_resolve(ctx, tktfile, &ccache) != 0) {
+	/* Read the credentials from the file. */
+	if (krb5_cc_resolve(stash->v5ctx, tktfile, &ccache) != 0) {
 		warn("error creating ccache in \"%s\"", tktfile + 5);
-		if (ctx != stash->v5ctx) {
-			krb5_free_context(ctx);
-		}
-		unlink(tktfile + 5);
-		close(fd);
-		return;
-	}
-	if (krb5_cc_start_seq_get(ctx, ccache, &cursor) != 0) {
-		warn("error iterating through ccache in \"%s\"", tktfile + 5);
-		krb5_cc_close(ctx, ccache);
-		if (ctx != stash->v5ctx) {
-			krb5_free_context(ctx);
-		}
 		unlink(tktfile + 5);
 		close(fd);
 		return;
@@ -247,7 +224,7 @@ _pam_krb5_stash_shm_read_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 
 	/* If we have an error reading the credential, there's nothing we can
 	 * do at this point to recover from it. */
-	if (krb5_cc_next_cred(ctx, ccache, &cursor, &stash->v5creds) == 0) {
+	if (v5_cc_copy(stash->v5ctx, ccache, &stash->v5ccache) == 0) {
 		/* Read other variables. */
 		stash->v5attempted = ((int*)blob)[1];
 		stash->v5result = ((int*)blob)[2];
@@ -259,11 +236,7 @@ _pam_krb5_stash_shm_read_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 	}
 
 	/* Clean up. */
-	krb5_cc_end_seq_get(ctx, ccache, &cursor);
-	krb5_cc_destroy(ctx, ccache);
-	if (ctx != stash->v5ctx) {
-		krb5_free_context(ctx);
-	}
+	krb5_cc_destroy(stash->v5ctx, ccache);
 	close(fd);
 }
 
@@ -279,7 +252,6 @@ _pam_krb5_stash_shm_write_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 	int *intblob;
 	size_t blob_size;
 	int fd, key;
-	krb5_context ctx;
 	krb5_ccache ccache;
 
 	/* Sanity check. */
@@ -298,44 +270,17 @@ _pam_krb5_stash_shm_write_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 	}
 
 	/* Write the credentials to that file. */
-	if (stash->v5ctx != NULL) {
-		ctx = stash->v5ctx;
-	} else {
-		if (_pam_krb5_init_ctx(&ctx, 0, NULL) != PAM_SUCCESS) {
-			warn("error initializing kerberos");
-			unlink(variable + 5);
-			close(fd);
-			return;
-		}
-	}
-	if (krb5_cc_resolve(ctx, variable, &ccache) != 0) {
+	if (krb5_cc_resolve(stash->v5ctx, variable, &ccache) != 0) {
 		warn("error opening credential cache file \"%s\" for writing",
 		     variable + 5);
-		if (ctx != stash->v5ctx) {
-			krb5_free_context(ctx);
-		}
 		unlink(variable + 5);
 		close(fd);
 		return;
 	}
-	if (krb5_cc_initialize(ctx, ccache, stash->v5creds.client) != 0) {
-		warn("error initializing credential cache file \"%s\"",
-		     variable + 5);
-		krb5_cc_close(ctx, ccache);
-		if (ctx != stash->v5ctx) {
-			krb5_free_context(ctx);
-		}
-		unlink(variable + 5);
-		close(fd);
-		return;
-	}
-	if (krb5_cc_store_cred(ctx, ccache, &stash->v5creds) != 0) {
+	if (v5_cc_copy(stash->v5ctx, stash->v5ccache, &ccache) != 0) {
 		warn("error writing to credential cache file \"%s\"",
 		     variable + 5);
-		krb5_cc_close(ctx, ccache);
-		if (ctx != stash->v5ctx) {
-			krb5_free_context(ctx);
-		}
+		krb5_cc_close(stash->v5ctx, ccache);
 		unlink(variable + 5);
 		close(fd);
 		return;
@@ -357,10 +302,7 @@ _pam_krb5_stash_shm_write_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 	}
 
 	/* Clean up. */
-	krb5_cc_destroy(ctx, ccache);
-	if (ctx != stash->v5ctx) {
-		krb5_free_context(ctx);
-	}
+	krb5_cc_destroy(stash->v5ctx, ccache);
 	close(fd);
 
 	if (key != -1) {
@@ -595,10 +537,8 @@ _pam_krb5_stash_external_read(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 			      struct _pam_krb5_user_info *userinfo,
 			      struct _pam_krb5_options *options)
 {
-	krb5_context ctx;
 	krb5_ccache ccache;
 	krb5_principal princ;
-	krb5_cc_cursor cursor;
 	int i, read_default_principal;
 	const char *ccname;
 	char *unparsed;
@@ -612,35 +552,27 @@ _pam_krb5_stash_external_read(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 		if (options->debug) {
 			debug("KRB5CCNAME is set to \"%s\"", ccname);
 		}
-		if (stash->v5ctx != NULL) {
-			ctx = stash->v5ctx;
-		} else {
-			if (_pam_krb5_init_ctx(&ctx, 0, NULL) != PAM_SUCCESS) {
-				warn("error initializing kerberos");
-				return;
-			}
-		}
 		ccache = NULL;
 		read_default_principal = 0;
-		i = krb5_cc_resolve(ctx, ccname, &ccache);
+		i = krb5_cc_resolve(stash->v5ctx, ccname, &ccache);
 		if (i != 0) {
 			warn("error opening ccache \"%s\", ignoring", ccname);
 		} else {
 			princ = NULL;
 			/* Read the name of the default principal from the
 			 * ccache. */
-			if (krb5_cc_get_principal(ctx, ccache, &princ) != 0) {
+			if (krb5_cc_get_principal(stash->v5ctx, ccache, &princ) != 0) {
 				warn("error reading ccache's default principal name");
 			} else {
 				read_default_principal++;
 				/* If they're different, update the userinfo
 				 * structure with the new principal name. */
-				if (krb5_principal_compare(ctx, princ,
+				if (krb5_principal_compare(stash->v5ctx, princ,
 							   userinfo->principal_name)) {
 					if (options->debug) {
 						debug("ccache matches current principal");
 					}
-					krb5_free_principal(ctx, princ);
+					krb5_free_principal(stash->v5ctx, princ);
 					princ = NULL;
 				} else {
 					if (options->debug) {
@@ -648,9 +580,9 @@ _pam_krb5_stash_external_read(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 					}
 					/* Unparse the name. */
 					unparsed = NULL;
-					if (krb5_unparse_name(ctx, princ, &unparsed) != 0) {
+					if (krb5_unparse_name(stash->v5ctx, princ, &unparsed) != 0) {
 						warn("error unparsing ccache's default principal name, discarding");
-						krb5_free_principal(ctx, princ);
+						krb5_free_principal(stash->v5ctx, princ);
 						princ = NULL;
 					} else {
 						if (options->debug) {
@@ -659,60 +591,36 @@ _pam_krb5_stash_external_read(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 							      unparsed);
 						}
 						/* Save the unparsed name. */
-						v5_free_unparsed_name(ctx, userinfo->unparsed_name);
+						v5_free_unparsed_name(stash->v5ctx, userinfo->unparsed_name);
 						userinfo->unparsed_name = unparsed;
 						unparsed = NULL;
 						/* Save the principal name. */
-						krb5_free_principal(ctx, userinfo->principal_name);
+						krb5_free_principal(stash->v5ctx, userinfo->principal_name);
 						userinfo->principal_name = princ;
 						princ = NULL;
 					}
 				}
 			}
 			/* If we were able to read the default principal, then
-			 * search for a TGT. */
-			cursor = NULL;
-			if (read_default_principal &&
-			    (krb5_cc_start_seq_get(ctx, ccache, &cursor) == 0)) {
-				memset(&stash->v5creds, 0, sizeof(stash->v5creds));
-				while (krb5_cc_next_cred(ctx, ccache, &cursor,
-							 &stash->v5creds) == 0) {
-					unparsed = NULL;
-					i = krb5_unparse_name(ctx,
-							      stash->v5creds.server,
-							      &unparsed);
-					if ((i == 0) && (unparsed != NULL)) {
-						i = strcspn(unparsed,
-							    PAM_KRB5_PRINCIPAL_COMPONENT_SEPARATORS);
-						if ((i == KRB5_TGS_NAME_SIZE) &&
-						    (strncmp(unparsed,
-							     KRB5_TGS_NAME,
-							     KRB5_TGS_NAME_SIZE) == 0)) {
-							if (options->debug) {
-								debug("using credential for \"%s\" as a v5 TGT", unparsed);
-							}
-							v5_free_unparsed_name(ctx, unparsed);
-							unparsed = NULL;
-							stash->v5attempted = 1;
-							stash->v5result = 0;
-							stash->v5external = 1;
-							break;
-						}
-						if (options->debug) {
-							debug("not using credential for \"%s\" as a v5 TGT", unparsed);
-						}
-						v5_free_unparsed_name(ctx, unparsed);
-						unparsed = NULL;
+			 * copy the ccache's contents. */
+			if (read_default_principal) {
+				i = v5_cc_copy(stash->v5ctx, ccache, &stash->v5ccache);
+				if (i != 0) {
+					if (options->debug) {
+						debug("failed to copy "
+						      "credentials from \"%s\" "
+						      "for \"%s\"",
+						      ccname, unparsed);
 					}
-					krb5_free_cred_contents(ctx, &stash->v5creds);
-					memset(&stash->v5creds, 0, sizeof(stash->v5creds));
+				} else {
+					if (options->debug) {
+						debug("copied credentials from "
+						      "\"%s\" for \"%s\"",
+						      ccname, unparsed);
+					}
 				}
-				krb5_cc_end_seq_get(ctx, ccache, &cursor);
 			}
-			krb5_cc_close(ctx, ccache);
-		}
-		if (ctx != stash->v5ctx) {
-			krb5_free_context(ctx);
+			krb5_cc_close(stash->v5ctx, ccache);
 		}
 	} else {
 		if (options->debug) {
@@ -793,15 +701,21 @@ _pam_krb5_stash_get(pam_handle_t *pamh, const char *user,
 		return stash;
 	}
 
+	if (_pam_krb5_init_ctx(&ctx, 0, NULL) != PAM_SUCCESS) {
+		warn("error initializing kerberos");
+		return NULL;
+	}
+
 	stash = malloc(sizeof(struct _pam_krb5_stash));
 	if (stash == NULL) {
 	    	free(key);
+		krb5_free_context(ctx);
 		return NULL;
 	}
 	memset(stash, 0, sizeof(struct _pam_krb5_stash));
 
 	stash->key = key;
-	stash->v5ctx = NULL;
+	stash->v5ctx = ctx;
 	stash->v5attempted = 0;
 	stash->v5result = KRB5KRB_ERR_GENERIC;
 	stash->v5expired = 0;
@@ -810,7 +724,7 @@ _pam_krb5_stash_get(pam_handle_t *pamh, const char *user,
 	stash->v5setenv = 0;
 	stash->v5shm = -1;
 	stash->v5shm_owner = -1;
-	memset(&stash->v5creds, 0, sizeof(stash->v5creds));
+	stash->v5ccache = NULL;
 	stash->v4present = 0;
 #ifdef USE_KRB4
 	memset(&stash->v4creds, 0, sizeof(stash->v4creds));
@@ -828,11 +742,9 @@ _pam_krb5_stash_get(pam_handle_t *pamh, const char *user,
 	     ((stash->v5external == 1) && (stash->v5result == 0)))) {
 		_pam_krb5_stash_external_read(pamh, stash, user, info, options);
 		if (stash->v5attempted && (stash->v5result == 0)) {
-			if ((_pam_krb5_init_ctx(&ctx, 0, NULL) == 0) &&
-			    ((options->v4 == 1) || (options->v4_for_afs == 1))) {
+			if ((options->v4 == 1) || (options->v4_for_afs == 1)) {
 				v4_get_creds(ctx, pamh, stash, info,
 					     options, NULL, NULL);
-				krb5_free_context(ctx);
 			}
 		}
 	}
@@ -1101,46 +1013,19 @@ _pam_krb5_stash_clone_v5(krb5_context ctx,
 {
 	char *filename, *newname;
 	int fd;
-	krb5_ccache occache, nccache;
-	if (stash->v5ccnames == NULL) {
-		return;
-	}
-	if ((strncmp(stash->v5ccnames->name, "FILE:", 5) == 0) &&
-	    (strncmp(options->ccname_template, "FILE:", 5) == 0)) {
-		/* If the source and destinations are files, do the helper
-		 * dance to get the context right. */
-		filename = xstrdup(stash->v5ccnames->name + 5);
-		if (filename != NULL) {
-			_pam_krb5_stash_clone_file(&filename, uid, gid);
-			newname = malloc(strlen(filename) + 6);
-			if (newname != NULL) {
-				sprintf(newname, "FILE:%s", filename);
-				xstrfree(stash->v5ccnames->name);
-				stash->v5ccnames->name = newname;
-			}
-			xstrfree(filename);
-		}
-	} else {
-		/* Straight-up copy. */
-		occache = NULL;
-		if (krb5_cc_resolve(ctx, stash->v5ccnames->name,
-				    &occache) != 0) {
-			warn("error creating ccache \"%s\"",
-			     stash->v5ccnames->name);
-			return;
-		}
-		/* Open a new ccache using the desired pattern.  If it's a
-		 * FILE: ccache, use mkstemp() to try to pre-create it.  In any
-		 * case, if it's going to have the same name as the current
-		 * ccache, append a "_" in a feeble attempt at making its name
-		 * unique. */
+	krb5_ccache nccache;
+	{
+		/* Straight-up copy.  Open a new ccache using the desired
+		 * pattern.  If it's a FILE: ccache, use mkstemp() to try to
+		 * pre-create it.  In any case, if it's going to have the same
+		 * name as the current ccache, append a "_" in a feeble attempt
+		 * at making its name unique. */
 		nccache = NULL;
 		newname = v5_user_info_subst(ctx, user, userinfo, options,
 					     options->ccname_template);
 		newname = _pam_krb5_stash_guess_unique_ccname(stash, options,
 							      newname, "_");
 		if (newname == NULL) {
-			krb5_cc_close(ctx, occache);
 			return;
 		}
 		if (strncmp(newname, "FILE:", 5) == 0) {
@@ -1155,33 +1040,38 @@ _pam_krb5_stash_clone_v5(krb5_context ctx,
 				unlink(newname + 5);
 			}
 			free(newname);
-			krb5_cc_close(ctx, occache);
 			return;
 		}
 		if (fd != -1) {
 			close(fd);
 		}
-		if (v5_cc_copy(ctx, occache, &nccache) == 0) {
+		if (v5_cc_copy(ctx, stash->v5ccache, &nccache) == 0) {
 			if (options->debug) {
-				debug("copied credentials from \"%s\" to "
-				      "\"%s\" for the user, destroying \"%s\"",
-				      stash->v5ccnames->name, newname,
-				      stash->v5ccnames->name);
+				debug("copied credentials from \"%s:%s\" to "
+				      "\"%s\" for the user",
+				      krb5_cc_get_type(ctx, stash->v5ccache),
+				      krb5_cc_get_name(ctx, stash->v5ccache),
+				      newname);
 			}
-			xstrfree(stash->v5ccnames->name);
-			stash->v5ccnames->name = newname;
 			krb5_cc_close(ctx, nccache);
-			krb5_cc_destroy(ctx, occache);
-			/* If the new source and the destination are files,
-			 * re-clone it to get the permissions right. */
+			_pam_krb5_stash_push_v5(ctx, stash, options, newname);
+			/* If the destination is a file, re-clone it to get the
+			 * permissions right. */
 			if (strncmp(options->ccname_template,
 				    "FILE:", 5) == 0) {
-				_pam_krb5_stash_clone_v5(ctx, stash,
-							 options,
-							 user, userinfo,
-							 uid, gid);
+				filename = xstrdup(stash->v5ccnames->name + 5);
+				if (filename != NULL) {
+					_pam_krb5_stash_clone_file(&filename, uid, gid);
+					newname = malloc(strlen(filename) + 6);
+					if (newname != NULL) {
+						sprintf(newname, "FILE:%s", filename);
+						xstrfree(stash->v5ccnames->name);
+						stash->v5ccnames->name = newname;
+					}
+					xstrfree(filename);
+				}
 			} else
-			/* If the new source is a keyring, give ownership away
+			/* If the new ccache is a keyring, give ownership away
 			 * to the designated user. */
 			if (strncmp(options->ccname_template,
 				    "KEYRING:", 8) == 0) {
@@ -1191,17 +1081,18 @@ _pam_krb5_stash_clone_v5(krb5_context ctx,
 					warn("error setting permissions on "
 					     "ccache \"%s\" for the user: %s",
 					     stash->v5ccnames->name,
-					     error_message(errno));
+					     v5_error_message(errno));
 				}
 			}
 		} else {
-			warn("error copying credentials from \"%s\" to "
-			     "\"%s\" for the user", stash->v5ccnames->name,
+			warn("error copying credentials from \"%s:%s\" to "
+			     "\"%s\" for the user",
+			     krb5_cc_get_type(ctx, stash->v5ccache),
+			     krb5_cc_get_name(ctx, stash->v5ccache),
 			     newname);
 			krb5_cc_destroy(ctx, nccache);
-			krb5_cc_close(ctx, occache);
-			xstrfree(newname);
 		}
+		xstrfree(newname);
 	}
 }
 
@@ -1273,7 +1164,7 @@ _pam_krb5_stash_pop(krb5_context ctx, struct _pam_krb5_ccname_list **list)
 #endif
 					warn("error accessing ccache \"%s\" "
 					     "for removal: %s", node->name,
-					     error_message(i));
+					     v5_error_message(i));
 					return -1;
 				} else {
 					i = krb5_cc_destroy(ctx, ccache);
@@ -1286,7 +1177,7 @@ _pam_krb5_stash_pop(krb5_context ctx, struct _pam_krb5_ccname_list **list)
 					} else {
 						warn("error removing ccache "
 						     "\"%s\": %s", node->name,
-						     error_message(i));
+						     v5_error_message(i));
 						return -1;
 					}
 				}

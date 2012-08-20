@@ -79,21 +79,21 @@ main(int argc, const char **argv)
 	ctx = NULL;
 	ret = krb5_init_context(&ctx);
 	if (ret != 0) {
-		crit("error initializing Kerberos: %s", error_message(ret));
+		crit("error initializing Kerberos: %s", v5_error_message(ret));
 		return ret;
 	}
 
 	ccache = NULL;
 	ret = krb5_cc_default(ctx, &ccache);
 	if (ret != 0) {
-		crit("error resolving ccache: %s", error_message(ret));
+		crit("error resolving ccache: %s", v5_error_message(ret));
 		return ret;
 	}
 
 	keytab = NULL;
 	ret = krb5_kt_default(ctx, &keytab);
 	if (ret != 0) {
-		crit("error resolving keytab: %s", error_message(ret));
+		crit("error resolving keytab: %s", v5_error_message(ret));
 		return ret;
 	}
 
@@ -102,7 +102,7 @@ main(int argc, const char **argv)
 	ret = krb5_cc_get_principal(ctx, ccache, &mcreds.client);
 	if (ret != 0) {
 		crit("error reading client name from ccache: %s",
-		     error_message(ret));
+		     v5_error_message(ret));
 		return ret;
 	}
 	ret = krb5_build_principal_ext(ctx, &mcreds.server,
@@ -115,13 +115,13 @@ main(int argc, const char **argv)
 				       0);
 	if (ret != 0) {
 		crit("error building ticket granting server name: %s",
-		     error_message(ret));
+		     v5_error_message(ret));
 		return ret;
 	}
 
 	ret = krb5_cc_retrieve_cred(ctx, ccache, 0, &mcreds, &creds);
 	if (ret != 0) {
-		crit("error reading ccache: %s", error_message(ret));
+		crit("error reading ccache: %s", v5_error_message(ret));
 		return ret;
 	}
 	krb5_cc_close(ctx, ccache);
@@ -131,7 +131,7 @@ main(int argc, const char **argv)
 				     server, keytab, NULL,
 				     &opts);
 	if (ret != 0) {
-		crit("error verifying creds: %s", error_message(ret));
+		crit("error verifying creds: %s", v5_error_message(ret));
 	} else {
 		printf("OK\n");
 	}

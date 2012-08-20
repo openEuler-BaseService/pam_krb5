@@ -139,15 +139,13 @@ _pam_krb5_kuserok(krb5_context ctx,
 		/* Now, attempt to assume the desired uid/gid pair.  Note that
 		 * if we're not root, this is allowed to fail. */
 		if ((gid != getgid()) || (gid != getegid())) {
-			setregid(gid, gid);
+			i = setregid(gid, gid);
 		}
 		if ((uid != getuid()) || (uid != geteuid())) {
-			setreuid(uid, uid);
+			i = setreuid(uid, uid);
 		}
 		/* Try to get tokens. */
 		if ((options->ignore_afs == 0) && tokens_useful()) {
-			v5_save_for_tokens(ctx, stash, user, userinfo,
-					   options, NULL);
 			if (stash->v4present) {
 				v4_save_for_tokens(ctx, stash, userinfo,
 						   options, NULL);
@@ -186,7 +184,7 @@ _pam_krb5_kuserok(krb5_context ctx,
 				if (options->debug) {
 					debug("krb5_aname_to_localname "
 					      "failed: %s",
-					      error_message(err));
+					      v5_error_message(err));
 				}
 			} else {
 				if (strcmp(localname, user) == 0) {
@@ -214,7 +212,6 @@ _pam_krb5_kuserok(krb5_context ctx,
 			if (stash->v4present) {
 				v4_destroy(ctx, stash, options);
 			}
-			v5_destroy(ctx, stash, options);
 		}
 		result = (allowed == 1);
 		_pam_krb5_write_with_retry(outpipe[1], &result, 1);

@@ -77,6 +77,7 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 	PAM_KRB5_MAYBE_CONST char *user;
 	char prompt[LINE_MAX], prompt2[LINE_MAX], *password, *password2;
 	krb5_context ctx;
+	krb5_creds pwc_creds;
 	struct _pam_krb5_options *options;
 	struct _pam_krb5_user_info *userinfo;
 	struct _pam_krb5_stash *stash;
@@ -259,7 +260,7 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 			/* We have a password, so try to obtain initial
 			 * credentials using the password. */
 			i = v5_get_creds(ctx, pamh,
-					 &stash->v5creds, user, userinfo,
+					 &stash->v5ccache, user, userinfo,
 					 options,
 					 PASSWORD_CHANGE_PRINCIPAL,
 					 password, tmp_gicopts,
@@ -314,7 +315,7 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 				}
 			}
 			i = v5_get_creds(ctx, pamh,
-					 &stash->v5creds, user, userinfo,
+					 &stash->v5ccache, user, userinfo,
 					 options,
 					 PASSWORD_CHANGE_PRINCIPAL,
 					 password, tmp_gicopts,
@@ -344,7 +345,7 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 				      "allowing libkrb5 to prompt", user);
 			}
 			i = v5_get_creds(ctx, pamh,
-					 &stash->v5creds, user, userinfo,
+					 &stash->v5ccache, user, userinfo,
 					 options,
 					 PASSWORD_CHANGE_PRINCIPAL,
 					 NULL, tmp_gicopts,
@@ -381,7 +382,7 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 
 		/* If our preliminary check succeeded, then we'll have
 		 * password-changing credentials. */
-		if (v5_creds_check_initialized_pwc(ctx, &stash->v5creds) == 0) {
+		if (v5_ccache_has_pwc(ctx, stash->v5ccache, NULL) == 0) {
 			/* The new password (if it's already been requested by
 			 * a previously-called module) is stored as the
 			 * PAM_AUTHTOK item.  The old one is stored as the
@@ -451,11 +452,11 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 
 		/* We have the new password, so attempt to change the user's
 		 * password using the previously-acquired password-changing
-		 * magic ticket. */
+		 * ticket. */
+		memset(&pwc_creds, 0, sizeof(pwc_creds));
 		if ((password != NULL) &&
 		    (retval == PAM_AUTHTOK_ERR) &&
-		    (v5_creds_check_initialized_pwc(ctx,
-						    &stash->v5creds) == 0)) {
+		    (v5_ccache_has_pwc(ctx, stash->v5ccache, &pwc_creds) == 0)) {
 			int result_code;
 			krb5_data result_code_string, result_string;
 			result_code = -1;
@@ -463,10 +464,11 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 			result_string.data = NULL;
 			result_code_string.length = 0;
 			result_code_string.data = NULL;
-			i = v5_change_password(ctx, &stash->v5creds, password,
+			i = v5_change_password(ctx, &pwc_creds, password,
 					       &result_code,
 					       &result_code_string,
 					       &result_string);
+			krb5_free_cred_contents(ctx, &pwc_creds);
 			if ((i == 0) && (result_code == 0)) {
 				notice("password changed for %s",
 				       userinfo->unparsed_name);
@@ -512,7 +514,7 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 				      "password for '%s'",
 				      userinfo->unparsed_name);
 			}
-			i = v5_get_creds(ctx, pamh, &stash->v5creds,
+			i = v5_get_creds(ctx, pamh, &stash->v5ccache,
 					 user, userinfo, options,
 					 KRB5_TGS_NAME,
 					 password, gic_options,

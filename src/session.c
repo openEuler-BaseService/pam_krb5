@@ -223,7 +223,6 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 	if ((i == PAM_SUCCESS) &&
 	    (options->ignore_afs == 0) &&
 	    tokens_useful()) {
-		v5_save_for_tokens(ctx, stash, user, userinfo, options, NULL);
 		if (stash->v4present) {
 			v4_save_for_tokens(ctx, stash, userinfo, options, NULL);
 		}
@@ -233,7 +232,6 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 		if (stash->v4present) {
 			v4_destroy(ctx, stash, options);
 		}
-		v5_destroy(ctx, stash, options);
 	}
 
 	/* Create the user's credential cache, but only if we didn't pick them
@@ -300,7 +298,7 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 	/* If we didn't create ccache files because we couldn't, just
 	 * pretend everything's fine. */
 	if ((i != PAM_SUCCESS) &&
-	    (v5_creds_check_initialized(ctx, &stash->v5creds) != 0)) {
+	    (v5_ccache_has_tgt(ctx, stash->v5ccache, NULL) != 0)) {
 		i = PAM_SUCCESS;
 	}
 

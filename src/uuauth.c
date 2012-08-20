@@ -97,14 +97,14 @@ main(int argc, const char **argv)
 	ctx = NULL;
 	ret = _pam_krb5_init_ctx(&ctx, argc, argv);
 	if (ret != 0) {
-		crit("Error initializing Kerberos: %s.", error_message(ret));
+		crit("Error initializing Kerberos: %s.", v5_error_message(ret));
 		return ret;
 	}
 
 	ccache = NULL;
 	ret = krb5_cc_default(ctx, &ccache);
 	if (ret != 0) {
-		crit("Error opening ccache: %s.", error_message(ret));
+		crit("Error opening ccache: %s.", v5_error_message(ret));
 		return ret;
 	}
 	occache = NULL;
@@ -112,7 +112,7 @@ main(int argc, const char **argv)
 		ret = krb5_cc_resolve(ctx, argv[1], &occache);
 		if (ret != 0) {
 			crit("Error opening ccache %s: %s.",
-			     argv[1], error_message(ret));
+			     argv[1], v5_error_message(ret));
 			return ret;
 		}
 	} else {
@@ -123,7 +123,7 @@ main(int argc, const char **argv)
 	ret = krb5_cc_get_principal(ctx, ccache, &client);
 	if (ret != 0) {
 		crit("Error determining client principal name: %s.",
-		     error_message(ret));
+		     v5_error_message(ret));
 		return ret;
 	}
 
@@ -138,7 +138,7 @@ main(int argc, const char **argv)
 				       0);
 	if (ret != 0) {
 		crit("Error building TGS principal name: %s.",
-		     error_message(ret));
+		     v5_error_message(ret));
 		return ret;
 	}
 
@@ -150,7 +150,7 @@ main(int argc, const char **argv)
 	ret = krb5_cc_retrieve_cred(ctx, occache, 0, &mcreds, &ocreds);
 	if (ret != 0) {
 		crit("Error getting old creds: %s.",
-		     error_message(ret));
+		     v5_error_message(ret));
 		return ret;
 	}
 	key = v5_creds_get_key(&ocreds);
@@ -162,7 +162,7 @@ main(int argc, const char **argv)
 				   &mcreds, &creds);
 	if (ret != 0) {
 		crit("Error getting creds: %s.",
-		     error_message(ret));
+		     v5_error_message(ret));
 		return ret;
 	}
 
@@ -170,7 +170,7 @@ main(int argc, const char **argv)
 	ret = krb5_auth_con_init(ctx, &auth_con);
 	if (ret != 0) {
 		crit("Error initializing auth context: %s.",
-		     error_message(ret));
+		     v5_error_message(ret));
 		return ret;
 	}
 
@@ -179,7 +179,7 @@ main(int argc, const char **argv)
 				   NULL, creds, &req);
 	if (ret != 0) {
 		crit("Error generating AP request: %s.",
-		     error_message(ret));
+		     v5_error_message(ret));
 		return ret;
 	}
 
@@ -187,7 +187,7 @@ main(int argc, const char **argv)
 	ret = krb5_auth_con_init(ctx, &oauth_con);
 	if (ret != 0) {
 		crit("Error initializing auth context: %s.",
-		     error_message(ret));
+		     v5_error_message(ret));
 		return ret;
 	}
 	ret = v5_auth_con_setuserkey(ctx, oauth_con, key);
@@ -197,7 +197,7 @@ main(int argc, const char **argv)
 	ret = krb5_rd_req(ctx, &oauth_con, &req, NULL, NULL, &flags, &ticket);
 	if (ret != 0) {
 		crit("Error receiving AP request: %s.",
-		     error_message(ret));
+		     v5_error_message(ret));
 		return ret;
 	}
 	if (krb5_principal_compare(ctx, v5_ticket_get_client(ticket),

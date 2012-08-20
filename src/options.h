@@ -1,5 +1,5 @@
 /*
- * Copyright 2003,2005,2006,2008,2009,2010,2011 Red Hat, Inc.
+ * Copyright 2003,2005,2006,2008,2009,2010,2011,2012 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions

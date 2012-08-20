@@ -1,5 +1,5 @@
 /*
- * Copyright 2003,2004,2005,2006,2007,2008,2009,2010,2011 Red Hat, Inc.
+ * Copyright 2003,2004,2005,2006,2007,2008,2009,2010,2011,2012 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -829,7 +829,7 @@ v5_validate_using_ccache(krb5_context ctx, krb5_creds *creds,
 	ccache = NULL;
 	ret = krb5_cc_default(ctx, &ccache);
 	if (ret != 0) {
-		warn("error opening default ccache: %s", error_message(ret));
+		warn("error opening default ccache: %s", v5_error_message(ret));
 		return PAM_SERVICE_ERR;
 	}
 
@@ -841,7 +841,7 @@ v5_validate_using_ccache(krb5_context ctx, krb5_creds *creds,
 				   &mcreds, &ocreds);
 	if (ret != 0) {
 		warn("error getting cached creds for the same client/server "
-		     "pair: %s", error_message(ret));
+		     "pair: %s", v5_error_message(ret));
 		krb5_cc_close(ctx, ccache);
 		return PAM_SERVICE_ERR;
 	}
@@ -869,14 +869,14 @@ v5_validate_using_ccache(krb5_context ctx, krb5_creds *creds,
 	ret = krb5_cc_resolve(ctx, ccname, &ccache);
 	if (ret != 0) {
 		warn("internal error creating in-memory ccache: %s",
-		     error_message(ret));
+		     v5_error_message(ret));
 		krb5_free_creds(ctx, ocreds);
 		return PAM_SERVICE_ERR;
 	}
 	ret = krb5_cc_initialize(ctx, ccache, creds->client);
 	if (ret != 0) {
 		warn("internal error initializing in-memory ccache: %s",
-		     error_message(ret));
+		     v5_error_message(ret));
 		krb5_cc_destroy(ctx, ccache);
 		krb5_free_creds(ctx, ocreds);
 		return PAM_SERVICE_ERR;
@@ -884,7 +884,7 @@ v5_validate_using_ccache(krb5_context ctx, krb5_creds *creds,
 	ret = krb5_cc_store_cred(ctx, ccache, creds);
 	if (ret != 0) {
 		warn("internal error storing creds to in-memory ccache: %s",
-		     error_message(ret));
+		     v5_error_message(ret));
 		krb5_cc_destroy(ctx, ccache);
 		krb5_free_creds(ctx, ocreds);
 		return PAM_SERVICE_ERR;
@@ -901,10 +901,10 @@ v5_validate_using_ccache(krb5_context ctx, krb5_creds *creds,
 				   &mcreds, &ucreds);
 	if (ret != 0) {
 		warn("error obtaining user-to-user creds to '%s': %s",
-		     userinfo->unparsed_name, error_message(ret));
+		     userinfo->unparsed_name, v5_error_message(ret));
 		notice("TGT failed verification using previously-obtained "
 		       "credentials in '%s': %s", krb5_cc_default_name(ctx),
-		       error_message(ret));
+		       v5_error_message(ret));
 		krb5_cc_destroy(ctx, ccache);
 		krb5_free_creds(ctx, ocreds);
 		return PAM_AUTH_ERR;
@@ -917,7 +917,7 @@ v5_validate_using_ccache(krb5_context ctx, krb5_creds *creds,
 	ret = krb5_auth_con_init(ctx, &auth_con);
 	if (ret != 0) {
 		warn("error initializing auth context: %s",
-		     error_message(ret));
+		     v5_error_message(ret));
 		krb5_free_creds(ctx, ucreds);
 		krb5_free_creds(ctx, ocreds);
 		return PAM_SERVICE_ERR;
@@ -931,10 +931,10 @@ v5_validate_using_ccache(krb5_context ctx, krb5_creds *creds,
 				   NULL, ucreds, &req);
 	if (ret != 0) {
 		warn("error generating user-to-user AP request to '%s': %s",
-		     userinfo->unparsed_name, error_message(ret));
+		     userinfo->unparsed_name, v5_error_message(ret));
 		notice("TGT failed verification using previously-obtained "
 		       "credentials in '%s': %s", krb5_cc_default_name(ctx),
-		       error_message(ret));
+		       v5_error_message(ret));
 		krb5_auth_con_free(ctx, auth_con);
 		krb5_free_creds(ctx, ucreds);
 		krb5_free_creds(ctx, ocreds);
@@ -949,7 +949,7 @@ v5_validate_using_ccache(krb5_context ctx, krb5_creds *creds,
 	ret = krb5_auth_con_init(ctx, &auth_con);
 	if (ret != 0) {
 		warn("error initializing auth context: %s",
-		     error_message(ret));
+		     v5_error_message(ret));
 		krb5_free_data_contents(ctx, &req);
 		krb5_free_creds(ctx, ocreds);
 		return PAM_SERVICE_ERR;
@@ -959,7 +959,7 @@ v5_validate_using_ccache(krb5_context ctx, krb5_creds *creds,
 	krb5_free_creds(ctx, ocreds);
 	if (ret != 0) {
 		warn("error setting up to receive user-to-user AP request: %s",
-		     error_message(ret));
+		     v5_error_message(ret));
 		krb5_free_data_contents(ctx, &req);
 		krb5_auth_con_free(ctx, auth_con);
 		return PAM_SERVICE_ERR;
@@ -972,10 +972,10 @@ v5_validate_using_ccache(krb5_context ctx, krb5_creds *creds,
 	krb5_free_data_contents(ctx, &req);
 	if (ret != 0) {
 		warn("error receiving user-to-user AP request: %s",
-		     error_message(ret));
+		     v5_error_message(ret));
 		notice("TGT failed verification using previously-obtained "
 		       "credentials in '%s': %s", krb5_cc_default_name(ctx),
-		       error_message(ret));
+		       v5_error_message(ret));
 		krb5_auth_con_free(ctx, auth_con);
 		return PAM_AUTH_ERR;
 	}
@@ -1203,7 +1203,8 @@ v5_select_keytab_service(krb5_context ctx, krb5_creds *creds,
 }
 
 static int
-v5_validate_using_keytab(krb5_context ctx, krb5_creds *creds,
+v5_validate_using_keytab(krb5_context ctx,
+			 krb5_creds *creds, krb5_ccache ccache,
 			 const struct _pam_krb5_options *options, int *krberr)
 {
 	int i;
@@ -1241,7 +1242,7 @@ v5_validate_using_keytab(krb5_context ctx, krb5_creds *creds,
 	 * have some idea of what the service's name is, and that we can read
 	 * the key. */
 	krb5_verify_init_creds_opt_init(&opt);
-	i = krb5_verify_init_creds(ctx, creds, princ, keytab, NULL, &opt);
+	i = krb5_verify_init_creds(ctx, creds, princ, keytab, &ccache, &opt);
 	*krberr = i;
 	if (keytab != NULL) {
 		krb5_kt_close(ctx, keytab);
@@ -1274,7 +1275,7 @@ v5_validate_using_keytab(krb5_context ctx, krb5_creds *creds,
 }
 
 static int
-v5_validate(krb5_context ctx, krb5_creds *creds,
+v5_validate(krb5_context ctx, krb5_creds *creds, krb5_ccache ccache,
 	    struct _pam_krb5_user_info *userinfo,
 	    const struct _pam_krb5_options *options)
 {
@@ -1282,7 +1283,7 @@ v5_validate(krb5_context ctx, krb5_creds *creds,
 	/* Obtain creds for a service for which we have keys in the keytab and
 	 * then just authenticate to it. */
 	krberr = 0;
-	ret = v5_validate_using_keytab(ctx, creds, options, &krberr);
+	ret = v5_validate_using_keytab(ctx, creds, ccache, options, &krberr);
 	switch (ret) {
 	case PAM_AUTH_ERR:
 		switch (krberr) {
@@ -1323,7 +1324,7 @@ v5_validate(krb5_context ctx, krb5_creds *creds,
 int
 v5_get_creds(krb5_context ctx,
 	     pam_handle_t *pamh,
-	     krb5_creds *creds,
+	     krb5_ccache *ccache,
 	     const char *user,
 	     struct _pam_krb5_user_info *userinfo,
 	     struct _pam_krb5_options *options,
@@ -1347,13 +1348,20 @@ v5_get_creds(krb5_context ctx,
 	struct _pam_krb5_prompter_data prompter_data;
 	struct _pam_krb5_perms *saved_perms;
 	krb5_principal service_principal;
-	krb5_creds tmpcreds;
-	krb5_ccache ccache;
+	krb5_creds creds;
 	krb5_get_init_creds_opt *tmp_gicopts;
+	char ccname[LINE_MAX];
 
 	/* In case we already have creds, get rid of them. */
-	krb5_free_cred_contents(ctx, creds);
-	memset(creds, 0, sizeof(*creds));
+	if (*ccache != NULL) {
+		krb5_cc_destroy(ctx, *ccache);
+		*ccache = NULL;
+	}
+	snprintf(ccname, sizeof(ccname), "MEMORY:%p", ccache);
+	if (krb5_cc_resolve(ctx, ccname, ccache) != 0) {
+		return PAM_SERVICE_ERR;
+	}
+	memset(&creds, 0, sizeof(creds));
 
 	/* Check some string lengths. */
 	if (strchr(userinfo->unparsed_name, '@') != NULL) {
@@ -1465,8 +1473,11 @@ v5_get_creds(krb5_context ctx,
 		}
 	}
 #endif
+#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_OUT_CCACHE
+	krb5_get_init_creds_opt_set_out_ccache(ctx, gic_options, *ccache);
+#endif
 	i = krb5_get_init_creds_password(ctx,
-					 creds,
+					 &creds,
 					 userinfo->principal_name,
 					 password,
 					 prompter,
@@ -1485,14 +1496,20 @@ v5_get_creds(krb5_context ctx,
 	/* Interpret the return code. */
 	switch (i) {
 	case 0:
-		/* Flat-out success.  Validate the TGT if it's actually a TGT,
-		 * and if we can. */
+		/* Flat-out success.  Initialize the ccache, store the creds to
+		 * it, and validate the TGT if it's actually a TGT, if we can. */
+		if (v5_ccache_has_tgt(ctx, *ccache, NULL) != 0) {
+			krb5_cc_initialize(ctx, *ccache,
+					   userinfo->principal_name);
+			krb5_cc_store_cred(ctx, *ccache, &creds);
+		}
 		if ((options->validate == 1) &&
 		    (strcmp(service, KRB5_TGS_NAME) == 0)) {
 			if (options->debug) {
 				debug("validating credentials");
 			}
-			switch (v5_validate(ctx, creds, userinfo, options)) {
+			switch (v5_validate(ctx, &creds, *ccache,
+					    userinfo, options)) {
 			case PAM_AUTH_ERR:
 				return PAM_AUTH_ERR;
 				break;
@@ -1536,7 +1553,7 @@ v5_get_creds(krb5_context ctx,
 		prompter_data.previous_password = password;
 		prompter_data.options = options;
 		prompter_data.userinfo = userinfo;
-		memset(&tmpcreds, 0, sizeof(tmpcreds));
+		memset(&creds, 0, sizeof(creds));
 		if (options->debug && options->debug_sensitive) {
 			debug("attempting with password=%s%s%s",
 			      password ? "\"" : "",
@@ -1555,7 +1572,7 @@ v5_get_creds(krb5_context ctx,
 			tmp_gicopts = NULL;
 		}
 		i = krb5_get_init_creds_password(ctx,
-						 &tmpcreds,
+						 &creds,
 						 userinfo->principal_name,
 						 password,
 						 prompter,
@@ -1564,7 +1581,7 @@ v5_get_creds(krb5_context ctx,
 						 realm_service,
 						 tmp_gicopts);
 		v5_free_get_init_creds_opt(ctx, tmp_gicopts);
-		krb5_free_cred_contents(ctx, &tmpcreds);
+		krb5_free_cred_contents(ctx, &creds);
 		switch (i) {
 		case 0:
 			/* Got password-changing creds, so warn about the
@@ -1602,79 +1619,6 @@ v5_get_creds(krb5_context ctx,
 	}
 }
 
-static int
-v5_save(krb5_context ctx,
-	struct _pam_krb5_stash *stash,
-	const char *user,
-	struct _pam_krb5_user_info *userinfo,
-	struct _pam_krb5_options *options,
-	const char **ret_ccname,
-	int for_user)
-{
-	char ccname[PATH_MAX];
-	krb5_ccache ccache;
-	static int counter = 0;
-
-	if (ret_ccname != NULL) {
-		*ret_ccname = NULL;
-	}
-
-	/* Ensure that we have credentials for saving. */
-	if (v5_creds_check_initialized(ctx, &stash->v5creds) != 0) {
-		if (options->debug) {
-			debug("credentials not initialized");
-		}
-		return KRB5KRB_ERR_GENERIC;
-	}
-
-	/* Derive the ccache name from the supplied template. */
-	snprintf(ccname, sizeof(ccname), "MEMORY:_pam_krb5_tmp_s_%s-%d",
-		 userinfo->unparsed_name, counter++);
-	if (options->debug) {
-		debug("saving v5 credentials to '%s' for internal use", ccname);
-	}
-	/* Create an in-memory structure and then open the file.  One of two
-	 * things will happen here.  Either libkrb5 will just use the file, and
-	 * we're safer because it wouldn't have used O_EXCL to do so, or it
-	 * will nuke the file and reopen it with O_EXCL.  In the latter case,
-	 * the descriptor we have will become useless, so we don't actually use
-	 * it for anything. */
-	if (krb5_cc_resolve(ctx, ccname, &ccache) != 0) {
-		warn("error resolving ccache '%s'", ccname);
-		return PAM_SERVICE_ERR;
-	}
-	if (krb5_cc_initialize(ctx, ccache, userinfo->principal_name) != 0) {
-		warn("error initializing ccache '%s'", ccname);
-		krb5_cc_destroy(ctx, ccache);
-		return PAM_SERVICE_ERR;
-	}
-	if (krb5_cc_store_cred(ctx, ccache, &stash->v5creds) != 0) {
-		warn("error storing credentials in ccache '%s'", ccname);
-		krb5_cc_destroy(ctx, ccache);
-		return PAM_SERVICE_ERR;
-	}
-	/* If we got to here, we succeeded. */
-	krb5_cc_close(ctx, ccache);
-	/* Save the new ccache name in the stash, and optionally return it to
-	 * the caller. */
-	if (_pam_krb5_stash_push_v5(ctx, stash, options, ccname) == 0) {
-		/* Generate a *new* ccache with the same contents as this
-		 * one, but for the user's use, and destroy this one. */
-		if (for_user) {
-			_pam_krb5_stash_clone_v5(ctx, stash, options,
-						 user, userinfo,
-						 options->user_check ?
-						 userinfo->uid : getuid(),
-						 options->user_check ?
-						 userinfo->gid : getgid());
-		}
-		if (ret_ccname != NULL) {
-			*ret_ccname = stash->v5ccnames->name;
-		}
-	}
-	return PAM_SUCCESS;
-}
-
 int
 v5_save_for_user(krb5_context ctx,
 		 struct _pam_krb5_stash *stash,
@@ -1683,18 +1627,33 @@ v5_save_for_user(krb5_context ctx,
 		 struct _pam_krb5_options *options,
 		 const char **ccname)
 {
-	return v5_save(ctx, stash, user, userinfo, options, ccname, 1);
-}
+	krb5_ccache ccache;
+	static int counter = 0;
 
-int
-v5_save_for_tokens(krb5_context ctx,
-		   struct _pam_krb5_stash *stash,
-		   const char *user,
-		   struct _pam_krb5_user_info *userinfo,
-		   struct _pam_krb5_options *options,
-		   const char **ccname)
-{
-	return v5_save(ctx, stash, user, userinfo, options, ccname, 0);
+	if (ccname != NULL) {
+		*ccname = NULL;
+	}
+
+	/* Ensure that we have credentials for saving. */
+	if (v5_ccache_has_tgt(ctx, stash->v5ccache, NULL) != 0) {
+		if (options->debug) {
+			debug("credentials not initialized");
+		}
+		return KRB5KRB_ERR_GENERIC;
+	}
+
+	/* Derive the ccache name from the supplied template. */
+	_pam_krb5_stash_clone_v5(ctx, stash, options,
+				 user, userinfo,
+				 options->user_check ?
+				 userinfo->uid : getuid(),
+				 options->user_check ?
+				 userinfo->gid : getgid());
+	if (ccname != NULL) {
+		*ccname = stash->v5ccnames->name;
+	}
+
+	return PAM_SUCCESS;
 }
 
 int
@@ -1871,4 +1830,55 @@ v5_enctype_to_string(krb5_context ctx, krb5_enctype enctype,
 	}
 	return i;
 #endif
+}
+
+static krb5_error_code
+v5_ccache_has_cred(krb5_context ctx, krb5_ccache ccache, krb5_creds *creds,
+		   const char *first, const char *second)
+{
+	krb5_creds match, matched;
+	krb5_error_code err;
+	const char *realm;
+	int rlength;
+
+	memset(&match, 0, sizeof(match));
+	memset(&matched, 0, sizeof(matched));
+	err = krb5_cc_get_principal(ctx, ccache, &match.client);
+	if (err != 0) {
+		return err;
+	}
+	realm = v5_princ_realm_contents(match.client);
+	rlength = v5_princ_realm_length(match.client);
+	if (second == NULL) {
+		err = krb5_build_principal_ext(ctx, &match.server,
+					       rlength, realm,
+					       strlen(first), first,
+					       rlength, realm,
+					       0);
+	} else {
+		err = krb5_build_principal(ctx, &match.server,
+					   rlength, realm,
+					   first, second, NULL);
+	}
+	if (creds == NULL) {
+		creds = &matched;
+	}
+	err = krb5_cc_retrieve_cred(ctx, ccache, 0, &match, creds);
+	if (creds == &matched) {
+		krb5_free_cred_contents(ctx, creds);
+	}
+	krb5_free_cred_contents(ctx, &match);
+	return err;
+}
+
+krb5_error_code
+v5_ccache_has_tgt(krb5_context ctx, krb5_ccache ccache, krb5_creds *creds)
+{
+	return v5_ccache_has_cred(ctx, ccache, creds, KRB5_TGS_NAME, NULL);
+}
+
+krb5_error_code
+v5_ccache_has_pwc(krb5_context ctx, krb5_ccache ccache, krb5_creds *creds)
+{
+	return v5_ccache_has_cred(ctx, ccache, creds, "kadmin", "changepw");
 }

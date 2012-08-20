@@ -1,5 +1,5 @@
 /*
- * Copyright 2003,2006,2007,2009,2011 Red Hat, Inc.
+ * Copyright 2003,2006,2007,2009,2011,2012 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,7 +41,7 @@
 
 int v5_get_creds(krb5_context ctx,
 		 pam_handle_t *pamh,
-		 krb5_creds *creds,
+		 krb5_ccache *ccache,
 		 const char *user,
 		 struct _pam_krb5_user_info *userinfo,
 		 struct _pam_krb5_options *options,
@@ -69,16 +69,13 @@ int v5_save_for_user(krb5_context ctx,
 		     struct _pam_krb5_user_info *userinfo,
 		     struct _pam_krb5_options *options,
 		     const char **ccname);
-int v5_save_for_tokens(krb5_context ctx,
-		       struct _pam_krb5_stash *stash,
-		       const char *user,
-		       struct _pam_krb5_user_info *userinfo,
-		       struct _pam_krb5_options *options,
-		       const char **ccname);
-
 void v5_destroy(krb5_context ctx, struct _pam_krb5_stash *stash,
 	        struct _pam_krb5_options *options);
 
+krb5_error_code v5_ccache_has_tgt(krb5_context ctx, krb5_ccache ccache,
+				  krb5_creds *creds);
+krb5_error_code v5_ccache_has_pwc(krb5_context ctx, krb5_ccache ccache,
+				  krb5_creds *creds);
 krb5_error_code v5_cc_copy(krb5_context ctx, krb5_ccache occache,
 			   krb5_ccache *nccache);
 int v5_creds_check_initialized(krb5_context ctx, krb5_creds *creds);
