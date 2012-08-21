@@ -34,6 +34,12 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <limits.h>
+#include <pwd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #ifdef HAVE_SECURITY_PAM_APPL_H
 #include <security/pam_appl.h>
@@ -50,14 +56,8 @@
 #include <security/pam_misc.h>
 #endif
 
-#include <limits.h>
-#include <pwd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #include KRB5_H
+
 #include "logstdio.h"
 #include "options.h"
 

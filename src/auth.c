@@ -32,6 +32,12 @@
 
 #include "../config.h"
 
+#include <sys/types.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #ifdef HAVE_SECURITY_PAM_APPL_H
 #include <security/pam_appl.h>
 #endif
@@ -41,12 +47,6 @@
 #define PAM_SM_SESSION
 #include <security/pam_modules.h>
 #endif
-
-#include <sys/types.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 #include KRB5_H
 
