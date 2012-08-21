@@ -915,71 +915,70 @@ _pam_krb5_stash_pop(krb5_context ctx,
 	const char *filename;
 	int i;
 
-	{
-		if (*list != NULL) {
-			node = *list;
-			filename = NULL;
-			if (strncmp(node->name, "FILE:", 5) == 0) {
-				filename = node->name + 5;
-			} else {
-				if (node->name[0] == '/') {
-					filename = node->name;
-				}
+	if (*list != NULL) {
+		node = *list;
+		filename = NULL;
+		if (strncmp(node->name, "FILE:", 5) == 0) {
+			filename = node->name + 5;
+		} else {
+			if (node->name[0] == '/') {
+				filename = node->name;
 			}
-			if (filename != NULL) {
-				if (_pam_krb5_storetmp_delete(filename) == 0) {
+		}
+		if (filename != NULL) {
+			if (_pam_krb5_storetmp_delete(filename) == 0) {
+				xstrfree(node->name);
+				node->name = NULL;
+				*list = node->next;
+				free(node);
+				return 0;
+			} else {
+				if (unlink(filename) == 0) {
 					xstrfree(node->name);
 					node->name = NULL;
 					*list = node->next;
 					free(node);
 					return 0;
 				} else {
-					if (unlink(filename) == 0) {
-						xstrfree(node->name);
-						node->name = NULL;
-						*list = node->next;
-						free(node);
-						return 0;
-					}
-				}
-			} else {
-				ccache = NULL;
-				i = krb5_cc_resolve(ctx, node->name, &ccache);
-				if (i != 0) {
-#ifdef EKEYREVOKED
-					if (i == EKEYREVOKED) {
-						/* Well, that's alright then, I
-						 * guess. */
-						xstrfree(node->name);
-						node->name = NULL;
-						*list = node->next;
-						free(node);
-						return 0;
-					}
-#endif
-					warn("error accessing ccache \"%s\" "
-					     "for removal: %s", node->name,
-					     v5_error_message(i));
 					return -1;
-				} else {
-					i = krb5_cc_destroy(ctx, ccache);
-					if (i == 0) {
-						xstrfree(node->name);
-						node->name = NULL;
-						*list = node->next;
-						free(node);
-						return 0;
-					} else {
-						warn("error removing ccache "
-						     "\"%s\": %s", node->name,
-						     v5_error_message(i));
-						return -1;
-					}
 				}
 			}
 		} else {
-			return 0;
+			ccache = NULL;
+			i = krb5_cc_resolve(ctx, node->name, &ccache);
+			if (i != 0) {
+#ifdef EKEYREVOKED
+				if (i == EKEYREVOKED) {
+					/* Well, that's alright then, I
+					 * guess. */
+					xstrfree(node->name);
+					node->name = NULL;
+					*list = node->next;
+					free(node);
+					return 0;
+				}
+#endif
+				warn("error accessing ccache \"%s\" "
+				     "for removal: %s", node->name,
+				     v5_error_message(i));
+				return -1;
+			} else {
+				i = krb5_cc_destroy(ctx, ccache);
+				if (i == 0) {
+					xstrfree(node->name);
+					node->name = NULL;
+					*list = node->next;
+					free(node);
+					return 0;
+				} else {
+					warn("error removing ccache "
+					     "\"%s\": %s", node->name,
+					     v5_error_message(i));
+					return -1;
+				}
+			}
 		}
+	} else {
+		return 0;
 	}
-	return -1;
 }
