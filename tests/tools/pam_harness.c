@@ -381,8 +381,8 @@ main(int argc, char **argv)
 			pid_t pid;
 			if ((pid = fork()) == 0) {
 				pull_pam_environment(pamh);
-				setregid(getegid(), getegid());
-				setreuid(geteuid(), geteuid());
+				i = setregid(getegid(), getegid());
+				i = setreuid(geteuid(), geteuid());
 				execlp(run, run, NULL);
 				exit(0);
 			} else {
@@ -480,8 +480,8 @@ main(int argc, char **argv)
 			pid_t pid;
 			if ((pid = fork()) == 0) {
 				pull_pam_environment(pamh);
-				setregid(getegid(), getegid());
-				setreuid(geteuid(), geteuid());
+				i = setregid(getegid(), getegid());
+				i = setreuid(geteuid(), geteuid());
 				execlp(run, run, NULL);
 				exit(0);
 			} else {
