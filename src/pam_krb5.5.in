@@ -22,12 +22,6 @@ priority \fILOG_DEBUG\fR.
 turns on debugging of sensitive information via \fBsyslog\fR(3).  Debug
 messages are logged with priority \fILOG_DEBUG\fR.
 
-.IP "addressless = \fItrue\fR|\fIfalse\fR|\fIservice [...]\fR"
-if set, requests a TGT with no address information.  This can be necessary
-if you are using Kerberos through a NAT, or on systems whose IP addresses change
-regularly.  This directive is deprecated in favor of the \fBlibdefaults\fR
-\fBnoaddresses\fR directive.
-
 @MAN_AFS@.IP "afs_cells = \fIcell.example.com [...]\fR"
 @MAN_AFS@tells pam_krb5.so to obtain tokens for the listed cells,
 @MAN_AFS@in addition to the local cell and the cell which
@@ -95,18 +89,6 @@ tells pam_krb5.so to use Kerberos credentials provided by the calling
 application during session setup.
 @MAN_AFS@This is most often useful for obtaining AFS tokens.
 The default is "\fI@DEFAULT_EXTERNAL@\fR".
-
-.IP "forwardable = \fItrue\fR|\fIfalse\fR|\fIservice [...]\fR"
-controls whether or not credentials are forwardable.  
-This directive is deprecated in favor of the \fBlibdefaults\fR
-\fBforwardable\fR directive.
-
-.IP "hosts = \fIhostname [...]\fR"
-specifies which other hosts credentials obtained by pam_krb5 will be good on.
-If your host is behind a firewall, you should add the IP address or name that
-the \fIKDC\fR sees it as to this list.
-This directive is deprecated in favor of the \fBlibdefaults\fR
-\fBextra_addresses\fR directive.
 
 @MAN_AFS@.IP "ignore_afs=\fItrue\fR|\fIfalse\fR|\fIservice [...]\fR"
 @MAN_AFS@tells pam_krb5.so to completely ignore the presence of AFS, preventing
@@ -196,11 +178,6 @@ usually not necessary for most services.
 @MAN_MPREAUTH@  %P	the current process ID
 @MAN_MPREAUTH@  %%	literal '%'
 @MAN_MPREAUTH@
-.IP "proxiable = \fItrue\fR|\fIfalse\fR|\fIservice [...]\fR"
-controls whether or not credentials are proxiable.  If not specified, they
-are.
-This directive is deprecated in favor of the \fBlibdefaults\fR
-\fBproxiable\fR directive.
 
 @MAN_AFS@.IP "null_afs=\fItrue\fR|\fIfalse\fR|\fIservice [...]\fR"
 @MAN_AFS@tells pam_krb5.so, when it attempts to set tokens, to try to get
@@ -212,12 +189,6 @@ This directive is deprecated in favor of the \fBlibdefaults\fR
 .IP "pwhelp = \fIfilename\fR"
 specifies the name of a text file whose contents will be displayed to
 clients who attempt to change their passwords.  There is no default.
-
-.IP "renew_lifetime = \fI36000\fR"
-default renewable lifetime, in seconds.  This specifies how much time you have
-after getting credentials to renew them.
-This directive is deprecated in favor of the \fBlibdefaults\fR
-\fBrenew_lifetime\fR directive.
 
 .IP "subsequent_prompt = \fItrue\fR|\fIfalse\fR|\fIservice\ [...]\fR"
 controls whether or not pam_krb5.so will allow the Kerberos library to ask
@@ -231,9 +202,6 @@ If the calling application does not properly support PAM conversations
 this may be need to be disabled for that application to prevent it
 from supplying the user's current password in a password-changing
 situation when a new password is called for.
-
-.IP "ticket_lifetime = \fI36000\fR"
-default credential lifetime, in seconds.
 
 @MAN_AFS@.IP "tokens = \fItrue\fR|\fIfalse\fR|\fIservice\ [...]\fR"
 @MAN_AFS@signals that pam_krb5.so should create an AFS PAG and obtain tokens
@@ -278,9 +246,6 @@ ccache if validation can't be performed using a keytab.  The default is
 
 [appdefaults]
   pam = {
-    ticket_lifetime = 36000
-    renew_lifetime = 36000
-    forwardable = true
     validate = true
     ccache_dir = /var/tmp
     external = sshd

@@ -435,31 +435,6 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 		debug("flag: debug_sensitive");
 	}
 
-	/* library options */
-	options->addressless = option_b(argc, argv,
-					ctx, options->realm,
-					service, NULL, NULL, "addressless", -1);
-	options->forwardable = option_b(argc, argv,
-					ctx, options->realm,
-					service, NULL, NULL, "forwardable", -1);
-	options->proxiable = option_b(argc, argv,
-				      ctx, options->realm,
-				      service, NULL, NULL, "proxiable", -1);
-	options->renewable = option_b(argc, argv,
-				      ctx, options->realm,
-				      service, NULL, NULL, "renewable", -1);
-	if (options->debug) {
-		debug("flags:%s%s%s%s%s%s%s%s",
-		      options->addressless == 1 ? " addressless" : "",
-		      options->addressless == 0 ? " not addressless" : "",
-		      options->forwardable == 1 ? " forwardable" : "",
-		      options->forwardable == 0 ? " not forwardable" : "",
-		      options->proxiable == 1 ? " proxiable" : "",
-		      options->proxiable == 0 ? " not proxiable" : "",
-		      options->renewable == 1 ? " renewable" : "",
-		      options->renewable == 0 ? " not renewable" : "");
-	}
-
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_CANONICALIZE
 	options->canonicalize = option_b(argc, argv,
 					 ctx, options->realm,
@@ -720,47 +695,6 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 	}
 
 	/* private option */
-	options->ticket_lifetime = option_t(argc, argv, ctx, options->realm,
-					    "ticket_lifetime");
-	if (options->ticket_lifetime < 0) {
-		options->ticket_lifetime = 0;
-	}
-	if (options->debug) {
-		if (options->ticket_lifetime != 0) {
-			debug("ticket lifetime: %ds (%dd,%dh,%dm,%ds)",
-			      (int) options->ticket_lifetime,
-			      (int) options->ticket_lifetime / (24 * 60 * 60),
-			      (int) (options->ticket_lifetime / (60 * 60)) % 24,
-			      (int) (options->ticket_lifetime / (60)) % 60,
-			      (int) options->ticket_lifetime  % 60);
-		} else {
-			debug("ticket lifetime: default");
-		}
-	}
-
-	/* library option */
-	options->renew_lifetime = option_t(argc, argv, ctx, options->realm,
-					   "renew_lifetime");
-	if (options->renew_lifetime < 0) {
-		options->renew_lifetime = 0;
-	}
-	if (options->renew_lifetime > 0) {
-		options->renewable = 1;
-	}
-	if (options->debug) {
-		if (options->renew_lifetime != 0) {
-			debug("renewable lifetime: %ds (%dd,%dh,%dm,%ds)",
-			      (int) options->renew_lifetime,
-			      (int) options->renew_lifetime / (24 * 60 * 60),
-			      (int) (options->renew_lifetime / (60 * 60)) % 24,
-			      (int) (options->renew_lifetime / (60)) % 60,
-			      (int) options->renew_lifetime  % 60);
-		} else {
-			debug("renewable lifetime: default");
-		}
-	}
-
-	/* private option */
 	options->minimum_uid = option_i(argc, argv,
 					ctx, options->realm, "minimum_uid");
 	if (options->debug && (options->minimum_uid != (uid_t) -1)) {
@@ -845,18 +779,6 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 	}
 	if (options->debug && options->token_strategy) {
 		debug("token strategy: %s", options->token_strategy);
-	}
-
-	options->hosts = option_l(argc, argv,
-				  ctx, options->realm, "hosts", "");
-	if (options->hosts) {
-		int i;
-		for (i = 0; options->hosts[i] != NULL; i++) {
-			if (options->debug) {
-				debug("host: %s", options->hosts[i]);
-			}
-			options->addressless = 0;
-		}
 	}
 
 	options->ignore_unknown_principals = option_b(argc, argv, ctx,

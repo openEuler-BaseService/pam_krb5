@@ -36,7 +36,6 @@
 struct _pam_krb5_options {
 	int debug;
 
-	int addressless;
 #ifdef HAVE_KRB5_ANAME_TO_LOCALNAME
 	int always_allow_localname;
 #endif
@@ -47,15 +46,12 @@ struct _pam_krb5_options {
 	int cred_session;
 	int debug_sensitive;
 	int external;
-	int forwardable;
 	int ignore_afs;
 	int ignore_k5login;
 	int ignore_unknown_principals;
 	int multiple_ccaches;
 	int null_afs_first;
 	int permit_password_callback;
-	int proxiable;
-	int renewable;
 	int tokens;
 	int user_check;
 	int use_authtok;
@@ -66,9 +62,6 @@ struct _pam_krb5_options {
 	int validate;
 	int validate_user_user;
 	int warn;
-
-	krb5_deltat ticket_lifetime;
-	krb5_deltat renew_lifetime;
 
 	uid_t minimum_uid;
 
