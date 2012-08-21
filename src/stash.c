@@ -795,22 +795,23 @@ _pam_krb5_stash_guess_unique_ccname(struct _pam_krb5_stash *stash,
 }
 
 void
-_pam_krb5_stash_clone_v5(krb5_context ctx,
-			 struct _pam_krb5_stash *stash,
-			 struct _pam_krb5_options *options,
-			 const char *user,
-			 struct _pam_krb5_user_info *userinfo,
-			 uid_t uid, gid_t gid)
+_pam_krb5_stash_push(krb5_context ctx,
+		     struct _pam_krb5_stash *stash,
+		     struct _pam_krb5_options *options,
+		     const char *user,
+		     struct _pam_krb5_user_info *userinfo,
+		     uid_t uid, gid_t gid)
 {
 	char *filename, *newname;
 	int fd;
 	krb5_ccache nccache;
+	struct _pam_krb5_ccname_list *node;
 
-	/* Straight-up copy.  Open a new ccache using the desired
-	 * pattern.  If it's a FILE: ccache, use mkstemp() to try to
-	 * pre-create it.  In any case, if it's going to have the same
-	 * name as the current ccache, append a "_" in a feeble attempt
-	 * at making its name unique. */
+	/* Copy the in-memory ccache.  Open a new ccache using the desired
+	 * pattern.  If it's a FILE: ccache, use mkstemp() to try to pre-create
+	 * it.  In any case, if it's going to have the same name as the current
+	 * ccache, append a "_" in a feeble attempt at making its name unique.
+	 */
 	nccache = NULL;
 	newname = v5_user_info_subst(ctx, user, userinfo, options,
 				     options->ccname_template);
@@ -819,6 +820,16 @@ _pam_krb5_stash_clone_v5(krb5_context ctx,
 	if (newname == NULL) {
 		return;
 	}
+	/* Allocate space in the list of ccaches.  Do it now while an error is
+	 * a simple matter. */
+	node = malloc(sizeof(*node));
+	if (node == NULL) {
+		free(newname);
+		return;
+	}
+	node->name = newname;
+
+	/* If it's a file, precreate it using the pattern. */
 	if (strncmp(newname, "FILE:", 5) == 0) {
 		fd = mkstemp(newname + 5);
 	} else {
@@ -830,12 +841,11 @@ _pam_krb5_stash_clone_v5(krb5_context ctx,
 			close(fd);
 			unlink(newname + 5);
 		}
-		free(newname);
-		return;
 	}
 	if (fd != -1) {
 		close(fd);
 	}
+	/* Copy the contents of the ccache we have into the new one. */
 	if (v5_cc_copy(ctx, stash->v5ccache, &nccache) == 0) {
 		if (options->debug) {
 			debug("copied credentials from \"%s:%s\" to "
@@ -845,11 +855,19 @@ _pam_krb5_stash_clone_v5(krb5_context ctx,
 			      newname);
 		}
 		krb5_cc_close(ctx, nccache);
-		_pam_krb5_stash_push_v5(ctx, stash, options, newname);
+		/* If we're not doing multiple ccaches, chuck the others we've
+		 * created. */
+		if (options->multiple_ccaches == 0) {
+			while (stash->v5ccnames != NULL) {
+				_pam_krb5_stash_pop(ctx, stash, options);
+			}
+		}
+		/* Save the name of this ccache. */
+		node->next = stash->v5ccnames;
+		stash->v5ccnames = node;
 		/* If the destination is a file, re-clone it to get the
 		 * permissions right. */
-		if (strncmp(options->ccname_template,
-			    "FILE:", 5) == 0) {
+		if (strncmp(options->ccname_template, "FILE:", 5) == 0) {
 			filename = xstrdup(stash->v5ccnames->name + 5);
 			if (filename != NULL) {
 				_pam_krb5_stash_clone_file(&filename, uid, gid);
@@ -882,19 +900,22 @@ _pam_krb5_stash_clone_v5(krb5_context ctx,
 		     krb5_cc_get_name(ctx, stash->v5ccache),
 		     newname);
 		krb5_cc_destroy(ctx, nccache);
+		free(node);
+		xstrfree(newname);
 	}
-	xstrfree(newname);
 }
 
-static int
-_pam_krb5_stash_pop(krb5_context ctx, struct _pam_krb5_ccname_list **list)
+int
+_pam_krb5_stash_pop(krb5_context ctx,
+		    struct _pam_krb5_stash *stash,
+		    struct _pam_krb5_options *options)
 {
-	struct _pam_krb5_ccname_list *node;
+	struct _pam_krb5_ccname_list *node, **list = &stash->v5ccnames;
 	krb5_ccache ccache;
 	const char *filename;
 	int i;
 
-	if (list != NULL) {
+	{
 		if (*list != NULL) {
 			node = *list;
 			filename = NULL;
@@ -961,41 +982,4 @@ _pam_krb5_stash_pop(krb5_context ctx, struct _pam_krb5_ccname_list **list)
 		}
 	}
 	return -1;
-}
-
-static int
-_pam_krb5_stash_push(krb5_context ctx, struct _pam_krb5_ccname_list **list,
-		     const char *ccname)
-{
-	struct _pam_krb5_ccname_list *node;
-	if (list != NULL) {
-		node = malloc(sizeof(*node));
-		if (node != NULL) {
-			node->name = strdup(ccname);
-			if (node->name != NULL) {
-				node->next = *list;
-				*list = node;
-				return 0;
-			}
-			free(node);
-		}
-	}
-	return -1;
-}
-
-int
-_pam_krb5_stash_pop_v5(krb5_context ctx, struct _pam_krb5_stash *stash,
-		       struct _pam_krb5_options *options)
-{
-	return _pam_krb5_stash_pop(ctx, &stash->v5ccnames);
-}
-
-int
-_pam_krb5_stash_push_v5(krb5_context ctx, struct _pam_krb5_stash *stash,
-		        struct _pam_krb5_options *options, const char *ccname)
-{
-	if (options->multiple_ccaches == 0) {
-		_pam_krb5_stash_pop(ctx, &stash->v5ccnames);
-	}
-	return _pam_krb5_stash_push(ctx, &stash->v5ccnames, ccname);
 }

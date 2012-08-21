@@ -56,16 +56,13 @@ struct _pam_krb5_stash *_pam_krb5_stash_get(pam_handle_t *pamh,
 					    const char *user,
 					    struct _pam_krb5_user_info *info,
 					    struct _pam_krb5_options *options);
-void _pam_krb5_stash_clone_v5(krb5_context ctx, struct _pam_krb5_stash *stash,
-			      struct _pam_krb5_options *options,
-			      const char *user,
-			      struct _pam_krb5_user_info *userinfo,
-			      uid_t uid, gid_t gid);
-int _pam_krb5_stash_push_v5(krb5_context ctx, struct _pam_krb5_stash *stash,
-			    struct _pam_krb5_options *options,
-			    const char *ccname);
-int _pam_krb5_stash_pop_v5(krb5_context ctx, struct _pam_krb5_stash *stash,
-			   struct _pam_krb5_options *options);
+void _pam_krb5_stash_push(krb5_context ctx, struct _pam_krb5_stash *stash,
+			  struct _pam_krb5_options *options,
+			  const char *user,
+			  struct _pam_krb5_user_info *userinfo,
+			  uid_t uid, gid_t gid);
+int _pam_krb5_stash_pop(krb5_context ctx, struct _pam_krb5_stash *stash,
+			struct _pam_krb5_options *options);
 void _pam_krb5_stash_shm_read(pam_handle_t *pamh,
 			      const char *partial_key,
 			      struct _pam_krb5_stash *stash,
@@ -78,8 +75,6 @@ void _pam_krb5_stash_shm_write(pam_handle_t *pamh,
 void _pam_krb5_stash_name(struct _pam_krb5_options *options,
 			  const char *user, char **name);
 void _pam_krb5_stash_shm5_name(struct _pam_krb5_options *options,
-			       const char *user, char **name);
-void _pam_krb5_stash_shm4_name(struct _pam_krb5_options *options,
 			       const char *user, char **name);
 
 #endif

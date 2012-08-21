@@ -1635,13 +1635,11 @@ v5_save_for_user(krb5_context ctx,
 		return KRB5KRB_ERR_GENERIC;
 	}
 
-	/* Derive the ccache name from the supplied template. */
-	_pam_krb5_stash_clone_v5(ctx, stash, options,
-				 user, userinfo,
-				 options->user_check ?
-				 userinfo->uid : getuid(),
-				 options->user_check ?
-				 userinfo->gid : getgid());
+	/* Derive the ccache name from the supplied template and create one. */
+	_pam_krb5_stash_push(ctx, stash, options,
+			     user, userinfo,
+			     options->user_check ? userinfo->uid : getuid(),
+			     options->user_check ? userinfo->gid : getgid());
 	if (ccname != NULL) {
 		*ccname = stash->v5ccnames->name;
 	}
@@ -1658,7 +1656,7 @@ v5_destroy(krb5_context ctx, struct _pam_krb5_stash *stash,
 			debug("removing ccache '%s'",
 			      stash->v5ccnames->name);
 		}
-		if (_pam_krb5_stash_pop_v5(ctx, stash, options) != 0) {
+		if (_pam_krb5_stash_pop(ctx, stash, options) != 0) {
 			warn("error removing ccache '%s'",
 			     stash->v5ccnames->name);
 		}
