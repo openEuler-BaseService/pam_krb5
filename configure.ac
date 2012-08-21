@@ -534,6 +534,7 @@ src/pam_newpag.5
 src/pam_newpag.8
 src/pam_krb5.5
 src/pam_krb5.8
+src/pam_krb5_cchelper.8
 src/pam_krb5_storetmp.8
 tests/Makefile
 tests/config/Makefile
