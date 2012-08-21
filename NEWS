@@ -1,3 +1,8 @@
+- 2.4.0: * drop configuration settings that duplicated library settings
+	 * drop the existing_ticket option
+	 * drop krb4 support
+	 * add support for preserving configuration information in ccaches
+	 * add support for creating and cleaning up DIR: ccaches
 - 2.3.14:* also drop privileges when reinitializing or refreshing credentials,
            for the sake of login (#822493)
 - 2.3.13:* don't bother creating a v5 ccache in "external" mode
