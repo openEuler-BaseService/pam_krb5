@@ -308,9 +308,17 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 				debug("ccache is a file named '%s'",
 				      v5filename);
 			}
+		} else
+		if (strncmp(v5ccname, "DIR:", 4) == 0) {
+			v5filename = v5ccname + 4;
+			if (options->debug) {
+				debug("ccache is a directory named '%s'",
+				      v5filename);
+			}
 		} else {
 			if (options->debug) {
-				debug("ccache '%s' is not a file", v5ccname);
+				debug("ccache '%s' is not a file or directory",
+				      v5ccname);
 			}
 		}
 	}
@@ -324,7 +332,8 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 			/* Check the permissions on the ccache file. */
 			if ((access(v5filename, R_OK | W_OK) == 0) &&
 			    (lstat(v5filename, &st) == 0)) {
-				if (S_ISREG(st.st_mode) &&
+				if ((S_ISREG(st.st_mode) ||
+				     S_ISDIR(st.st_mode)) &&
 				    ((st.st_mode & S_IRWXG) == 0) &&
 				    ((st.st_mode & S_IRWXO) == 0) &&
 				    (st.st_uid == uid) &&
