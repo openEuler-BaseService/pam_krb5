@@ -375,8 +375,8 @@ _pam_krb5_stash_shm_write(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 	_pam_krb5_stash_shm_write_v5(pamh, stash, options, user, userinfo);
 }
 
-/* Check for KRB5CCNAME and KRBTKFILE in the PAM environment.  If either
- * exists, incorporate contents of the named ccache/tktfiles into the stash. */
+/* Check for KRB5CCNAME in the PAM environment.  If it's set, incorporate
+ * contents of the named ccache into the stash. */
 static void
 _pam_krb5_stash_external_read(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 			      const char *user,
@@ -807,11 +807,11 @@ _pam_krb5_stash_push(krb5_context ctx,
 	krb5_ccache nccache;
 	struct _pam_krb5_ccname_list *node;
 
-	/* Copy the in-memory ccache.  Open a new ccache using the desired
-	 * pattern.  If it's a FILE: ccache, use mkstemp() to try to pre-create
-	 * it.  In any case, if it's going to have the same name as the current
-	 * ccache, append a "_" in a feeble attempt at making its name unique.
-	 */
+	/* Copy the in-memory ccache to a location suitable for use by the
+	 * authenticating client.  If it's a FILE: ccache, use mkstemp() to try
+	 * to pre-create it.  In any case, if it's going to have the same name
+	 * as the current ccache, append a "_" in a feeble attempt at making
+	 * its name unique. */
 	nccache = NULL;
 	newname = v5_user_info_subst(ctx, user, userinfo, options,
 				     options->ccname_template);
@@ -845,6 +845,7 @@ _pam_krb5_stash_push(krb5_context ctx,
 	if (fd != -1) {
 		close(fd);
 	}
+
 	/* Copy the contents of the ccache we have into the new one. */
 	if (v5_cc_copy(ctx, stash->v5ccache, &nccache) == 0) {
 		if (options->debug) {
