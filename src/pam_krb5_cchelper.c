@@ -34,14 +34,21 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <dirent.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <grp.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include KRB5_H
+
+#ifdef HAVE_KEYUTILS_H
+#include <keyutils.h>
+#endif
 
 #include "xstr.h"
 
@@ -61,9 +68,11 @@ main(int argc, const char **argv)
 	krb5_ccache ccache = NULL, tmp_ccache = NULL;
 	krb5_principal client = NULL;
 	char *ccname, *p, input[128 * 1024], pattern[PATH_MAX];
+	struct dirent **dents = NULL;
 	long long uid, gid;
 	gid_t current_gid;
-	int fd, i, n_written;
+	long id;
+	int fd, i, j, n_written, c_flag = 0, d_flag = 0, u_flag = 0;
 	size_t n_input, n_output;
 
 	/* We're not intended to be set*id! */
@@ -71,23 +80,36 @@ main(int argc, const char **argv)
 		return 1;
 	}
 
-	/* One or three arguments.  No more, no less, else we bail. */
-	if ((argc != 2) && (argc != 4)) {
+	/* Two or four arguments.  No more, no less, else we bail. */
+	if ((argc != 3) && (argc != 5)) {
 		return 2;
 	}
 
-	/* We'll need a writable string for use as the template. */
-	ccname = xstrdup(argv[1]);
-	if ((ccname == NULL) || (strchr(ccname, ':') == NULL)) {
+	/* Check what mode we're in. */
+	if (strcmp(argv[1], "-c") == 0) {
+		c_flag++;
+	} else
+	if (strcmp(argv[1], "-d") == 0) {
+		d_flag++;
+	} else
+	if (strcmp(argv[1], "-u") == 0) {
+		u_flag++;
+	} else {
 		return 3;
 	}
 
+	/* We'll need a writable string for use as the template. */
+	ccname = xstrdup(argv[2]);
+	if ((ccname == NULL) || (strchr(ccname, ':') == NULL)) {
+		return 4;
+	}
+
 	/* Parse the UID, if given. */
-	if (argc > 2) {
+	if (argc > 3) {
 #ifdef HAVE_STRTOLL
-		uid = strtoll(argv[2], &p, 0);
+		uid = strtoll(argv[3], &p, 0);
 #else
-		uid = strtol(argv[2], &p, 0);
+		uid = strtol(argv[3], &p, 0);
 #endif
 		if ((p == NULL) || (*p != '\0')) {
 			return 5;
@@ -97,11 +119,11 @@ main(int argc, const char **argv)
 	}
 
 	/* Parse the GID, if given. */
-	if (argc > 3) {
+	if (argc > 4) {
 #ifdef HAVE_STRTOLL
-		gid = strtoll(argv[3], &p, 0);
+		gid = strtoll(argv[4], &p, 0);
 #else
-		gid = strtol(argv[3], &p, 0);
+		gid = strtol(argv[4], &p, 0);
 #endif
 		if ((p == NULL) || (*p != '\0')) {
 			return 6;
@@ -147,128 +169,250 @@ main(int argc, const char **argv)
 		return i;
 	}
 
-	/* We have three modes.  First, zero-length input. */
+	/* We have three modes.  First, zero-length input should put us in to
+	 * delete mode. */
 	if (n_input == 0) {
-		/* The first argument is a ccache to be removed. */
-		i = krb5_cc_resolve(ctx, argv[1], &ccache);
+		if (!d_flag) {
+			return 9;
+		}
+		if (strstr(ccname, "XXXXXX") != NULL) {
+			return 9;
+		}
+		/* The first argument is a ccache to be destroyed. */
+		i = krb5_cc_resolve(ctx, ccname, &ccache);
 		if (i != 0) {
 			krb5_free_context(ctx);
 			return i;
 		}
 		i = krb5_cc_destroy(ctx, ccache);
+		/* Some ccache types require a bit more work. */
+		if ((i == 0) && (strncmp(ccname, "DIR:", 4) == 0)) {
+			if ((j = scandir(ccname + 4, &dents,
+					 NULL, &alphasort)) > 0) {
+				while (j > 0) {
+					if ((strcmp(dents[j - 1]->d_name,
+						    ".") != 0) &&
+					    (strcmp(dents[j - 1]->d_name,
+						    "..") != 0) &&
+					    (snprintf(pattern, sizeof(pattern),
+						      "%s/%s", ccname + 4,
+						      dents[j - 1]->d_name) <
+					     (int) sizeof(pattern))) {
+						unlink(pattern);
+					}
+					j--;
+				}
+			}
+			rmdir(ccname + 4);
+			/* Nothing we can do if this fails. */
+		} 
+#ifdef HAVE_KEYUTILS_H
+		if ((i == 0) && (strncmp(ccname, "KEYRING:", 8) == 0)) {
+			id = keyctl_search(KEY_SPEC_SESSION_KEYRING,
+					   "keyring", ccname + 8, 0);
+			if (id != (long) -1) {
+				id = keyctl_unlink(KEY_SPEC_SESSION_KEYRING,
+						   id);
+				/* Nothing we can do if this fails. */
+			}
+		}
+#endif
 		krb5_free_context(ctx);
 		return i;
-	} else {
-		/* Data is a ccache file's contents. */
-		if ((strstr(ccname, "XXXXXX") != NULL) &&
-		    (strncmp(ccname, "FILE:", 5) == 0)) {
-			/* Just create the destination. */
+	}
+
+	/* Non-zero-length input puts us in either create or update mode. */
+	if (!c_flag && !u_flag) {
+		return 9;
+	}
+
+	/* Simplest is if we're being asked to either create or update a FILE
+	 * ccache. */
+	if (strncmp(ccname, "FILE:", 5) == 0) {
+		if (strstr(ccname, "XXXXXX") != NULL) {
+			/* Check that we're in create mode, and create
+			 * the file. */
+			if (!c_flag) {
+				return 9;
+			}
 			fd = mkstemp(ccname + 5);
-			if (fd == -1) {
-				fd = errno;
-				krb5_free_context(ctx);
-				return fd;
+		} else {
+			/* Check that we're in update mode. */
+			if (!u_flag) {
+				return 9;
 			}
-			n_output = 0;
-			while (n_output < n_input) {
-				i = write(fd, input + n_output,
-					  n_input - n_output);
-				if (i < 0) {
-					unlink(ccname + 5);
-					krb5_free_context(ctx);
-					return 9;
-				}
-				n_output += i;
-			}
-			close(fd);
-			printf("%s\n", ccname);
-			return 0;
+			fd = open(ccname + 5, O_WRONLY | O_TRUNC);
 		}
-		/* Create a temporary file. */
-		snprintf(pattern, sizeof(pattern), "FILE:%s/.pam_krb5_XXXXXX",
-			 getenv("TMPDIR") ?: "/tmp");
-		fd = mkstemp(pattern + 5);
 		if (fd == -1) {
+			fd = errno;
 			krb5_free_context(ctx);
-			return 9;
+			return fd;
 		}
+		/* Write the ccache contents to the file. */
 		n_output = 0;
 		while (n_output < n_input) {
-			i = write(fd, input + n_output, n_input - n_output);
+			i = write(fd, input + n_output,
+				  n_input - n_output);
 			if (i < 0) {
+				unlink(ccname + 5);
 				krb5_free_context(ctx);
-				unlink(pattern + 5);
-				close(fd);
 				return 10;
 			}
 			n_output += i;
 		}
 		close(fd);
-		/* Open it as a ccache. */
-		i = krb5_cc_resolve(ctx, pattern, &tmp_ccache);
-		if (i != 0) {
+		printf("%s\n", ccname);
+		return 0;
+	}
+
+	/* Create a temporary file to deserialize the ccache. */
+	snprintf(pattern, sizeof(pattern), "FILE:%s/pam_krb5_XXXXXX",
+		 getenv("TMPDIR") ?: "/tmp");
+	fd = mkstemp(pattern + 5);
+	if (fd == -1) {
+		krb5_free_context(ctx);
+		return 11;
+	}
+	n_output = 0;
+	while (n_output < n_input) {
+		i = write(fd, input + n_output, n_input - n_output);
+		if (i < 0) {
 			krb5_free_context(ctx);
-			return i;
+			unlink(pattern + 5);
+			close(fd);
+			return 12;
 		}
-		i = krb5_cc_get_principal(ctx, tmp_ccache, &client);
-		if (i != 0) {
-			krb5_cc_destroy(ctx, tmp_ccache);
-			krb5_free_context(ctx);
-			return i;
-		}
-		/* If the name is a pattern, instantiate it. */
-		if (strstr(ccname, "XXXXXX") != NULL) {
-			if (strncmp(ccname, "FILE:", 5) == 0) {
-				fd = mkstemp(ccname + 5);
-				if (fd == -1) {
-					fd = errno;
-					krb5_cc_destroy(ctx, tmp_ccache);
-					krb5_free_context(ctx);
-					return fd;
-				}
-				close(fd);
-			} else {
-				p = strchr(ccname, ':');
-				mktemp(p + 1);
-				if (strlen(p + 1) == 0) {
-					return 11;
-				}
-				if (strncmp(ccname, "DIR:", 4) == 0) {
-					if (mkdir(ccname + 4, S_IRWXU) != 0) {
-						fd = errno;
-						krb5_cc_destroy(ctx, tmp_ccache);
-						krb5_free_context(ctx);
-						return fd;
-					}
-				}
-			}
-		}
-		/* Copy the credentials from the temporary ccache to the
-		 * destination. */
-		i = krb5_cc_resolve(ctx, ccname, &ccache);
-		if (i != 0) {
-			krb5_cc_destroy(ctx, tmp_ccache);
-			krb5_free_context(ctx);
-			return i;
-		}
-		i = krb5_cc_initialize(ctx, ccache, client);
-		if (i != 0) {
-			krb5_cc_destroy(ctx, ccache);
-			krb5_cc_destroy(ctx, tmp_ccache);
-			krb5_free_context(ctx);
-			return i;
-		}
-		i = krb5_cc_copy_creds(ctx, tmp_ccache, ccache);
-		if (i != 0) {
-			krb5_cc_destroy(ctx, ccache);
-			krb5_cc_destroy(ctx, tmp_ccache);
-			krb5_free_context(ctx);
-			return i;
-		}
-		krb5_cc_close(ctx, ccache);
+		n_output += i;
+	}
+	close(fd);
+
+	/* Open the file as a ccache. */
+	i = krb5_cc_resolve(ctx, pattern, &tmp_ccache);
+	if (i != 0) {
+		unlink(pattern + 5);
+		krb5_free_context(ctx);
+		return i;
+	}
+	i = krb5_cc_get_principal(ctx, tmp_ccache, &client);
+	if (i != 0) {
 		krb5_cc_destroy(ctx, tmp_ccache);
 		krb5_free_context(ctx);
-		printf("%s\n", ccname);
+		return i;
 	}
+
+	/* If the ccache is a directory, create one, if need be. */
+	if (strncmp(ccname, "DIR:", 4) == 0) {
+		if ((p = strstr(ccname, "XXXXXX")) != NULL) {
+			/* Check that we're in create mode, and create
+			 * a directory. */
+			if (!c_flag) {
+				krb5_cc_destroy(ctx, tmp_ccache);
+				krb5_free_context(ctx);
+				return 9;
+			}
+			do {
+				/* Try to create a unique directory. */
+				strcpy(ccname, argv[2]);
+				mktemp(ccname + 4);
+				if (strlen(ccname + 4) == 0) {
+					i = EINVAL;
+				} else {
+					i = mkdir(ccname + 4, S_IRWXU);
+				}
+			} while ((i != 0) && (errno == EEXIST));
+			if (i != 0) {
+				krb5_cc_destroy(ctx, tmp_ccache);
+				krb5_free_context(ctx);
+				return i;
+			}
+		} else {
+			/* Check that we're in update mode. */
+			if (!u_flag) {
+				krb5_cc_destroy(ctx, tmp_ccache);
+				krb5_free_context(ctx);
+				return 9;
+			}
+		}
+#ifdef HAVE_KEYUTILS_H
+	} else if (strncmp(ccname, "KEYRING:", 8) == 0) {
+		if ((p = strstr(ccname, "XXXXXX")) != NULL) {
+			/* Check that we're in create mode, and create
+			 * a new keyring. */
+			if (!c_flag) {
+				krb5_cc_destroy(ctx, tmp_ccache);
+				krb5_free_context(ctx);
+				return 9;
+			}
+			do {
+				/* Try to create a unique keyring name. */
+				strcpy(ccname, argv[2]);
+				mktemp(ccname + 8);
+				if (strlen(ccname + 8) == 0) {
+					i = EINVAL;
+				} else {
+					id = keyctl_search(KEY_SPEC_SESSION_KEYRING,
+							   "keyring",
+							   ccname + 8, 0);
+					if (id == (long) -1) {
+						id = add_key("keyring",
+							     ccname + 8,
+							     NULL, 0,
+							     KEY_SPEC_SESSION_KEYRING);
+						if (id == (long) -1) {
+							break;
+						}
+					} else {
+						errno = EEXIST;
+						i = -1;
+					}
+				}
+			} while ((i != 0) && (errno == EEXIST));
+			if (i != 0) {
+				krb5_cc_destroy(ctx, tmp_ccache);
+				krb5_free_context(ctx);
+				return i;
+			}
+		} else {
+			/* Check that we're in update mode. */
+			if (!u_flag) {
+				krb5_cc_destroy(ctx, tmp_ccache);
+				krb5_free_context(ctx);
+				return 9;
+			}
+		}
+#endif
+	} else {
+		/* Unsupported ccache type. */
+		krb5_cc_destroy(ctx, tmp_ccache);
+		krb5_free_context(ctx);
+		return 13;
+	}
+
+	/* Copy the credentials from the temporary ccache to the
+	 * ready-to-receive-them destination. */
+	i = krb5_cc_resolve(ctx, ccname, &ccache);
+	if (i != 0) {
+		krb5_cc_destroy(ctx, tmp_ccache);
+		krb5_free_context(ctx);
+		return i;
+	}
+	i = krb5_cc_initialize(ctx, ccache, client);
+	if (i != 0) {
+		krb5_cc_destroy(ctx, ccache);
+		krb5_cc_destroy(ctx, tmp_ccache);
+		krb5_free_context(ctx);
+		return i;
+	}
+	i = krb5_cc_copy_creds(ctx, tmp_ccache, ccache);
+	if (i != 0) {
+		krb5_cc_destroy(ctx, ccache);
+		krb5_cc_destroy(ctx, tmp_ccache);
+		krb5_free_context(ctx);
+		return i;
+	}
+	krb5_cc_close(ctx, ccache);
+	krb5_cc_destroy(ctx, tmp_ccache);
+	krb5_free_context(ctx);
+	printf("%s\n", ccname);
 	return 0;
 }
