@@ -333,6 +333,30 @@ main(int argc, const char **argv)
 				return 9;
 			}
 		}
+	} else if (strncmp(ccname, "SCC:", 4) == 0) {
+		if ((p = strstr(ccname, "XXXXXX")) != NULL) {
+			/* Check that we're in create mode, and create an empty
+			 * file which sqlite has no qualms about overwriting. */
+			if (!c_flag) {
+				krb5_cc_destroy(ctx, tmp_ccache);
+				krb5_free_context(ctx);
+				return 9;
+			}
+			fd = mkstemp(ccname + 4);
+			if (fd == -1) {
+				krb5_cc_destroy(ctx, tmp_ccache);
+				krb5_free_context(ctx);
+				return i;
+			}
+			close(fd);
+		} else {
+			/* Check that we're in update mode. */
+			if (!u_flag) {
+				krb5_cc_destroy(ctx, tmp_ccache);
+				krb5_free_context(ctx);
+				return 9;
+			}
+		}
 #ifdef HAVE_KEYUTILS_H
 	} else if (strncmp(ccname, "KEYRING:", 8) == 0) {
 		if ((p = strstr(ccname, "XXXXXX")) != NULL) {
