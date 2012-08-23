@@ -397,13 +397,34 @@ main(int argc, const char **argv)
 		return i;
 	}
 	i = krb5_cc_initialize(ctx, ccache, client);
+	krb5_free_principal(ctx, client);
 	if (i != 0) {
 		krb5_cc_destroy(ctx, ccache);
 		krb5_cc_destroy(ctx, tmp_ccache);
 		krb5_free_context(ctx);
 		return i;
 	}
+#ifdef HAVE_KRB5_CC_COPY_CREDS
 	i = krb5_cc_copy_creds(ctx, tmp_ccache, ccache);
+#else
+	{
+		krb5_creds creds;
+		krb5_cc_cursor cursor;
+		if ((i = krb5_cc_start_seq_get(ctx, tmp_ccache, &cursor)) != 0) {
+			krb5_cc_destroy(ctx, ccache);
+			krb5_cc_destroy(ctx, tmp_ccache);
+			krb5_free_context(ctx);
+			return i;
+		}
+		memset(&creds, 0, sizeof(creds));
+		while ((i = krb5_cc_next_cred(ctx, tmp_ccache, &cursor, &creds)) == 0) {
+			krb5_cc_store_cred(ctx, ccache, &creds);
+			krb5_free_cred_contents(ctx, &creds);
+			memset(&creds, 0, sizeof(creds));
+		}
+		krb5_cc_end_seq_get(ctx, tmp_ccache, &cursor);
+	}
+#endif
 	if (i != 0) {
 		krb5_cc_destroy(ctx, ccache);
 		krb5_cc_destroy(ctx, tmp_ccache);
