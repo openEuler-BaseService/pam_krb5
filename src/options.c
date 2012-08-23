@@ -435,6 +435,10 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 		debug("flag: debug_sensitive");
 	}
 
+	options->cchelper_path = option_s(argc, argv,
+					  ctx, options->realm, "cchelper_path",
+					  PKGSECURITYDIR "/pam_krb5_cchelper");
+
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_CANONICALIZE
 	options->canonicalize = option_b(argc, argv,
 					 ctx, options->realm,
@@ -912,6 +916,8 @@ _pam_krb5_options_free(pam_handle_t *pamh, krb5_context ctx,
 	options->pwhelp = NULL;
 	free_s(options->token_strategy);
 	options->token_strategy = NULL;
+	free_s(options->cchelper_path);
+	options->cchelper_path = NULL;
 	free_s(options->realm);
 	options->realm = NULL;
 	free_l(options->hosts);

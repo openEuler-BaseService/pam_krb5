@@ -54,9 +54,12 @@
 #include <security/pam_modules.h>
 #endif
 
+#include "log.h"
 #include "options.h"
 #include "stash.h"
 #include "userinfo.h"
+#include "v5.h"
+#include "xstr.h"
 
 static ssize_t
 _pam_krb5_write_with_retry(int fd, const unsigned char *buffer, ssize_t len)
@@ -132,7 +135,7 @@ static int
 _pam_krb5_cchelper_run(const char *helper, const char *flag, const char *ccname,
 		       uid_t uid, gid_t gid,
 		       const unsigned char *stdin_data, ssize_t stdin_data_len,
-		       char *stdout_data, size_t stdout_data_max_len,
+		       unsigned char *stdout_data, size_t stdout_data_max_len,
 		       ssize_t *stdout_data_len)
 {
 	int i;
@@ -260,10 +263,102 @@ _pam_krb5_cchelper_run(const char *helper, const char *flag, const char *ccname,
 		close(outpipe[0]);
 		sigaction(SIGCHLD, &saved_sigchld_handler, NULL);
 		sigaction(SIGPIPE, &saved_sigpipe_handler, NULL);
-		return status;
+		return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
 		break;
 	}
 	abort(); /* not reached */
+}
+
+static int
+_pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
+			     struct _pam_krb5_options *options,
+			     unsigned char **blob, ssize_t *blob_size)
+{
+	krb5_ccache ccache;
+	char ccname[PATH_MAX];
+	struct stat st;
+	int fd;
+
+	*blob = NULL;
+	*blob_size = 0;
+	/* Check that we have creds. */
+	if ((stash->v5ccache == NULL) ||
+	    (v5_ccache_has_tgt(ctx, stash->v5ccache, NULL) != 0)) {
+		warn("no creds to save");
+		return -1;
+	}
+	/* Create a temporary ccache file. */
+	snprintf(ccname, sizeof(ccname),
+		 "FILE:%s/pam_krb5_tmp_XXXXXX", options->ccache_dir);
+	fd = mkstemp(ccname + 5);
+	if (fd == -1) {
+		warn("error creating temporary ccache file \"%s\"", ccname + 5);
+		return -1;
+	}
+	/* Write the credentials to that file. */
+	ccache = NULL;
+	if (krb5_cc_resolve(stash->v5ctx, ccname, &ccache) != 0) {
+		warn("error opening credential cache file \"%s\" for writing",
+		     ccname + 5);
+		unlink(ccname + 5);
+		close(fd);
+		return -1;
+	}
+	if (v5_cc_copy(stash->v5ctx, stash->v5ccache, &ccache) != 0) {
+		warn("error writing to credential cache file \"%s\"",
+		     ccname + 5);
+		krb5_cc_close(stash->v5ctx, ccache);
+		unlink(ccname + 5);
+		close(fd);
+		return -1;
+	}
+	krb5_cc_close(stash->v5ctx, ccache);
+	/* Read the file's size. */
+	if (lstat(ccname + 5, &st) != 0) {
+		warn("error lstat()ing credential cache file \"%s\": %s",
+		     ccname + 5, strerror(errno));
+		krb5_cc_close(stash->v5ctx, ccache);
+		unlink(ccname + 5);
+		close(fd);
+		return -1;
+	}
+	/* Allocate space. */
+	*blob = malloc(st.st_size);
+	if (*blob == NULL) {
+		warn("out of memory reading \"%s\"", ccname + 5);
+		krb5_cc_close(stash->v5ctx, ccache);
+		unlink(ccname + 5);
+		close(fd);
+		return -1;
+	}
+	*blob_size = st.st_size;
+	close(fd);
+	/* Slurp up the file contents. */
+	fd = open(ccname + 5, O_RDONLY);
+	if (fd == -1) {
+		warn("error opening \"%s\": %s", ccname + 5, strerror(errno));
+		close(fd);
+		krb5_cc_close(stash->v5ctx, ccache);
+		unlink(ccname + 5);
+		free(*blob);
+		*blob = NULL;
+		*blob_size = 0;
+		return -1;
+	}
+	if (_pam_krb5_read_with_retry(fd, *blob, *blob_size) != *blob_size) {
+		warn("error reading \"%s\": %s", ccname + 5, strerror(errno));
+		close(fd);
+		krb5_cc_close(stash->v5ctx, ccache);
+		unlink(ccname + 5);
+		free(*blob);
+		*blob = NULL;
+		*blob_size = 0;
+		return -1;
+	}
+	/* Done. */
+	close(fd);
+	unlink(ccname + 5);
+	return 0;
 }
 
 int
@@ -274,6 +369,42 @@ _pam_krb5_cchelper_create(krb5_context ctx, struct _pam_krb5_stash *stash,
 			  uid_t uid, gid_t gid,
 			  char **ccname)
 {
+	unsigned char *cred_blob, output[PATH_MAX];
+	char *ccpattern;
+	int i;
+	ssize_t cred_blob_size, osize;
+
+	ccpattern = v5_user_info_subst(ctx, user, userinfo, options,
+				       options->ccname_template);
+	if (ccpattern == NULL) {
+		return -1;
+	}
+
+	cred_blob = NULL;
+	if (_pam_krb5_cchelper_cred_blob(ctx, stash, options,
+					 &cred_blob, &cred_blob_size) != 0) {
+		free(ccpattern);
+		return -1;
+	}
+	i = _pam_krb5_cchelper_run(options->cchelper_path, "-c", ccpattern,
+				   uid, gid, cred_blob, cred_blob_size,
+				   output, sizeof(output), &osize);
+	free(cred_blob);
+	if (i == 0) {
+		*ccname = xstrndup((const char *) output, osize);
+		if (*ccname == NULL) {
+			free(ccpattern);
+			return -1;
+		} else {
+			if (options->debug) {
+				debug("created ccache \"%s\"", *ccname);
+			}
+		}
+	} else {
+		warn("error creating ccache using pattern\"%s\"", ccpattern);
+	}
+	free(ccpattern);
+	return i;
 }
 
 int
@@ -284,6 +415,27 @@ _pam_krb5_cchelper_update(krb5_context ctx, struct _pam_krb5_stash *stash,
 			  uid_t uid, gid_t gid,
 			  const char *ccname)
 {
+	unsigned char *cred_blob, output[PATH_MAX];
+	int i;
+	ssize_t cred_blob_size, osize;
+
+	cred_blob = NULL;
+	if (_pam_krb5_cchelper_cred_blob(ctx, stash, options,
+					 &cred_blob, &cred_blob_size) != 0) {
+		return -1;
+	}
+	i = _pam_krb5_cchelper_run(options->cchelper_path, "-u", ccname,
+				   uid, gid, cred_blob, cred_blob_size,
+				   output, sizeof(output), &osize);
+	if (i == 0) {
+		if (options->debug) {
+			debug("updated ccache \"%s\"", ccname);
+		}
+	} else {
+		warn("error updating ccache \"%s\"", ccname);
+	}
+	free(cred_blob);
+	return i;
 }
 
 int
@@ -291,4 +443,19 @@ _pam_krb5_cchelper_delete(krb5_context ctx, struct _pam_krb5_stash *stash,
 			  struct _pam_krb5_options *options,
 			  const char *ccname)
 {
+	unsigned char output[PATH_MAX];
+	ssize_t osize;
+	int i;
+
+	i = _pam_krb5_cchelper_run(options->cchelper_path, "-d", ccname,
+				   -1, -1, NULL, 0,
+				   output, sizeof(output), &osize);
+	if (i == 0) {
+		if (options->debug) {
+			debug("deleted ccache \"%s\"", ccname);
+		}
+	} else {
+		warn("error deleting ccache \"%s\"", ccname);
+	}
+	return i;
 }
