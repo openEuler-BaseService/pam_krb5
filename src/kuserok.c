@@ -55,11 +55,11 @@
 
 #include KRB5_H
 
+#include "cchelper.h"
 #include "init.h"
 #include "log.h"
 #include "options.h"
 #include "stash.h"
-#include "storetmp.h"
 #include "tokens.h"
 #include "userinfo.h"
 #include "v5.h"
@@ -149,7 +149,7 @@ _pam_krb5_kuserok(krb5_context ctx,
 				     &ccname);
 		if ((i == PAM_SUCCESS) && (strlen(ccname) > 0)) {
 			if (options->debug) {
-				debug("created v5 ccache '%s' for '%s'",
+				debug("created ccache '%s' for '%s'",
 				      ccname, user);
 			}
 			sprintf(envstr, "KRB5CCNAME=%s", ccname);

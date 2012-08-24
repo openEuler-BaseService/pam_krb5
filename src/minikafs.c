@@ -450,7 +450,7 @@ minikafs_realm_of_cell_with_ctx(krb5_context ctx,
 	}
 
 	if (use_ctx != ctx) {
-		krb5_free_context(use_ctx);
+		_pam_krb5_free_ctx(use_ctx);
 	}
 
 	free(address);
@@ -569,7 +569,7 @@ minikafs_settoken(const void *ticket, uint32_t ticket_size,
 	return i;
 }
 
-/* Stuff the ticket and key from a v5 credentials structure into the kernel. */
+/* Stuff the ticket and key from a credentials structure into the kernel. */
 static int
 minikafs_5settoken(const char *cell, krb5_creds *creds, uid_t uid)
 {
@@ -868,7 +868,7 @@ minikafs_5log(krb5_context context, krb5_ccache ccache,
 	} else {
 		if (krb5_cc_default(ctx, &use_ccache) != 0) {
 			if (ctx != context) {
-				krb5_free_context(ctx);
+				_pam_krb5_free_ctx(ctx);
 			}
 			return -1;
 		}
@@ -889,7 +889,7 @@ minikafs_5log(krb5_context context, krb5_ccache ccache,
 				krb5_cc_close(ctx, use_ccache);
 			}
 			if (ctx != context) {
-				krb5_free_context(ctx);
+				_pam_krb5_free_ctx(ctx);
 			}
 			return 0;
 		}
@@ -931,7 +931,7 @@ minikafs_5log(krb5_context context, krb5_ccache ccache,
 			v5_free_default_realm(ctx, defaultrealm);
 		}
 		if (ctx != context) {
-			krb5_free_context(ctx);
+			_pam_krb5_free_ctx(ctx);
 		}
 		return -1;
 	}
@@ -1056,7 +1056,7 @@ minikafs_5log(krb5_context context, krb5_ccache ccache,
 		v5_free_default_realm(ctx, defaultrealm);
 	}
 	if (ctx != context) {
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 	}
 	free(principal);
 
@@ -1082,26 +1082,26 @@ minikafs_log(krb5_context ctx, krb5_ccache ccache,
 		switch (methods[method]) {
 		case MINIKAFS_METHOD_V5_2B:
 			if (options->debug) {
-				debug("trying with v5 ticket (2b)");
+				debug("trying with ticket (2b)");
 			}
 			i = minikafs_5log(ctx, ccache, options, cell,
 					  hint_principal, uid, 0, 1);
 			if (i != 0) {
 				if (options->debug) {
-					debug("v5 afslog (2b) failed to \"%s\"",
+					debug("afslog (2b) failed to \"%s\"",
 					      cell);
 				}
 			}
 			break;
 		case MINIKAFS_METHOD_RXK5:
 			if (options->debug) {
-				debug("trying with v5 ticket (rxk5)");
+				debug("trying with ticket (rxk5)");
 			}
 			i = minikafs_5log(ctx, ccache, options, cell,
 					  hint_principal, uid, 1, 0);
 			if (i != 0) {
 				if (options->debug) {
-					debug("v5 afslog (rxk5) failed to \"%s\"",
+					debug("afslog (rxk5) failed to \"%s\"",
 					      cell);
 				}
 			}
