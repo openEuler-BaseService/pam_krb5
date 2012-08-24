@@ -35,5 +35,6 @@
 
 int _pam_krb5_init_ctx(krb5_context *ctx,
 		       int argc, PAM_KRB5_MAYBE_CONST char **argv);
+void _pam_krb5_free_ctx(krb5_context ctx);
 
 #endif

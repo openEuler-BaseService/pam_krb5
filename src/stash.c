@@ -514,7 +514,7 @@ _pam_krb5_stash_get(pam_handle_t *pamh, const char *user,
 	stash = malloc(sizeof(struct _pam_krb5_stash));
 	if (stash == NULL) {
 	    	free(key);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return NULL;
 	}
 	memset(stash, 0, sizeof(struct _pam_krb5_stash));
@@ -715,39 +715,6 @@ _pam_krb5_stash_chown_keyring(krb5_context ctx, struct _pam_krb5_stash *stash,
 	return -1;
 }
 #endif
-
-static char *
-_pam_krb5_stash_guess_unique_ccname(struct _pam_krb5_stash *stash,
-				    struct _pam_krb5_options *options,
-				    char *newname,
-				    char *append_if_needed)
-{
-	struct _pam_krb5_ccname_list *node;
-	char *ret;
-	/* Search for a match in our list of already-created ccache names. */
-	for (node = stash->v5ccnames;
-	     (node != NULL) && (strcmp(node->name, newname) != 0);
-	     node = node->next) {
-		continue;
-	}
-	if (node == NULL) {
-		/* No match -> return. */
-		return newname;
-	}
-	/* Append something which will hopefully make it unique. */
-	ret = malloc(strlen(newname) + strlen(append_if_needed) + 1);
-	if (ret != NULL) {
-		sprintf(ret, "%s%s", newname, append_if_needed);
-		if (options->debug) {
-			debug("already have a ccache named \"%s\", "
-			      "will create one named \"%s\" instead",
-			      newname, ret);
-		}
-		free(newname);
-	}
-	return _pam_krb5_stash_guess_unique_ccname(stash, options,
-						   ret, append_if_needed);
-}
 
 void
 _pam_krb5_stash_push(krb5_context ctx,

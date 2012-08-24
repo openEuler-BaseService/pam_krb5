@@ -79,7 +79,7 @@ maybe_setpag(const char *fn, pam_handle_t *pamh, int flags,
 	options = _pam_krb5_options_init(pamh, argc, argv, ctx);
 	if (options == NULL) {
 		warn("error parsing options (shouldn't happen)");
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_SERVICE_ERR;
 	}
 
@@ -119,7 +119,7 @@ maybe_setpag(const char *fn, pam_handle_t *pamh, int flags,
 		      pam_strerror(pamh, ret));
 	}
 	_pam_krb5_options_free(pamh, ctx, options);
-	krb5_free_context(ctx);
+	_pam_krb5_free_ctx(ctx);
 	return ret;
 }
 

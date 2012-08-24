@@ -214,7 +214,7 @@ main(int argc, const char **argv)
 		krb5_cc_close(ctx, occache);
 	}
 	krb5_cc_close(ctx, ccache);
-	krb5_free_context(ctx);
+	_pam_krb5_free_ctx(ctx);
 
 	return 0;
 }

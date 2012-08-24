@@ -200,7 +200,7 @@ main(int argc, char **argv)
 				       "[-s strategy] [-p path] "
 				       "[cell[=principal]] ] [...]\n",
 				       argv[0]);
-				krb5_free_context(ctx);
+				_pam_krb5_free_ctx(ctx);
 				exit(0);
 				break;
 			}
@@ -271,6 +271,6 @@ main(int argc, char **argv)
 		}
 	}
 	krb5_cc_close(ctx, ccache);
-	krb5_free_context(ctx);
+	_pam_krb5_free_ctx(ctx);
 	return 0;
 }

@@ -142,7 +142,7 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 	i = pam_get_user(pamh, &user, NULL);
 	if ((i != PAM_SUCCESS) || (user == NULL)) {
 		warn("could not identify user name");
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return i;
 	}
 
@@ -150,7 +150,7 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 	options = _pam_krb5_options_init(pamh, argc, argv, ctx);
 	if (options == NULL) {
 		warn("error parsing options (shouldn't happen)");
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_SERVICE_ERR;
 	}
 	if (options->debug) {
@@ -168,7 +168,7 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 			retval = PAM_USER_UNKNOWN;
 		}
 		_pam_krb5_options_free(pamh, ctx, options);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return retval;
 	}
 
@@ -180,7 +180,7 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 		}
 		_pam_krb5_user_info_free(ctx, userinfo);
 		_pam_krb5_options_free(pamh, ctx, options);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_IGNORE;
 	}
 
@@ -191,7 +191,7 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 		     user);
 		_pam_krb5_user_info_free(ctx, userinfo);
 		_pam_krb5_options_free(pamh, ctx, options);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_SERVICE_ERR;
 	}
 
@@ -320,7 +320,7 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 
 	_pam_krb5_user_info_free(ctx, userinfo);
 	_pam_krb5_options_free(pamh, ctx, options);
-	krb5_free_context(ctx);
+	_pam_krb5_free_ctx(ctx);
 
 	return retval;
 }

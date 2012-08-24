@@ -129,7 +129,7 @@ main(int argc, const char **argv)
 		printf("OK\n");
 	}
 
-	krb5_free_context(ctx);
+	_pam_krb5_free_ctx(ctx);
 
 	return ret;
 }

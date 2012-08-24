@@ -83,7 +83,7 @@ _pam_krb5_init_ctx(krb5_context *ctx,
 		if (i == 0) {
 			i = set_realm(*ctx, argc, argv);
 			if (i != 0) {
-				krb5_free_context(*ctx);
+				_pam_krb5_free_ctx(*ctx);
 				*ctx = NULL;
 			}
 		}
@@ -98,9 +98,18 @@ _pam_krb5_init_ctx(krb5_context *ctx,
 	if (i == 0) {
 		i = set_realm(*ctx, argc, argv);
 		if (i != 0) {
-			krb5_free_context(*ctx);
+			_pam_krb5_free_ctx(*ctx);
 			*ctx = NULL;
 		}
 	}
 	return i;
+}
+
+void
+_pam_krb5_free_ctx(krb5_context ctx)
+{
+#ifdef HAVE_KRB5_SET_TRACE_CALLBACK
+	krb5_set_trace_callback(ctx, NULL, NULL);
+#endif
+	krb5_free_context(ctx);
 }

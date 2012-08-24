@@ -94,7 +94,15 @@ debug(const char *fmt, ...)
 void
 trace(krb5_context ctx, const struct krb5_trace_info *info, void *data)
 {
-	debug("libkrb5 trace message: %s", info->message);
+	int len;
+	if (info != NULL) {
+		len = strlen(info->message);
+		while ((len > 0) &&
+		       (strchr("\r\n", info->message[len - 1]) != NULL)) {
+			len--;
+		}
+		debug("libkrb5 trace message: %.*s", len, info->message);
+	}
 }
 #endif
 

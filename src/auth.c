@@ -89,7 +89,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 	i = pam_get_user(pamh, &user, NULL);
 	if ((i != PAM_SUCCESS) || (user == NULL)) {
 		warn("could not identify user name");
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return i;
 	}
 
@@ -97,14 +97,14 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 	i = v5_alloc_get_init_creds_opt(ctx, &gic_options);
 	if (i != 0) {
 		warn("error initializing options (shouldn't happen)");
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_SERVICE_ERR;
 	}
 	options = _pam_krb5_options_init(pamh, argc, argv, ctx);
 	if (options == NULL) {
 		warn("error parsing options (shouldn't happen)");
 		v5_free_get_init_creds_opt(ctx, gic_options);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_SERVICE_ERR;
 	}
 	if (options->debug) {
@@ -149,7 +149,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 		/* Clean up and return. */
 		_pam_krb5_options_free(pamh, ctx, options);
 		v5_free_get_init_creds_opt(ctx, gic_options);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return retval;
 	}
 	if (options->debug) {
@@ -175,7 +175,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 		}
 		_pam_krb5_options_free(pamh, ctx, options);
 		v5_free_get_init_creds_opt(ctx, gic_options);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_IGNORE;
 	}
 
@@ -195,7 +195,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 		}
 		_pam_krb5_options_free(pamh, ctx, options);
 		v5_free_get_init_creds_opt(ctx, gic_options);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_SERVICE_ERR;
 	}
 
@@ -417,7 +417,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 	v5_free_get_init_creds_opt(ctx, gic_options);
 	_pam_krb5_options_free(pamh, ctx, options);
 	_pam_krb5_user_info_free(ctx, userinfo);
-	krb5_free_context(ctx);
+	_pam_krb5_free_ctx(ctx);
 
 	return retval;
 }
