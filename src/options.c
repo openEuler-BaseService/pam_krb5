@@ -435,6 +435,7 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 		debug("flag: debug_sensitive");
 	}
 
+	/* undocumented private option */
 	options->cchelper_path = option_s(argc, argv,
 					  ctx, options->realm, "cchelper_path",
 					  PKGSECURITYDIR "/pam_krb5_cchelper");
