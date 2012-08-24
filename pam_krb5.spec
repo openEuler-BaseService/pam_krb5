@@ -23,7 +23,7 @@ The included pam_krb5afs module also gets AFS tokens if so configured.
 %build
 configure_flags=
 %if 0%{?fedora} > 17 || 0%{?rhel} > 6
-configure_flags=--enable-default-ccname-template=FILE:/run/user/%%U/krb5cc_XXXXXX
+configure_flags=--enable-default-ccname-template=DIR:/run/user/%%U/krb5cc_XXXXXX
 %endif
 %configure --libdir=/%{_lib} \
 	--with-default-use-shmem="sshd" \
