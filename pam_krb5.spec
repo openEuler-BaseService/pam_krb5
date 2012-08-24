@@ -1,7 +1,7 @@
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
-Version: 2.3.14
-Release: 2%{?dist}
+Version: 2.3.90
+Release: 0%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}-1.tar.gz
 Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}-1.tar.gz.sig
 License: BSD or LGPLv2+
