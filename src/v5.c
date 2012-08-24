@@ -1632,7 +1632,7 @@ v5_save_for_user(krb5_context ctx,
 		if (options->debug) {
 			debug("credentials not initialized");
 		}
-		return KRB5KRB_ERR_GENERIC;
+		return PAM_IGNORE;
 	}
 
 	/* Derive the ccache name from the supplied template and create one. */
@@ -1640,11 +1640,12 @@ v5_save_for_user(krb5_context ctx,
 			     user, userinfo,
 			     options->user_check ? userinfo->uid : getuid(),
 			     options->user_check ? userinfo->gid : getgid());
-	if (ccname != NULL) {
+	if ((ccname != NULL) && (stash->v5ccnames != NULL)) {
 		*ccname = stash->v5ccnames->name;
+		return PAM_SUCCESS;
+	} else {
+		return PAM_SESSION_ERR;
 	}
-
-	return PAM_SUCCESS;
 }
 
 void
@@ -1653,11 +1654,11 @@ v5_destroy(krb5_context ctx, struct _pam_krb5_stash *stash,
 {
 	if (stash->v5ccnames != NULL) {
 		if (options->debug) {
-			debug("removing ccache '%s'",
+			debug("destroying ccache '%s'",
 			      stash->v5ccnames->name);
 		}
 		if (_pam_krb5_stash_pop(ctx, stash, options) != 0) {
-			warn("error removing ccache '%s'",
+			warn("error destroying ccache '%s'",
 			     stash->v5ccnames->name);
 		}
 	}

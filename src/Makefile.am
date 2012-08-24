@@ -6,10 +6,10 @@ securitydir = $(libdir)/security
 security_LTLIBRARIES = pam_krb5.la
 noinst_LTLIBRARIES = libpam_krb5.la
 pkgsecuritydir = $(libdir)/security/$(PACKAGE)
-pkgsecurity_PROGRAMS = pam_krb5_storetmp pam_krb5_cchelper
-EXTRA_DIST = afs5log.1 pam_krb5.5 pam_krb5.8 pam_krb5_storetmp.8 pam_krb5_cchelper.8 pam_newpag.5 pam_newpag.8
+pkgsecurity_PROGRAMS = pam_krb5_cchelper
+EXTRA_DIST = afs5log.1 pam_krb5.5 pam_krb5.8 pam_krb5_cchelper.8 pam_newpag.5 pam_newpag.8
 noinst_PROGRAMS = harness harness-newpag shmcat uuauth vfy
-man_MANS = pam_krb5.5 pam_krb5.8 pam_krb5_storetmp.8 pam_krb5_cchelper.8
+man_MANS = pam_krb5.5 pam_krb5.8 pam_krb5_cchelper.8
 noinst_MANS =
 if AFS
 noinst_LTLIBRARIES += pam_newpag.la
@@ -30,6 +30,8 @@ DIRECT_LIBPAM =
 endif
 
 libpam_krb5_la_SOURCES = \
+	cchelper.c \
+	cchelper.h \
 	conv.c \
 	conv.h \
 	init.c \
@@ -53,8 +55,6 @@ libpam_krb5_la_SOURCES = \
 	sly.h \
 	stash.c \
 	stash.h \
-	storetmp.c \
-	storetmp.h \
 	userinfo.c \
 	userinfo.h \
 	xstr.c \
@@ -89,11 +89,6 @@ pam_krb5_cchelper_SOURCES = \
 	pam_krb5_cchelper.c
 pam_krb5_cchelper_LDFLAGS = @KRB5_LIBS@ @KEYUTILS_LIBS@
 pam_krb5_cchelper_LDADD = xstr.lo
-
-pam_krb5_storetmp_SOURCES = \
-	pam_krb5_storetmp.c
-pam_krb5_storetmp_LDFLAGS =
-pam_krb5_storetmp_LDADD = xstr.lo
 
 afs5log_SOURCES = \
 	afs5log.c \
@@ -135,8 +130,8 @@ harness_newpag_LDADD = \
 	v5.lo
 harness_newpag_LDADD += libpam_krb5.la @PAM_LIBS@ $(KRB_LIBS)
 
-shmcat_SOURCES = shmcat.c
-shmcat_LDADD = logstdio.lo libpam_krb5.la @PAM_LIBS@
+shmcat_SOURCES = shmcat.c noitems.c
+shmcat_LDADD = logstdio.lo libpam_krb5.la @PAM_LIBS@ $(KRB_LIBS)
 
 uuauth_LDADD = logstdio.lo noitems.lo libpam_krb5.la @PAM_LIBS@ $(KRB_LIBS)
 

@@ -53,11 +53,11 @@
 #include <keyutils.h>
 #endif
 
+#include "cchelper.h"
 #include "init.h"
 #include "log.h"
 #include "shmem.h"
 #include "stash.h"
-#include "storetmp.h"
 #include "userinfo.h"
 #include "v5.h"
 #include "xstr.h"
@@ -136,7 +136,7 @@ _pam_krb5_stash_cleanup(pam_handle_t *pamh, void *data, int error)
 	free(stash);
 }
 
-/* Read v5 state from the shared memory segment. */
+/* Read state from the shared memory segment. */
 static void
 _pam_krb5_stash_shm_read_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 			    struct _pam_krb5_options *options, int key,
@@ -201,7 +201,7 @@ _pam_krb5_stash_shm_read_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 		stash->v5result = ((int*)blob)[2];
 		stash->v5external = ((int*)blob)[3];
 		if (options->debug) {
-			debug("recovered v5 credentials from shared memory "
+			debug("recovered credentials from shared memory "
 			      "segment %d", key);
 		}
 	}
@@ -211,7 +211,7 @@ _pam_krb5_stash_shm_read_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 	close(fd);
 }
 
-/* Save v5 state to the shared memory segment. */
+/* Save state to the shared memory segment. */
 static void
 _pam_krb5_stash_shm_write_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 			     struct _pam_krb5_options *options,
@@ -286,7 +286,7 @@ _pam_krb5_stash_shm_write_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 			free(segname);
 			pam_putenv(pamh, variable);
 			if (options->debug) {
-				debug("saved v5 credentials to shared memory "
+				debug("saved credentials to shared memory "
 				      "segment %d (creator pid %ld)", key,
 				      (long) getpid());
 				debug("set '%s' in environment", variable);
@@ -295,7 +295,7 @@ _pam_krb5_stash_shm_write_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 			stash->v5shm_owner = getpid();
 		}
 	} else {
-		warn("error saving v5 credential state to shared "
+		warn("error saving credential state to shared "
 		     "memory segment");
 	}
 }
@@ -391,7 +391,7 @@ _pam_krb5_stash_external_read(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 
 	/* Read a TGT from $KRB5CCNAME. */
 	if (options->debug) {
-		debug("checking for externally-obtained v5 credentials");
+		debug("checking for externally-obtained credentials");
 	}
 	ccname = pam_getenv(pamh, "KRB5CCNAME");
 	if ((ccname != NULL) && (strlen(ccname) > 0)) {
@@ -542,51 +542,6 @@ _pam_krb5_stash_get(pam_handle_t *pamh, const char *user,
 	pam_set_data(pamh, key, stash, _pam_krb5_stash_cleanup);
 
 	return stash;
-}
-
-/* Create a new copy of the named file with the specified owner, optionally
- * saving its contents in the process.  The original file is removed and its
- * name is freed and overwritten with the name of the new ccache. */
-static void
-_pam_krb5_stash_clone_file(char **stored_file, uid_t uid, gid_t gid)
-{
-	char *pattern, *filename;
-	size_t length;
-	if ((stored_file != NULL) && (*stored_file != NULL)) {
-		length = strlen(*stored_file);
-		pattern = malloc(length + 8);
-		if (pattern == NULL) {
-			return;
-		}
-		filename = malloc(length + 8);
-		if (filename == NULL) {
-			free(pattern);
-			return;
-		}
-		strcpy(pattern, *stored_file);
-		memset(filename, '\0', length + 8);
-		if (length >= 7) {
-			/* overwrite */
-			strcpy(pattern + length - 7, "_XXXXXX");
-		} else {
-			/* append */
-			strcpy(pattern + length, "_XXXXXX");
-		}
-		if (_pam_krb5_storetmp_file(*stored_file,
-					    pattern,
-					    NULL, NULL,
-					    uid, gid,
-					    filename,
-					    length + 8) == 0) {
-			unlink(*stored_file);
-			xstrfree(*stored_file);
-			*stored_file = filename;
-		}
-		if (*stored_file != filename) {
-			free(filename);
-		}
-		free(pattern);
-	}
 }
 
 krb5_error_code
@@ -803,84 +758,28 @@ _pam_krb5_stash_push(krb5_context ctx,
 		     uid_t uid, gid_t gid)
 {
 	char *filename, *newname;
-	int fd;
-	krb5_ccache nccache;
 	struct _pam_krb5_ccname_list *node;
 
-	/* Copy the in-memory ccache to a location suitable for use by the
-	 * authenticating client.  If it's a FILE: ccache, use mkstemp() to try
-	 * to pre-create it.  In any case, if it's going to have the same name
-	 * as the current ccache, append a "_" in a feeble attempt at making
-	 * its name unique. */
-	nccache = NULL;
-	newname = v5_user_info_subst(ctx, user, userinfo, options,
-				     options->ccname_template);
-	newname = _pam_krb5_stash_guess_unique_ccname(stash, options,
-						      newname, "_");
-	if (newname == NULL) {
-		return;
-	}
 	/* Allocate space in the list of ccaches.  Do it now while an error is
 	 * a simple matter. */
 	node = malloc(sizeof(*node));
 	if (node == NULL) {
-		free(newname);
 		return;
 	}
-	node->name = newname;
-
-	/* If it's a file, precreate it using the pattern. */
-	if (strncmp(newname, "FILE:", 5) == 0) {
-		fd = mkstemp(newname + 5);
-	} else {
-		fd = -1;
-	}
-	if (krb5_cc_resolve(ctx, newname, &nccache) != 0) {
-		warn("error creating ccache \"%s\"", newname);
-		if (fd != -1) {
-			close(fd);
-			unlink(newname + 5);
-		}
-	}
-	if (fd != -1) {
-		close(fd);
-	}
-
-	/* Copy the contents of the ccache we have into the new one. */
-	if (v5_cc_copy(ctx, stash->v5ccache, &nccache) == 0) {
-		if (options->debug) {
-			debug("copied credentials from \"%s:%s\" to "
-			      "\"%s\" for the user",
-			      krb5_cc_get_type(ctx, stash->v5ccache),
-			      krb5_cc_get_name(ctx, stash->v5ccache),
-			      newname);
-		}
-		krb5_cc_close(ctx, nccache);
+	newname = NULL;
+	if (_pam_krb5_cchelper_create(ctx, stash, options, user, userinfo,
+				      uid, gid, &newname) == 0) {
 		/* If we're not doing multiple ccaches, chuck the others we've
-		 * created. */
+		 * previously created. */
 		if (options->multiple_ccaches == 0) {
 			while (stash->v5ccnames != NULL) {
 				_pam_krb5_stash_pop(ctx, stash, options);
 			}
 		}
 		/* Save the name of this ccache. */
+		node->name = newname;
 		node->next = stash->v5ccnames;
 		stash->v5ccnames = node;
-		/* If the destination is a file, re-clone it to get the
-		 * permissions right. */
-		if (strncmp(options->ccname_template, "FILE:", 5) == 0) {
-			filename = xstrdup(stash->v5ccnames->name + 5);
-			if (filename != NULL) {
-				_pam_krb5_stash_clone_file(&filename, uid, gid);
-				newname = malloc(strlen(filename) + 6);
-				if (newname != NULL) {
-					sprintf(newname, "FILE:%s", filename);
-					xstrfree(stash->v5ccnames->name);
-					stash->v5ccnames->name = newname;
-				}
-				xstrfree(filename);
-			}
-		} else
 		/* If the new ccache is a keyring, give ownership away
 		 * to the designated user. */
 		if (strncmp(options->ccname_template,
@@ -895,14 +794,9 @@ _pam_krb5_stash_push(krb5_context ctx,
 			}
 		}
 	} else {
-		warn("error copying credentials from \"%s:%s\" to "
-		     "\"%s\" for the user",
-		     krb5_cc_get_type(ctx, stash->v5ccache),
-		     krb5_cc_get_name(ctx, stash->v5ccache),
-		     newname);
-		krb5_cc_destroy(ctx, nccache);
+		/* Log an error. */
+		warn("error creating ccache for user \"%s\"", user);
 		free(node);
-		xstrfree(newname);
 	}
 }
 
@@ -913,71 +807,23 @@ _pam_krb5_stash_pop(krb5_context ctx,
 {
 	struct _pam_krb5_ccname_list *node, **list = &stash->v5ccnames;
 	krb5_ccache ccache;
-	const char *filename;
 	int i;
 
 	if (*list != NULL) {
 		node = *list;
-		filename = NULL;
-		if (strncmp(node->name, "FILE:", 5) == 0) {
-			filename = node->name + 5;
+		if (_pam_krb5_cchelper_destroy(ctx, stash, options,
+					       node->name) == 0) {
+			if (options->debug) {
+				debug("destroyed ccache \"%s\"", node->name);
+			}
+			xstrfree(node->name);
+			node->name = NULL;
+			*list = node->next;
+			free(node);
+			return 0;
 		} else {
-			if (node->name[0] == '/') {
-				filename = node->name;
-			}
-		}
-		if (filename != NULL) {
-			if (_pam_krb5_storetmp_delete(filename) == 0) {
-				xstrfree(node->name);
-				node->name = NULL;
-				*list = node->next;
-				free(node);
-				return 0;
-			} else {
-				if (unlink(filename) == 0) {
-					xstrfree(node->name);
-					node->name = NULL;
-					*list = node->next;
-					free(node);
-					return 0;
-				} else {
-					return -1;
-				}
-			}
-		} else {
-			ccache = NULL;
-			i = krb5_cc_resolve(ctx, node->name, &ccache);
-			if (i != 0) {
-#ifdef EKEYREVOKED
-				if (i == EKEYREVOKED) {
-					/* Well, that's alright then, I
-					 * guess. */
-					xstrfree(node->name);
-					node->name = NULL;
-					*list = node->next;
-					free(node);
-					return 0;
-				}
-#endif
-				warn("error accessing ccache \"%s\" "
-				     "for removal: %s", node->name,
-				     v5_error_message(i));
-				return -1;
-			} else {
-				i = krb5_cc_destroy(ctx, ccache);
-				if (i == 0) {
-					xstrfree(node->name);
-					node->name = NULL;
-					*list = node->next;
-					free(node);
-					return 0;
-				} else {
-					warn("error removing ccache "
-					     "\"%s\": %s", node->name,
-					     v5_error_message(i));
-					return -1;
-				}
-			}
+			debug("error destroying ccache \"%s\"", node->name);
+			return -1;
 		}
 	} else {
 		return 0;

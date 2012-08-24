@@ -1,5 +1,5 @@
 /*
- * Copyright 2003,2004,2005,2006,2007,2008,2009 Red Hat, Inc.
+ * Copyright 2003,2004,2005,2006,2007,2008,2009,2012 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,6 +52,7 @@
 
 #include KRB5_H
 
+#include "cchelper.h"
 #include "init.h"
 #include "log.h"
 #include "options.h"
@@ -61,112 +62,20 @@
 #include "userinfo.h"
 #include "v5.h"
 
-/* Store the v5 TGT in $KRB5CCNAME.  Use a child process to possibly drop
+/* Store the TGT in $KRB5CCNAME.  Use a child process to possibly drop
  * privileges while we're doing it. */
 static int
-sly_v5(krb5_context ctx, const char *v5ccname,
-       struct _pam_krb5_user_info *userinfo, struct _pam_krb5_stash *stash)
+sly_v5(krb5_context ctx, const char *ccname,
+       struct _pam_krb5_options *options,
+       const char *user, struct _pam_krb5_user_info *userinfo,
+       uid_t uid, gid_t gid,
+       struct _pam_krb5_stash *stash)
 {
-	krb5_ccache ccache;
-	krb5_principal princ;
-	int i, outpipe[2];
-	unsigned char result;
-	pid_t child;
-	struct sigaction saved_sigchld_handler, saved_sigpipe_handler;
-	struct sigaction ignore_handler, default_handler;
-
-	/* We use the pipe to relay the PAM status. */
-	if (pipe(outpipe) == -1) {
-		return -1;
-	}
-	/* Set signal handlers here, before the child has a chance to exit
-	 * before we can notice. */
-	memset(&default_handler, 0, sizeof(default_handler));
-	default_handler.sa_handler = SIG_DFL;
-	if (sigaction(SIGCHLD, &default_handler, &saved_sigchld_handler) != 0) {
-		close(outpipe[0]);
-		close(outpipe[1]);
-		return -1;
-	}
-	memset(&ignore_handler, 0, sizeof(ignore_handler));
-	ignore_handler.sa_handler = SIG_IGN;
-	if (sigaction(SIGPIPE, &ignore_handler, &saved_sigpipe_handler) != 0) {
-		sigaction(SIGCHLD, &saved_sigchld_handler, NULL);
-		close(outpipe[0]);
-		close(outpipe[1]);
-		return -1;
-	}
-	switch (child = fork()) {
-	case -1:
-		sigaction(SIGCHLD, &saved_sigchld_handler, NULL);
-		sigaction(SIGPIPE, &saved_sigpipe_handler, NULL);
-		close(outpipe[0]);
-		close(outpipe[1]);
-		return -1;
-		break;
-	case 0:
-		/* We're the child. */
-		close(outpipe[0]);
-		for (i = 0; i < sysconf(_SC_OPEN_MAX); i++) {
-			if ((i != outpipe[1]) &&
-			    (i != STDIN_FILENO) &&
-			    (i != STDOUT_FILENO) &&
-			    (i != STDERR_FILENO)) {
-				close(i);
-			}
-		}
-		setgroups(0, NULL);
-		/* Now, attempt to assume the desired uid/gid pair.  Note that
-		 * if we're not root, this is allowed to fail. */
-		if ((userinfo->gid != getgid()) || (userinfo->gid != getegid())) {
-			i = setregid(userinfo->gid, userinfo->gid);
-		}
-		if ((userinfo->uid != getuid()) || (userinfo->uid != geteuid())) {
-			i = setreuid(userinfo->uid, userinfo->uid);
-		}
-		/* Store the user's credentials. */
-		ccache = NULL;
-		i = krb5_cc_resolve(ctx, v5ccname, &ccache);
-		if (i == 0) {
-			princ = NULL;
-			if (krb5_cc_get_principal(ctx, ccache, &princ) == 0) {
-				if (krb5_principal_compare(ctx, princ,
-							   userinfo->principal_name) == FALSE) {
-					krb5_free_principal(ctx, princ);
-					krb5_cc_close(ctx, ccache);
-					result = PAM_SERVICE_ERR;
-					if (write(outpipe[1], &result, 1)) {
-						close(outpipe[1]);
-					}
-					_exit(result);
-				}
-				krb5_free_principal(ctx, princ);
-			}
-			i = v5_cc_copy(ctx, stash->v5ccache, &ccache);
-			krb5_cc_close(ctx, ccache);
-		}
-		result = (i == 0) ? PAM_SUCCESS : PAM_SERVICE_ERR;
-		if (write(outpipe[1], &result, 1)) {
-			close(outpipe[1]);
-		}
-		_exit(result);
-		break;
-	default:
-		/* parent */
-		close(outpipe[1]);
-		if (read(outpipe[0], &result, 1) != 1) {
-			result = PAM_SERVICE_ERR;
-		}
-		waitpid(child, NULL, 0);
-		sigaction(SIGCHLD, &saved_sigchld_handler, NULL);
-		sigaction(SIGPIPE, &saved_sigpipe_handler, NULL);
-		close(outpipe[0]);
-		return result;
-		break;
-	}
-	abort(); /* not reached */
-
-	return PAM_SUCCESS;
+	int i;
+	i = _pam_krb5_cchelper_update(ctx, stash, options,
+				      user, userinfo, uid, gid,
+				      ccname);
+	return (i == 0) ? PAM_SUCCESS : PAM_SYSTEM_ERR;
 }
 
 /* Inexpensive checks. */
@@ -198,7 +107,7 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 	int i, retval, stored;
 	uid_t uid;
 	gid_t gid;
-	const char *v5ccname, *v5filename;
+	const char *v5ccname, *v5pathname;
 
 	/* Inexpensive checks. */
 	switch (_pam_krb5_sly_looks_unsafe()) {
@@ -293,7 +202,7 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 	if (v5ccname == NULL) {
 		v5ccname = krb5_cc_default_name(ctx);
 	}
-	v5filename = NULL;
+	v5pathname = NULL;
 	if (v5ccname == NULL) {
 		/* This should never happen, but all we can do is tell libpam
 		 * to ignore us.  We have nothing to do. */
@@ -303,17 +212,17 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 		retval = PAM_IGNORE;
 	} else {
 		if (strncmp(v5ccname, "FILE:", 5) == 0) {
-			v5filename = v5ccname + 5;
+			v5pathname = v5ccname + 5;
 			if (options->debug) {
 				debug("ccache is a file named '%s'",
-				      v5filename);
+				      v5pathname);
 			}
 		} else
 		if (strncmp(v5ccname, "DIR:", 4) == 0) {
-			v5filename = v5ccname + 4;
+			v5pathname = v5ccname + 4;
 			if (options->debug) {
 				debug("ccache is a directory named '%s'",
-				      v5filename);
+				      v5pathname);
 			}
 		} else {
 			if (options->debug) {
@@ -328,30 +237,49 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 	gid = options->user_check ? userinfo->gid : getgid();
 
 	if (v5_ccache_has_tgt(ctx, stash->v5ccache, NULL) == 0) {
-		if (v5filename != NULL) {
-			/* Check the permissions on the ccache file. */
-			if ((access(v5filename, R_OK | W_OK) == 0) &&
-			    (lstat(v5filename, &st) == 0)) {
-				if ((S_ISREG(st.st_mode) ||
-				     S_ISDIR(st.st_mode)) &&
-				    ((st.st_mode & S_IRWXG) == 0) &&
-				    ((st.st_mode & S_IRWXO) == 0) &&
-				    (st.st_uid == uid) &&
-				    (st.st_gid == gid)) {
+		if (v5pathname != NULL) {
+			/* Check the permissions on the ccache. */
+			if ((access(v5pathname, R_OK | W_OK) == 0) &&
+			    (lstat(v5pathname, &st) == 0)) {
+				if (!(S_ISREG(st.st_mode) ||
+				      S_ISDIR(st.st_mode))) {
+					if (options->debug) {
+						debug("ccache '%s' for '%s' "
+						      "is not a regular file "
+						      "or directory",
+						      v5ccname, user);
+					}
+					retval = PAM_SUCCESS;
+				} else
+				if (!(((st.st_mode & S_IRWXG) == 0) &&
+				      ((st.st_mode & S_IRWXO) == 0))) {
+					if (options->debug) {
+						debug("ccache '%s' for '%s' "
+						      "is group or world "
+						      "accessible",
+						      v5ccname, user);
+					}
+					retval = PAM_SUCCESS;
+				} else
+				if (!((st.st_uid == uid) &&
+				      (st.st_gid == gid))) {
+					if (options->debug) {
+						debug("ccache '%s' for '%s' "
+						      "is owned by a another "
+						      "user or group",
+						      v5ccname, user);
+					}
+					retval = PAM_SUCCESS;
+				} else {
 					if (options->debug) {
 						debug("updating ccache '%s' "
 						      "for '%s'",
 						      v5ccname, user);
 					}
-					retval = sly_v5(ctx, v5ccname,
-							userinfo, stash);
+					retval = sly_v5(ctx, v5ccname, options,
+							user, userinfo,
+							uid, gid, stash);
 					stored = (retval == PAM_SUCCESS);
-				} else {
-					if (options->debug) {
-						debug("not updating '%s'",
-						      v5ccname);
-					}
-					retval = PAM_SUCCESS;
 				}
 			} else {
 				if (errno == ENOENT) {
@@ -361,13 +289,15 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 			}
 		} else {
 			if (v5ccname != NULL) {
-				/* Go ahead and update the current not-a-file
-				 * ccache. */
+				/* Go ahead and update the current
+				 * not-on-the-filesystem ccache. */
 				if (options->debug) {
 					debug("updating ccache '%s' for '%s'",
 					      v5ccname, user);
 				}
-				retval = sly_v5(ctx, v5ccname, userinfo, stash);
+				retval = sly_v5(ctx, v5ccname, options,
+						user, userinfo,
+						uid, gid, stash);
 				stored = (retval == PAM_SUCCESS);
 			}
 		}
