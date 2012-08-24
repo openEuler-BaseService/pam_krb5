@@ -75,6 +75,9 @@ main(int argc, const char **argv)
 	int fd, i, j, n_written, c_flag = 0, d_flag = 0, u_flag = 0;
 	size_t n_input, n_output;
 
+	/* Get this out of the way. */
+	umask(S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
 	/* We're not intended to be set*id! */
 	if ((getuid() != geteuid()) || (getgid() != getegid())) {
 		return 1;
