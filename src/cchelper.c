@@ -54,6 +54,7 @@
 #include <security/pam_modules.h>
 #endif
 
+#include "cchelper.h"
 #include "log.h"
 #include "options.h"
 #include "stash.h"
@@ -61,7 +62,7 @@
 #include "v5.h"
 #include "xstr.h"
 
-static ssize_t
+ssize_t
 _pam_krb5_write_with_retry(int fd, const unsigned char *buffer, ssize_t len)
 {
 	ssize_t length, ret;
@@ -95,7 +96,7 @@ _pam_krb5_write_with_retry(int fd, const unsigned char *buffer, ssize_t len)
 	return length;
 }
 
-static ssize_t
+ssize_t
 _pam_krb5_read_with_retry(int fd, unsigned char *buffer, ssize_t len)
 {
 	ssize_t length, ret;
@@ -232,6 +233,8 @@ _pam_krb5_cchelper_run(const char *helper, const char *flag, const char *ccname,
 			i = setreuid(uid, uid);
 		}
 		execl(helper, helper, flag, ccname, uidstr, gidstr, NULL);
+		warn("error running helper \"%s\": %s", helper,
+		     strerror(errno));
 		_exit(-1);
 		break;
 	default:
@@ -396,12 +399,13 @@ _pam_krb5_cchelper_create(krb5_context ctx, struct _pam_krb5_stash *stash,
 			free(ccpattern);
 			return -1;
 		} else {
+			(*ccname)[strcspn(*ccname, "\r\n")] = '\0';
 			if (options->debug) {
 				debug("created ccache \"%s\"", *ccname);
 			}
 		}
 	} else {
-		warn("error creating ccache using pattern\"%s\"", ccpattern);
+		warn("error creating ccache using pattern \"%s\"", ccpattern);
 	}
 	free(ccpattern);
 	return i;
@@ -439,9 +443,9 @@ _pam_krb5_cchelper_update(krb5_context ctx, struct _pam_krb5_stash *stash,
 }
 
 int
-_pam_krb5_cchelper_delete(krb5_context ctx, struct _pam_krb5_stash *stash,
-			  struct _pam_krb5_options *options,
-			  const char *ccname)
+_pam_krb5_cchelper_destroy(krb5_context ctx, struct _pam_krb5_stash *stash,
+			   struct _pam_krb5_options *options,
+			   const char *ccname)
 {
 	unsigned char output[PATH_MAX];
 	ssize_t osize;
@@ -452,10 +456,10 @@ _pam_krb5_cchelper_delete(krb5_context ctx, struct _pam_krb5_stash *stash,
 				   output, sizeof(output), &osize);
 	if (i == 0) {
 		if (options->debug) {
-			debug("deleted ccache \"%s\"", ccname);
+			debug("destroyed ccache \"%s\"", ccname);
 		}
 	} else {
-		warn("error deleting ccache \"%s\"", ccname);
+		warn("error destroying ccache \"%s\"", ccname);
 	}
 	return i;
 }
