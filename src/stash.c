@@ -789,7 +789,7 @@ _pam_krb5_stash_pop(krb5_context ctx,
 			free(node);
 			return 0;
 		} else {
-			debug("error destroying ccache \"%s\"", node->name);
+			warn("error destroying ccache \"%s\"", node->name);
 			return -1;
 		}
 	} else {

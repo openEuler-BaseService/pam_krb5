@@ -1653,10 +1653,6 @@ v5_destroy(krb5_context ctx, struct _pam_krb5_stash *stash,
 	   struct _pam_krb5_options *options)
 {
 	if (stash->v5ccnames != NULL) {
-		if (options->debug) {
-			debug("destroying ccache '%s'",
-			      stash->v5ccnames->name);
-		}
 		if (_pam_krb5_stash_pop(ctx, stash, options) != 0) {
 			warn("error destroying ccache '%s'",
 			     stash->v5ccnames->name);
