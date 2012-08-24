@@ -86,7 +86,7 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 	i = pam_get_user(pamh, &user, NULL);
 	if ((i != PAM_SUCCESS) || (user == NULL)) {
 		warn("could not identify user name");
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return i;
 	}
 
@@ -94,7 +94,7 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 	options = _pam_krb5_options_init(pamh, argc, argv, ctx);
 	if (options == NULL) {
 		warn("error parsing options (shouldn't happen)");
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_SERVICE_ERR;
 	}
 
@@ -102,7 +102,7 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 	if ((!options->cred_session) &&
 	    (caller_type == _pam_krb5_session_caller_setcred)) {
 		_pam_krb5_options_free(pamh, ctx, options);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_SUCCESS;
 	}
 
@@ -123,7 +123,7 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 			      pam_strerror(pamh, retval));
 		}
 		_pam_krb5_options_free(pamh, ctx, options);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return retval;
 	}
 	if ((options->user_check) &&
@@ -139,7 +139,7 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 			      pam_strerror(pamh, PAM_IGNORE));
 		}
 		_pam_krb5_options_free(pamh, ctx, options);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_IGNORE;
 	}
 
@@ -154,7 +154,7 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 			      pam_strerror(pamh, PAM_SERVICE_ERR));
 		}
 		_pam_krb5_options_free(pamh, ctx, options);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_SERVICE_ERR;
 	}
 
@@ -164,7 +164,7 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 	if (options->use_shmem) {
 		if ((stash->v5shm != -1) && (stash->v5shm_owner != -1)) {
 			if (options->debug) {
-				debug("removing v5 shared memory segment %d"
+				debug("removing shared memory segment %d"
 				      " creator pid %ld",
 				      stash->v5shm, (long) stash->v5shm_owner);
 			}
@@ -182,7 +182,7 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 	/* If we don't have any credentials, then we're done. */
 	if ((stash->v5attempted == 0) || (stash->v5result != 0)) {
 		if (options->debug) {
-			debug("no v5 creds for user '%s', "
+			debug("no creds for user '%s', "
 			      "skipping session setup", user);
 		}
 		_pam_krb5_user_info_free(ctx, userinfo);
@@ -191,7 +191,7 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 			      pam_strerror(pamh, PAM_SUCCESS));
 		}
 		_pam_krb5_options_free(pamh, ctx, options);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_SUCCESS;
 	}
 
@@ -207,7 +207,7 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 	if (!stash->v5external) {
 		if (options->debug) {
 #ifdef HAVE_LONG_LONG
-			debug("creating v5 ccache for '%s', uid=%llu, gid=%llu",
+			debug("creating ccache for '%s', uid=%llu, gid=%llu",
 			      user,
 			      options->user_check ?
 			      (unsigned long long) userinfo->uid :
@@ -216,7 +216,7 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 			      (unsigned long long) userinfo->gid :
 			      (unsigned long long) getgid());
 #else
-			debug("creating v5 ccache for '%s', uid=%lu, gid=%lu",
+			debug("creating ccache for '%s', uid=%lu, gid=%lu",
 			      user,
 			      options->user_check ?
 			      (unsigned long) userinfo->uid :
@@ -230,7 +230,7 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 				     options, &ccname);
 		if ((i == PAM_SUCCESS) && (strlen(ccname) > 0)) {
 			if (options->debug) {
-				debug("created v5 ccache '%s' for '%s'",
+				debug("created ccache '%s' for '%s'",
 				      ccname, user);
 			}
 			sprintf(envstr, "KRB5CCNAME=%s", ccname);
@@ -255,7 +255,7 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 	_pam_krb5_user_info_free(ctx, userinfo);
 
 
-	krb5_free_context(ctx);
+	_pam_krb5_free_ctx(ctx);
 	return i;
 }
 
@@ -282,14 +282,14 @@ _pam_krb5_close_session(pam_handle_t *pamh, int flags,
 	i = pam_get_user(pamh, &user, NULL);
 	if (i != PAM_SUCCESS) {
 		warn("could not determine user name");
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return i;
 	}
 
 	/* Read our options. */
 	options = _pam_krb5_options_init(pamh, argc, argv, ctx);
 	if (options == NULL) {
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_SERVICE_ERR;
 	}
 
@@ -297,7 +297,7 @@ _pam_krb5_close_session(pam_handle_t *pamh, int flags,
 	if ((!options->cred_session) &&
 	    (caller_type == _pam_krb5_session_caller_setcred)) {
 		_pam_krb5_options_free(pamh, ctx, options);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_SUCCESS;
 	}
 
@@ -316,7 +316,7 @@ _pam_krb5_close_session(pam_handle_t *pamh, int flags,
 			      pam_strerror(pamh, retval));
 		}
 		_pam_krb5_options_free(pamh, ctx, options);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return retval;
 	}
 
@@ -333,7 +333,7 @@ _pam_krb5_close_session(pam_handle_t *pamh, int flags,
 			      pam_strerror(pamh, PAM_IGNORE));
 		}
 		_pam_krb5_options_free(pamh, ctx, options);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_IGNORE;
 	}
 
@@ -348,14 +348,14 @@ _pam_krb5_close_session(pam_handle_t *pamh, int flags,
 			      pam_strerror(pamh, PAM_SERVICE_ERR));
 		}
 		_pam_krb5_options_free(pamh, ctx, options);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_SERVICE_ERR;
 	}
 
 	/* If we didn't obtain any credentials, then we're done. */
 	if ((stash->v5attempted == 0) || (stash->v5result != 0)) {
 		if (options->debug) {
-			debug("no v5 creds for user '%s', "
+			debug("no creds for user '%s', "
 			      "skipping session cleanup",
 			      user);
 		}
@@ -366,7 +366,7 @@ _pam_krb5_close_session(pam_handle_t *pamh, int flags,
 			      pam_strerror(pamh, PAM_SUCCESS));
 		}
 		_pam_krb5_options_free(pamh, ctx, options);
-		krb5_free_context(ctx);
+		_pam_krb5_free_ctx(ctx);
 		return PAM_SUCCESS;
 	}
 
@@ -382,7 +382,7 @@ _pam_krb5_close_session(pam_handle_t *pamh, int flags,
 				stash->v5setenv = 0;
 			}
 			if (options->debug) {
-				debug("destroyed v5 ccache for '%s'", user);
+				debug("destroyed ccache for '%s'", user);
 			}
 		}
 	}
@@ -394,7 +394,7 @@ _pam_krb5_close_session(pam_handle_t *pamh, int flags,
 		      pam_strerror(pamh, PAM_SUCCESS));
 	}
 	_pam_krb5_options_free(pamh, ctx, options);
-	krb5_free_context(ctx);
+	_pam_krb5_free_ctx(ctx);
 	return PAM_SUCCESS;
 }
 
