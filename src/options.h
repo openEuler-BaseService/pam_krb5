@@ -54,6 +54,9 @@ struct _pam_krb5_options {
 	int null_afs_first;
 	int permit_password_callback;
 	int tokens;
+#ifdef HAVE_KRB5_SET_TRACE_CALLBACK
+	int trace;
+#endif
 	int user_check;
 	int use_authtok;
 	int use_first_pass;

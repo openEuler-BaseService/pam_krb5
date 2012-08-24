@@ -418,10 +418,10 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 	}
 
 #ifdef HAVE_KRB5_SET_TRACE_CALLBACK
-	options->debug = option_b(argc, argv, ctx, options->realm,
+	options->trace = option_b(argc, argv, ctx, options->realm,
 				  service, NULL, NULL,
 				  "trace", 0);
-	if (options->debug) {
+	if (options->trace) {
 		debug("flag: trace");
 		krb5_set_trace_callback(ctx, &trace, NULL);
 	}
