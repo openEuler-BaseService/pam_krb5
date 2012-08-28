@@ -140,10 +140,11 @@ _pam_krb5_stash_cleanup(pam_handle_t *pamh, void *data, int error)
 /* Read state from the shared memory blob. */
 static void
 _pam_krb5_stash_shm_read_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
-			    struct _pam_krb5_options *options, int key,
+			    struct _pam_krb5_options *options,
+			    const char *location, int key,
 			    void *blob, size_t blob_size)
 {
-	char tktfile[PATH_MAX + 6];
+	char tktfile[PATH_MAX + 6], envstr[PATH_MAX];
 	unsigned char *blob_creds;
 	ssize_t blob_creds_size;
 	int fd;
@@ -204,6 +205,11 @@ _pam_krb5_stash_shm_read_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 		if (options->debug) {
 			debug("recovered credentials from shared memory "
 			      "segment %d", key);
+			/* Store this here so that we can check for it
+			 * in a self-test. */
+			snprintf(envstr, sizeof(envstr),
+				 PACKAGE "_read_shm_segment=%s", location);
+			pam_putenv(pamh, envstr);
 		}
 	}
 
@@ -219,7 +225,7 @@ _pam_krb5_stash_shm_write_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 			     const char *user,
 			     struct _pam_krb5_user_info *userinfo)
 {
-	char variable[PATH_MAX + 6], *segname;
+	char variable[PATH_MAX + 6], *segname, envstr[PATH_MAX];
 	void *blob;
 	int *intblob;
 	size_t blob_size;
@@ -291,6 +297,12 @@ _pam_krb5_stash_shm_write_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 				      "segment %d (creator pid %ld)", key,
 				      (long) getpid());
 				debug("set '%s' in environment", variable);
+				/* Store this here so that we can check for it
+				 * in a self-test. */
+				snprintf(envstr, sizeof(envstr),
+					 PACKAGE "_write_shm_segment%s",
+					 variable + strcspn(variable, "="));
+				pam_putenv(pamh, envstr);
 			}
 			stash->v5shm = key;
 			stash->v5shm_owner = getpid();
@@ -368,7 +380,7 @@ _pam_krb5_stash_shm_read(pam_handle_t *pamh, const char *partial_key,
 			 * ccache file.  Cross our fingers and hope it's
 			 * useful. */
 			_pam_krb5_stash_shm_read_v5(pamh, stash,
-						    options, key,
+						    options, value, key,
 						    blob, blob_size);
 			free(blob);
 		}
@@ -400,7 +412,7 @@ _pam_krb5_stash_external_read(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 	krb5_principal princ;
 	int i, read_default_principal;
 	const char *ccname;
-	char *unparsed;
+	char *unparsed, envstr[PATH_MAX];
 
 	/* Read a TGT from $KRB5CCNAME. */
 	if (options->debug) {
@@ -476,6 +488,15 @@ _pam_krb5_stash_external_read(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 						debug("copied credentials from "
 						      "\"%s\" for \"%s\"",
 						      ccname, unparsed);
+						/* Store this here so that we
+						 * can check for it in a
+						 * self-test. */
+						snprintf(envstr,
+							 sizeof(envstr),
+							 PACKAGE
+							 "_external_ccache=%s",
+							 ccname);
+						pam_putenv(pamh, envstr);
 					}
 				}
 			}
