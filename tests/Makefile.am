@@ -45,7 +45,13 @@ EXTRA_DIST = run-tests.sh testenv.sh.in pwhelp.txt \
 	022-shmem/stdout.expected \
 	023-update/run.sh \
 	023-update/stderr.expected \
-	023-update/stdout.expected
+	023-update/stdout.expected \
+	024-shmem-external/run.sh \
+	024-shmem-external/stderr.expected \
+	024-shmem-external/stdout.expected \
+	025-external/run.sh \
+	025-external/stderr.expected \
+	025-external/stdout.expected
 
 check: all testenv.sh
 	$(srcdir)/run-tests.sh
