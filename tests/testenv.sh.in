@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PATH=${testdir}/tools:${PATH}; export PATH
+PATH=${testdir}/tools:@abs_srcdir@:${PATH}; export PATH
 
 test_principal=`id -nu`
 test_host=@TESTHOST@
