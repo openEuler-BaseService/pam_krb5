@@ -2,8 +2,8 @@ Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
 Version: 2.3.90
 Release: 0%{?dist}
-Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}-1.tar.gz
-Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}-1.tar.gz.sig
+Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz
+Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
 License: BSD or LGPLv2+
 Group: System Environment/Base
 URL: https://fedorahosted.org/pam_krb5/
@@ -18,7 +18,7 @@ creation, and optional TGT verification and conversion to Kerberos IV tickets.
 The included pam_krb5afs module also gets AFS tokens if so configured.
 
 %prep
-%setup -q -n pam_krb5-%{version}-1
+%setup -q
 
 %build
 configure_flags=
