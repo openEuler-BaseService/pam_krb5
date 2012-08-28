@@ -5,18 +5,6 @@ PATH=${testdir}/tools:${PATH}; export PATH
 test_principal=`id -nu`
 test_host=@TESTHOST@
 
-if test @USE_ADDRESSES@ -eq 1 ; then
-	test_addresses=true
-else
-	test_addresses=false
-fi
-
-if test @USE_KRB4@ -eq 1 ; then
-	test_krb4=true
-else
-	test_krb4=false
-fi
-
 pam_krb5=@abs_builddir@/../src/pam_krb5.so
 if ! test -x $pam_krb5 ; then
 	pam_krb5=@abs_builddir@/../src/.libs/pam_krb5.so
@@ -25,10 +13,6 @@ fi
 krb5kdc="@KRB5KDC@"
 if test "$krb5kdc" = : ; then
 	krb5kdc=
-fi
-krb524d="@KRB524D@"
-if test "$krb524d" = : ; then
-	krb524d=
 fi
 kadmind="@KADMIND@"
 if test "$kadmind" = : ; then
@@ -41,12 +25,9 @@ fi
 
 KRB5_CONFIG=@abs_builddir@/config/krb5.conf ; export KRB5_CONFIG
 KRBCONFDIR=@abs_builddir@/config ; export KRBCONFDIR
-KRB_CONF=@abs_builddir@/config/krb.conf ; export KRB_CONF
-KRB_REALMS=@abs_builddir@/config/krb.realms ; export KRB_REALMS
 KRB5_KDC_PROFILE=@abs_builddir@/config/kdc.conf ; export KRB5_KDC_PROFILE
 KRB5RCACHEDIR=@abs_builddir@/kdc ; export KRB5RCACHEDIR
 KRB5CCNAME=/dev/bogus-missing-file ; export KRB5CCNAME
-KRBTKFILE=/dev/bogus-missing-file ; export KRBTKFILE
 test_flags=unsecure_for_debugging_only
 
 test_settle() {
@@ -63,11 +44,6 @@ test_cleanmsg ()
 
 run_kdc="$krb5kdc -r EXAMPLE.COM -n > /dev/null 2> /dev/null"
 run_kadmind="$kadmind -r EXAMPLE.COM -nofork > /dev/null 2> /dev/null"
-if test -n "$krb524d" ; then
-	run_k524="$krb524d -m -r EXAMPLE.COM -nofork > /dev/null 2> /dev/null"
-else
-	run_k524="sleep 1"
-fi
 
 test_kdcinitdb() {
 	test -d @abs_builddir@/kdc || mkdir -p @abs_builddir@/kdc

@@ -1,9 +1,0 @@
-
-Checking handling of options.
-
-Without krb4.
-Calling module `pam_krb5.so'.
-`Password: ' -> `foo'
-AUTH	0	Success
-ESTCRED	0	Success
-DELCRED	0	Success
