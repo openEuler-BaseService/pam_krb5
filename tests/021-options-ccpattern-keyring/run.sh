@@ -21,4 +21,4 @@ DELCRED	0	Success
 EOF
 fi
 keyctl show @s > keyring.after
-cmp keyring.before keyring.after
+cmp keyring.before keyring.after || diff -u keyring.before keyring.after
