@@ -30,4 +30,5 @@
    string_parameter_1 = ""
    string_parameter_2 = blah foo woof
    list_parameter_1 = ample sample example
+   cchelper_path = @TESTDIR@/../src/pam_krb5_cchelper
  }
