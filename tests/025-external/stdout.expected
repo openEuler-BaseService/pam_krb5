@@ -10,11 +10,6 @@ CLOSESESS	0	Success
 Using external creds:
 Calling module `pam_krb5.so'.
 OPENSESS	0	Success
-FILE:$testdir/kdc/krb5cc_saved
-CLOSESESS	0	Success
-
-Using external creds:
-Calling module `pam_krb5.so'.
-OPENSESS	0	Success
 pam_krb5_external_ccache=FILE:$testdir/kdc/krb5cc_saved
+FILE:$testdir/kdc/krb5cc_saved
 CLOSESESS	0	Success

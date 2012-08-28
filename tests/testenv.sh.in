@@ -36,12 +36,14 @@ test_settle() {
 
 test_cleanmsg ()
 {
-	sed -e "s,Warning: Your password will expire in less than one hour.[^\']*,WARN1HOUR,g" \
+	sed -r \
+	    -e "s,Warning: Your password will expire in less than one hour.[^\']*,WARN1HOUR,g" \
 	    -e "s,Warning: .*password has expired[^\']*,WARNEXPIRED,g" \
 	    -e "s|$testdir/kdc|"'$testdir/kdc|g' \
 	    -e "s|krb5cc_`id -u`_......|"'krb5_cc_$UID_XXXXXX|g' \
 	    -e "s|_`id -nu`_|"'_${test_principal}_'"|g" \
-	    -r -e "s|_shm=([0-9]+/[0-9]+)|_shm=KEY/UID|g"
+	    -e "s|_shm=([0-9]+/[0-9]+)|_shm=KEY/UID|g" \
+	    -e "s|_shm_segment=([0-9]+/[0-9]+)|_shm_segment=KEY/UID|g"
 }
 
 run_kdc="$krb5kdc -r EXAMPLE.COM -n > /dev/null 2> /dev/null"

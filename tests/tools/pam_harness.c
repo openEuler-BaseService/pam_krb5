@@ -121,7 +121,7 @@ main(int argc, char **argv)
 	int dofork, dorefresh;
 	int noreentrancy;
 	int i, ret, responses, args, argcount;
-	const char *user, *module;
+	const char *user, *module, *envvar;
 	pam_handle_t *pamh;
 	struct pam_partial_handle {
 		char *authtok;
@@ -141,6 +141,7 @@ main(int argc, char **argv)
 		       "-chauthtok | -refreshcred ]\n"
 		       "       [-tty tty] [-ruser ruser] [-rhost rhost] "
 		       "[-authtok tok] [-oldauthtok tok]\n"
+		       "       [-setenv VAR=VAL]\n"
 		       "       [-prompt string] [-showprompt] [-run command] "
 		       "[-noreentrancy] [-fork]\n"
 		       "       user [module [arg ...]| stack] "
@@ -157,6 +158,7 @@ main(int argc, char **argv)
 	noreentrancy = 0;
 	args = argcount = responses = 0;
 	tty = ruser = rhost = authtok = oldauthtok = run = prompt = NULL;
+	envvar = NULL;
 	for (i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "-auth") == 0) {
 			doauth++;
@@ -220,6 +222,10 @@ main(int argc, char **argv)
 		}
 		if (strcmp(argv[i], "-ruser") == 0) {
 			ruser = argv[++i];
+			continue;
+		}
+		if (strcmp(argv[i], "-setenv") == 0) {
+			envvar = argv[++i];
 			continue;
 		}
 		if (user == NULL) {
@@ -307,6 +313,13 @@ main(int argc, char **argv)
 	}
 
 	/* Set ITEMs. */
+	if (envvar) {
+		i = pam_putenv(pamh, envvar);
+		if (i != PAM_SUCCESS) {
+			printf("Error setting PAM environment `%s'.\n", envvar);
+			return 255;
+		}
+	}
 	if (tty) {
 		i = pam_set_item(pamh, PAM_TTY, tty);
 		if (i != PAM_SUCCESS) {

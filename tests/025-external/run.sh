@@ -9,13 +9,8 @@ echo ""; echo "Obtaining creds:"
 CCSAVE=${testdir}/kdc/krb5cc_saved; export CCSAVE
 test_run -auth -session $test_principal -run save_cc_file.sh $pam_krb5 $test_flags ccname_template=FILE:${testdir}/kdc/krb5cc_%U_XXXXXX -- foo
 
-KRB5CCNAME=FILE:$CCSAVE; export KRB5CCNAME
-
 echo ""; echo "Using external creds:"
-test_run -session $test_principal -run klist_c $pam_krb5 -run klist_c $test_flags ccname_template=FILE:${testdir}/kdc/krb5cc_%U_XXXXXX external -- foo
+test_run -session $test_principal -setenv KRB5CCNAME=FILE:$CCSAVE -run grepenv.sh $pam_krb5 $test_flags external debug -- foo
 
-echo ""; echo "Using external creds:"
-test_run -session $test_principal -run klist_c $pam_krb5 -run grepenv.sh $test_flags ccname_template=FILE:${testdir}/kdc/krb5cc_%U_XXXXXX external debug -- foo
-
-kdestroy
+rm -f $CCSAVE
 find ${testdir}/kdc -name "krb5cc*" -print
