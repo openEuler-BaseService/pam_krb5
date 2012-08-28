@@ -1,5 +1,5 @@
 /*
- * Copyright 2001,2002,2003 Red Hat, Inc.
+ * Copyright 2001,2002,2003,2012 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -279,7 +279,8 @@ main(int argc, char **argv)
 
 	/* Hack: if the name of the "module" argument starts with "pam_",
 	 * assume it's a module, and use "login" as the service name. */
-	if ((strchr(module, '/') == NULL) && (strncmp(module, "pam_", 4) != 0)) {
+	if ((strchr(module, '/') == NULL) &&
+	    (strncmp(module, "pam_", 4) != 0)) {
 		i = pam_start(module, user, &conv, &pamh);
 		if (i != PAM_SUCCESS) {
 			printf("Error initializing PAM for `%s'.\n", module);
@@ -347,21 +348,24 @@ main(int argc, char **argv)
 	if (prompt) {
 		i = pam_set_item(pamh, PAM_USER_PROMPT, prompt);
 		if (i != PAM_SUCCESS) {
-			printf("Error setting USER_PROMPT item `%s'.\n", prompt);
+			printf("Error setting USER_PROMPT item `%s'.\n",
+			       prompt);
 			return 255;
 		}
 	}
 
 	/* Hack: if the name of the "module" argument doesn't start with "pam_",
 	 * assume it's the stack name, and run with it. */
-	if ((strchr(module, '/') == NULL) && (strncmp(module, "pam_", 4) != 0)) {
+	if ((strchr(module, '/') == NULL) &&
+	    (strncmp(module, "pam_", 4) != 0)) {
 		printf("Calling stack `%s'.\n", module);
 		if (doauth) {
 			call_stack(pam_authenticate, "AUTH", 0);
 		}
 		if (doprompt) {
 			const void *prmpt;
-			if (pam_get_item(pamh, PAM_USER_PROMPT, &prmpt) == PAM_SUCCESS) {
+			if (pam_get_item(pamh, PAM_USER_PROMPT,
+					 &prmpt) == PAM_SUCCESS) {
 				printf("Prompt = `%s'.\n", (const char*)prmpt);
 			} else {
 				printf("Error reading USER_PROMPT item.\n");
@@ -447,7 +451,8 @@ main(int argc, char **argv)
 		}
 		if (dochauthtok) {
 			if (oldauthtok) {
-				if (pam_set_item(pamh, PAM_AUTHTOK, oldauthtok) != 0) {
+				if (pam_set_item(pamh, PAM_AUTHTOK,
+						 oldauthtok) != 0) {
 					printf("Error setting AUTHTOK item.\n");
 					return 255;
 				}
@@ -455,14 +460,18 @@ main(int argc, char **argv)
 			call_fn("pam_sm_chauthtok", "CHAUTHTOK1",
 				PAM_PRELIM_CHECK);
 			if (oldauthtok) {
-				if (pam_set_item(pamh, PAM_OLDAUTHTOK, oldauthtok) != PAM_SUCCESS) {
-					printf("Error setting OLDAUTHTOK item.\n");
+				if (pam_set_item(pamh, PAM_OLDAUTHTOK,
+						 oldauthtok) != PAM_SUCCESS) {
+					printf("Error setting OLDAUTHTOK "
+					       "item.\n");
 					return 255;
 				}
 			}
 			if (authtok) {
-				if (pam_set_item(pamh, PAM_AUTHTOK, authtok) != PAM_SUCCESS) {
-					printf("Error setting AUTHTOK item.\n");
+				if (pam_set_item(pamh, PAM_AUTHTOK,
+						 authtok) != PAM_SUCCESS) {
+					printf("Error setting AUTHTOK "
+					       "item.\n");
 					return 255;
 				}
 			}
