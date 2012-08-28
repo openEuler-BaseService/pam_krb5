@@ -62,8 +62,8 @@
 #include "v5.h"
 #include "xstr.h"
 
-#define PAM_KRB5_STASH_TEMPLATE		"_pam_krb5_stash_%s_%s_%s_%d"
-#define PAM_KRB5_STASH_SHM5_SUFFIX	"_shm5"
+#define PAM_KRB5_STASH_TEMPLATE			"_pam_krb5_stash_%s_%s_%s_%d"
+#define PAM_KRB5_STASH_TEMPLATE_SHM_SUFFIX	"_shm"
 
 static void
 _pam_krb5_stash_name_with_suffix(struct _pam_krb5_options *options,
@@ -95,15 +95,16 @@ void
 _pam_krb5_stash_name(struct _pam_krb5_options *options,
 		     const char *user, char **name)
 {
-	_pam_krb5_stash_name_with_suffix(options, user, NULL, name);
+	return _pam_krb5_stash_name_with_suffix(options, user, NULL, name);
 }
 
 void
-_pam_krb5_stash_shm5_name(struct _pam_krb5_options *options,
-			  const char *user, char **name)
+_pam_krb5_stash_shm_var_name(struct _pam_krb5_options *options,
+			     const char *user, char **name)
 {
-	_pam_krb5_stash_name_with_suffix(options, user,
-					 PAM_KRB5_STASH_SHM5_SUFFIX, name);
+	return _pam_krb5_stash_name_with_suffix(options, user,
+						PAM_KRB5_STASH_TEMPLATE_SHM_SUFFIX,
+						name);
 }
 
 static int
@@ -136,7 +137,7 @@ _pam_krb5_stash_cleanup(pam_handle_t *pamh, void *data, int error)
 	free(stash);
 }
 
-/* Read state from the shared memory segment. */
+/* Read state from the shared memory blob. */
 static void
 _pam_krb5_stash_shm_read_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 			    struct _pam_krb5_options *options, int key,
@@ -278,7 +279,7 @@ _pam_krb5_stash_shm_write_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 
 	if (key != -1) {
 		segname = NULL;
-		_pam_krb5_stash_shm5_name(options, user, &segname);
+		_pam_krb5_stash_shm_var_name(options, user, &segname);
 		if (segname != NULL) {
 			snprintf(variable, sizeof(variable),
 				 "%s=%d/%ld",
@@ -305,7 +306,9 @@ _pam_krb5_stash_shm_write_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 void
 _pam_krb5_stash_shm_read(pam_handle_t *pamh, const char *partial_key,
 			 struct _pam_krb5_stash *stash,
-			 struct _pam_krb5_options *options)
+			 struct _pam_krb5_options *options,
+			 const char *user,
+			 struct _pam_krb5_user_info *userinfo)
 {
 	int key;
 	pid_t owner;
@@ -316,12 +319,10 @@ _pam_krb5_stash_shm_read(pam_handle_t *pamh, const char *partial_key,
 	size_t blob_size;
 
 	/* Construct the name of a variable. */
-	variable = malloc(strlen(partial_key) +
-			  2 * strlen(PAM_KRB5_STASH_SHM5_SUFFIX) + 1);
+	_pam_krb5_stash_shm_var_name(options, user, &variable);
 	if (variable == NULL) {
 		return;
 	}
-	sprintf(variable, "%s" PAM_KRB5_STASH_SHM5_SUFFIX, partial_key);
 
 	/* Read the variable and extract a shared memory identifier. */
 	value = pam_getenv(pamh, variable);
@@ -339,6 +340,18 @@ _pam_krb5_stash_shm_read(pam_handle_t *pamh, const char *partial_key,
 				owner = l;
 			}
 		}
+		if ((key != -1) && (owner != -1)) {
+			if (options->debug) {
+				debug("found shm segment %d owned by UID %lu",
+				      key, (unsigned long) owner);
+			} else {
+				warn("error parsing \"%s\"=\"%s\" for "
+				     "segment ID and owner", variable, value);
+			}
+		}
+	} else {
+		debug("no value for \"%s\" set, no credentials recovered "
+		      "from shared memory", variable);
 	}
 
 	/* Get a copy of the contents of the shared memory segment. */
@@ -532,7 +545,7 @@ _pam_krb5_stash_get(pam_handle_t *pamh, const char *user,
 	stash->v5ccache = NULL;
 	stash->afspag = 0;
 	if (options->use_shmem) {
-		_pam_krb5_stash_shm_read(pamh, key, stash, options);
+		_pam_krb5_stash_shm_read(pamh, key, stash, options, user, info);
 	}
 	if (options->external &&
 	    ((stash->v5attempted == 0) ||

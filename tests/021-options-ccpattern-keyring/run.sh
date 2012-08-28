@@ -6,8 +6,8 @@ $kadmin -q 'cpw -pw foo '$test_principal 2> /dev/null > /dev/null
 $kadmin -q 'modprinc -pwexpire never '$test_principal 2> /dev/null > /dev/null
 
 keyctl new_session > /dev/null
-klist -c KEYRING:foo > /dev/null 2> klist.keyring.out
-keyctl show @s > keyring.before
+klist -c KEYRING:foo > /dev/null 2> $KRB5RCACHEDIR/klist.keyring.out
+keyctl show @s > $KRB5RCACHEDIR/keyring.before
 if ! grep -q -i 'unknown credential cache type' $KRB5RCACHEDIR/klist.keyring.out ; then
 	test_run -auth -setcred -session $test_principal -run klist_c $pam_krb5 $test_flags ccname_template=KEYRING:krb5cc_%U_XXXXXX -- foo
 else
@@ -20,5 +20,5 @@ KEYRING:krb5cc_$UID_XXXXXX
 DELCRED	0	Success
 EOF
 fi
-keyctl show @s > keyring.after
-cmp keyring.before keyring.after || diff -u keyring.before keyring.after
+keyctl show @s > $KRB5RCACHEDIR/keyring.after
+cmp $KRB5RCACHEDIR/keyring.before $KRB5RCACHEDIR/keyring.after || diff -u $KRB5RCACHEDIR/keyring.before $KRB5RCACHEDIR/keyring.after

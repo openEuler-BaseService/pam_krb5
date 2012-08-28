@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <dlfcn.h>
+#include <errno.h>
 #include <grp.h>
 #include <limits.h>
 #include <pwd.h>
@@ -117,6 +118,7 @@ main(int argc, char **argv)
 {
 	void *dlhandle;
 	int doauth, doaccount, dosession, dosetcred, dochauthtok, doprompt;
+	int dofork;
 	int noreentrancy;
 	int i, ret, responses, args, argcount;
 	const char *user, *module;
@@ -140,7 +142,7 @@ main(int argc, char **argv)
 		       "       [-tty tty] [-ruser ruser] [-rhost rhost] "
 		       "[-authtok tok] [-oldauthtok tok]\n"
 		       "       [-prompt string] [-showprompt] [-run command] "
-		       "[-noreentrancy]\n"
+		       "[-noreentrancy] [-fork]\n"
 		       "       user [module [arg ...]| stack] "
 		       "[-- response ...]\n",
 		       strchr(argv[0], '/') ?
@@ -151,6 +153,7 @@ main(int argc, char **argv)
 
 	user = module = NULL;
 	doauth = doaccount = dosession = dosetcred = dochauthtok = doprompt = 0;
+	dofork = 0;
 	noreentrancy = 0;
 	args = argcount = responses = 0;
 	tty = ruser = rhost = authtok = oldauthtok = run = prompt = NULL;
@@ -181,6 +184,10 @@ main(int argc, char **argv)
 		}
 		if (strcmp(argv[i], "-noreentrancy") == 0) {
 			noreentrancy++;
+			continue;
+		}
+		if (strcmp(argv[i], "-fork") == 0) {
+			dofork++;
 			continue;
 		}
 		if (strcmp(argv[i], "-tty") == 0) {
@@ -359,21 +366,80 @@ main(int argc, char **argv)
 	if ((strchr(module, '/') == NULL) &&
 	    (strncmp(module, "pam_", 4) != 0)) {
 		printf("Calling stack `%s'.\n", module);
-		if (doauth) {
-			call_stack(pam_authenticate, "AUTH", 0);
-		}
-		if (doprompt) {
-			const void *prmpt;
-			if (pam_get_item(pamh, PAM_USER_PROMPT,
-					 &prmpt) == PAM_SUCCESS) {
-				printf("Prompt = `%s'.\n", (const char*)prmpt);
-			} else {
-				printf("Error reading USER_PROMPT item.\n");
+		if (dofork) {
+			int fds[2];
+			pid_t pid;
+			if (pipe(fds) == -1) {
+				printf("Error creating pipe: %s\n",
+				       strerror(errno));
 				return 255;
 			}
-		}
-		if (doaccount) {
-			call_stack(pam_acct_mgmt, "ACCT", 0);
+			if ((pid = fork()) == 0) {
+				char **env;
+				int i, j;
+				if (doauth) {
+					call_stack(pam_authenticate,
+						   "AUTH", 0);
+				}
+				if (doprompt) {
+					const void *prmpt;
+					if (pam_get_item(pamh, PAM_USER_PROMPT,
+							 &prmpt) ==
+							 PAM_SUCCESS) {
+						printf("Prompt = `%s'.\n",
+						       (const char*)prmpt);
+					} else {
+						printf("Error reading "
+						       "USER_PROMPT item.\n");
+						return 255;
+					}
+				}
+				if (doaccount) {
+					call_stack(pam_acct_mgmt, "ACCT", 0);
+				}
+				close(fds[0]);
+				env = pam_getenvlist(pamh);
+				for (i = 0; env && env[i]; i++) {
+					printf("Sending environment = `%s'.\n",
+					       env[i]);
+					j = write(fds[1], env[i],
+						  strlen(env[i]));
+					j = write(fds[1], "\n", 1);
+				}
+				close(fds[1]);
+				exit(0);
+			} else {
+				char buf[LINE_MAX];
+				FILE *fp;
+				close(fds[1]);
+				fp = fdopen(fds[0], "r");
+				while (fgets(buf, sizeof(buf), fp) != NULL) {
+					buf[strcspn(buf, "\r\n")] = '\0';
+					printf("Environment = `%s'.\n", buf);
+					pam_putenv(pamh, strdup(buf));
+				}
+				fclose(fp);
+				waitpid(pid, NULL, 0);
+			}
+		} else {
+			if (doauth) {
+				call_stack(pam_authenticate, "AUTH", 0);
+			}
+			if (doprompt) {
+				const void *prmpt;
+				if (pam_get_item(pamh, PAM_USER_PROMPT,
+						 &prmpt) == PAM_SUCCESS) {
+					printf("Prompt = `%s'.\n",
+					       (const char*)prmpt);
+				} else {
+					printf("Error reading USER_PROMPT "
+					       "item.\n");
+					return 255;
+				}
+			}
+			if (doaccount) {
+				call_stack(pam_acct_mgmt, "ACCT", 0);
+			}
 		}
 		if (dosetcred) {
 			call_stack(pam_setcred, "ESTCRED", PAM_ESTABLISH_CRED);
@@ -388,7 +454,7 @@ main(int argc, char **argv)
 				i = setregid(getegid(), getegid());
 				i = setreuid(geteuid(), geteuid());
 				execlp(run, run, NULL);
-				exit(0);
+				_exit(0);
 			} else {
 				waitpid(pid, NULL, 0);
 			}
@@ -434,20 +500,80 @@ main(int argc, char **argv)
 		partial = (struct pam_partial_handle*)pamh;
 		partial->caller = 1;
 
-		if (doauth) {
-			call_fn("pam_sm_authenticate", "AUTH", 0);
-		}
-		if (doprompt) {
-			const void *prmpt;
-			if (pam_get_item(pamh, PAM_USER_PROMPT, &prmpt) == 0) {
-				printf("Prompt = `%s'.\n", (const char*)prmpt);
-			} else {
-				printf("Error reading USER_PROMPT item.\n");
+		if (dofork) {
+			int fds[2];
+			pid_t pid;
+			if (pipe(fds) == -1) {
+				printf("Error creating pipe: %s\n",
+				       strerror(errno));
 				return 255;
 			}
-		}
-		if (doaccount) {
-			call_fn("pam_sm_acct_mgmt", "ACCT", 0);
+			if ((pid = fork()) == 0) {
+				char **env;
+				int i, j;
+				if (doauth) {
+					call_fn("pam_sm_authenticate",
+						"AUTH", 0);
+				}
+				if (doprompt) {
+					const void *prmpt;
+					if (pam_get_item(pamh, PAM_USER_PROMPT,
+							 &prmpt) ==
+							 PAM_SUCCESS) {
+						printf("Prompt = `%s'.\n",
+						       (const char*)prmpt);
+					} else {
+						printf("Error reading "
+						       "USER_PROMPT item.\n");
+						return 255;
+					}
+				}
+				if (doaccount) {
+					call_fn("pam_sm_acct_mgmt", "ACCT", 0);
+				}
+				close(fds[0]);
+				env = pam_getenvlist(pamh);
+				for (i = 0; env && env[i]; i++) {
+					printf("Sending environment = `%s'.\n",
+					       env[i]);
+					j = write(fds[1], env[i],
+						  strlen(env[i]));
+					j = write(fds[1], "\n", 1);
+				}
+				close(fds[1]);
+				exit(0);
+			} else {
+				char buf[LINE_MAX];
+				FILE *fp;
+				close(fds[1]);
+				fp = fdopen(fds[0], "r");
+				while (fgets(buf, sizeof(buf), fp) != NULL) {
+					buf[strcspn(buf, "\r\n")] = '\0';
+					printf("Environment = `%s'.\n", buf);
+					pam_putenv(pamh, strdup(buf));
+				}
+				fclose(fp);
+				waitpid(pid, NULL, 0);
+			}
+		} else {
+			if (doauth) {
+				call_fn("pam_sm_authenticate", "AUTH", 0);
+			}
+			if (doprompt) {
+				const void *prmpt;
+				if (pam_get_item(pamh, PAM_USER_PROMPT,
+						 &prmpt) == 0) {
+					printf("Prompt = `%s'.\n",
+					       (const char*)prmpt);
+				} else {
+					printf("Error reading USER_PROMPT "
+					       "item.\n");
+					return 255;
+				}
+			}
+			if (doaccount) {
+				call_fn("pam_sm_acct_mgmt", "ACCT", 0);
+			}
 		}
 		if (dochauthtok) {
 			if (oldauthtok) {
@@ -492,7 +618,7 @@ main(int argc, char **argv)
 				i = setregid(getegid(), getegid());
 				i = setreuid(geteuid(), geteuid());
 				execlp(run, run, NULL);
-				exit(0);
+				_exit(0);
 			} else {
 				waitpid(pid, NULL, 0);
 			}

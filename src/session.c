@@ -171,7 +171,7 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 			_pam_krb5_shm_remove(stash->v5shm_owner, stash->v5shm,
 					     options->debug);
 			stash->v5shm = -1;
-			_pam_krb5_stash_shm5_name(options, user, &segname);
+			_pam_krb5_stash_shm_var_name(options, user, &segname);
 			if (segname != NULL) {
 				pam_putenv(pamh, segname);
 				free(segname);
