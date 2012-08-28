@@ -118,7 +118,7 @@ main(int argc, char **argv)
 {
 	void *dlhandle;
 	int doauth, doaccount, dosession, dosetcred, dochauthtok, doprompt;
-	int dofork;
+	int dofork, dorefresh;
 	int noreentrancy;
 	int i, ret, responses, args, argcount;
 	const char *user, *module;
@@ -138,7 +138,7 @@ main(int argc, char **argv)
 	if (argc < 4) {
 		printf("Usage: %s\n"
 		       "       [-auth | -account | -session | -setcred | "
-		       "-chauthtok]\n"
+		       "-chauthtok | -refreshcred ]\n"
 		       "       [-tty tty] [-ruser ruser] [-rhost rhost] "
 		       "[-authtok tok] [-oldauthtok tok]\n"
 		       "       [-prompt string] [-showprompt] [-run command] "
@@ -153,7 +153,7 @@ main(int argc, char **argv)
 
 	user = module = NULL;
 	doauth = doaccount = dosession = dosetcred = dochauthtok = doprompt = 0;
-	dofork = 0;
+	dofork = dorefresh = 0;
 	noreentrancy = 0;
 	args = argcount = responses = 0;
 	tty = ruser = rhost = authtok = oldauthtok = run = prompt = NULL;
@@ -172,6 +172,10 @@ main(int argc, char **argv)
 		}
 		if (strcmp(argv[i], "-setcred") == 0) {
 			dosetcred++;
+			continue;
+		}
+		if (strcmp(argv[i], "-refreshcred") == 0) {
+			dorefresh++;
 			continue;
 		}
 		if (strcmp(argv[i], "-chauthtok") == 0) {
@@ -252,7 +256,8 @@ main(int argc, char **argv)
 		printf("Not enough arguments.\n");
 		return 255;
 	}
-	if ((doauth | doaccount | dosession | dosetcred | dochauthtok) == 0) {
+	if ((doauth | doaccount | dosession | dosetcred | dorefresh | 
+	     dochauthtok) == 0) {
 		printf("No action requested.\n");
 		return 255;
 	}
@@ -441,6 +446,10 @@ main(int argc, char **argv)
 				call_stack(pam_acct_mgmt, "ACCT", 0);
 			}
 		}
+		if (dorefresh) {
+			call_stack(pam_setcred, "REINITCRED",
+				   PAM_REINITIALIZE_CRED);
+		}
 		if (dosetcred) {
 			call_stack(pam_setcred, "ESTCRED", PAM_ESTABLISH_CRED);
 		}
@@ -603,6 +612,10 @@ main(int argc, char **argv)
 			}
 			call_fn("pam_sm_chauthtok", "CHAUTHTOK2",
 				PAM_UPDATE_AUTHTOK);
+		}
+		if (dorefresh) {
+			call_fn("pam_sm_setcred", "REINITCRED",
+				PAM_REINITIALIZE_CRED);
 		}
 		if (dosetcred) {
 			call_fn("pam_sm_setcred", "ESTCRED",
