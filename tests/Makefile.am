@@ -16,32 +16,6 @@ EXTRA_DIST = run-tests.sh testenv.sh.in pwhelp.txt \
 	005-pamchpw-success/run.sh \
 	005-pamchpw-success/stderr.expected \
 	005-pamchpw-success/stdout.expected \
-	006-options-fpri/run.sh \
-	006-options-fpri/stderr.expected \
-	006-options-fpri/stdout.expected \
-	007-options-none/run.sh \
-	007-options-none/stderr.expected \
-	007-options-none/stdout.expected \
-	008-options-noaddr/run.sh \
-	008-options-noaddr/stderr.expected \
-	008-options-noaddr/stdout.expected \
-	009-options-addrs/run.sh \
-	009-options-addrs/stderr.expected \
-	009-options-addrs/stdout.expected \
-	010-options-moreaddrs/run.sh \
-	010-options-moreaddrs/stderr.expected \
-	010-options-moreaddrs/stdout.expected \
-	010-options-moreaddrs/uses_addresses \
-	011-options-nov4/run.sh \
-	011-options-nov4/stderr.expected \
-	011-options-nov4/stdout.expected \
-	011-options-nov4/uses_v4 \
-	012-options-renew0/run.sh \
-	012-options-renew0/stderr.expected \
-	012-options-renew0/stdout.expected \
-	013-options-renew/run.sh \
-	013-options-renew/stderr.expected \
-	013-options-renew/stdout.expected \
 	014-options-defccdir/run.sh \
 	014-options-defccdir/stderr.expected \
 	014-options-defccdir/stdout.expected \
@@ -54,16 +28,24 @@ EXTRA_DIST = run-tests.sh testenv.sh.in pwhelp.txt \
 	017-options-help/run.sh \
 	017-options-help/stderr.expected \
 	017-options-help/stdout.expected \
-	018-krb4/run.sh \
-	018-krb4/stderr.expected \
-	018-krb4/stdout.expected \
-	018-krb4/uses_v4 \
+	018-options-ccpattern/run.sh \
+	018-options-ccpattern/stderr.expected \
+	018-options-ccpattern/stdout.expected \
 	019-pamchpw-prompt-wrongpw/run.sh \
 	019-pamchpw-prompt-wrongpw/stderr.expected \
 	019-pamchpw-prompt-wrongpw/stdout.expected \
 	020-pamchpw-prompt-success/run.sh \
 	020-pamchpw-prompt-success/stderr.expected \
-	020-pamchpw-prompt-success/stdout.expected
+	020-pamchpw-prompt-success/stdout.expected \
+	021-options-ccpattern-keyring/run.sh \
+	021-options-ccpattern-keyring/stderr.expected \
+	021-options-ccpattern-keyring/stdout.expected \
+	022-shmem/run.sh \
+	022-shmem/stderr.expected \
+	022-shmem/stdout.expected \
+	023-update/run.sh \
+	023-update/stderr.expected \
+	023-update/stdout.expected
 
 check: all testenv.sh
 	$(srcdir)/run-tests.sh
