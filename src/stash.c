@@ -739,8 +739,14 @@ _pam_krb5_stash_push(krb5_context ctx,
 		/* If we're not doing multiple ccaches, chuck the others we've
 		 * previously created. */
 		if (options->multiple_ccaches == 0) {
-			while (stash->v5ccnames != NULL) {
+			struct _pam_krb5_ccname_list *list = stash->v5ccnames;
+			while (list != NULL) {
 				_pam_krb5_stash_pop(ctx, stash, options);
+				if (list == stash->v5ccnames) {
+					/* if we fail here, don't loop */
+					break;
+				}
+				list = stash->v5ccnames;
 			}
 		}
 		/* Save the name of this ccache. */
