@@ -1,7 +1,7 @@
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
 Version: 2.3.91
-Release: 0%{?dist}
+Release: 1%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz
 Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
 License: BSD or LGPLv2+
@@ -60,6 +60,11 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %{_mandir}/man8/*
 
 %changelog
+* Wed Aug 29 2012 Nalin Dahyabhai <nalin@redhat.com> - 2.3.91-1
+- update to 2.3.91
+  - support for DIR: ccaches
+  - proper support for KEYRING: ccaches
+
 * Thu Jul 05 2012 Nalin Dahyabhai <nalin@redhat.com> - 2.3.14-2
 - on Fedora 18 and later, override the default ccname template and specify that
   it be FILE:/run/user/%%U/krb5cc_XXXXXX
