@@ -731,6 +731,20 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 		xstrfree(options->ccname_template);
 		options->ccname_template = xstrdup(DEFAULT_CCNAME_TEMPLATE);
 	}
+	if ((strlen(options->ccname_template) < 6) ||
+	    (strcmp(options->ccname_template +
+		    strlen(options->ccname_template) -
+		    6,
+		    "XXXXXX") != 0)) {
+		char *p;
+		p = malloc(strlen(options->ccname_template) + 8);
+		if (p != NULL) {
+			sprintf(p, "%s_XXXXXX",
+				options->ccname_template);
+			xstrfree(options->ccname_template);
+			options->ccname_template = p;
+		}
+	}
 	if (options->debug && options->ccname_template) {
 		debug("ccname template: %s", options->ccname_template);
 	}

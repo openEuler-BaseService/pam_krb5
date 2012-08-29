@@ -51,7 +51,10 @@ EXTRA_DIST = run-tests.sh testenv.sh.in pwhelp.txt \
 	024-shmem-external/stdout.expected \
 	025-external/run.sh \
 	025-external/stderr.expected \
-	025-external/stdout.expected
+	025-external/stdout.expected \
+	026-options-ccpattern-wrong/run.sh \
+	026-options-ccpattern-wrong/stderr.expected \
+	026-options-ccpattern-wrong/stdout.expected
 
 check: all testenv.sh
 	$(srcdir)/run-tests.sh

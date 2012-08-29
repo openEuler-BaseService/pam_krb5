@@ -1,4 +1,4 @@
-.TH pam_krb5 8 2011/07/28 "@OS_DISTRIBUTION@" "System Administrator's Manual"
+.TH pam_krb5 8 2012/08/29 "@OS_DISTRIBUTION@" "System Administrator's Manual"
 
 .SH NAME
 pam_krb5 \- Kerberos 5 authentication
@@ -80,6 +80,8 @@ are substituted:
   %P	the current process ID
   %%	literal '%'
 .br
+If the resulting template does not end with "XXXXXX", a suffix will be added to
+the configured value.
 The default setting is "\fI@default_ccname_template@\fR".
 
 .IP chpw_prompt
