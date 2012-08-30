@@ -1,1 +1,1 @@
-EXTRA_DIST = kadm5.acl kdc.conf.in krb5.conf.in krb.conf.in
+EXTRA_DIST = kadm5.acl kdc.conf.in krb5.conf.in

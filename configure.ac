@@ -581,7 +581,6 @@ tests/Makefile
 tests/config/Makefile
 tests/config/krb5.conf
 tests/config/kdc.conf
-tests/config/krb.conf
 tests/kdc/Makefile
 tests/testenv.sh
 tests/tools/Makefile
