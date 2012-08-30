@@ -192,6 +192,7 @@ AC_CHECK_FUNCS(krb5_cc_copy_creds)
 AC_CHECK_FUNCS(krb5_get_init_creds_opt_set_fast_ccache_name)
 AC_CHECK_FUNCS(krb5_get_init_creds_opt_set_out_ccache)
 AC_CHECK_FUNCS(krb5_get_init_creds_opt_set_preauth_list)
+AC_CHECK_FUNCS(krb5_cc_get_full_name)
 LIBS="$LIBSsave"
 headers='
 #include <stdio.h>

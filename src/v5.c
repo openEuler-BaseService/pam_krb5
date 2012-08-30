@@ -342,6 +342,27 @@ v5_free_default_realm(krb5_context ctx, char *realm)
 }
 #endif
 
+static int
+v5_cc_get_full_name(krb5_context ctx, krb5_ccache ccache, char **name)
+{
+#ifdef HAVE_KRB5_CC_GET_FULL_NAME
+	return krb5_cc_get_full_name(ctx, ccache, name);
+#else
+	const char *ctype, *cname;
+	ctype = krb5_cc_get_type(ctx, ccache);
+	cname = krb5_cc_get_name(ctx, ccache);
+	if ((ctype == NULL) || (cname == NULL)) {
+		return ENOENT;
+	}
+	*name = malloc(strlen(ctype) + 1 + strlen(cname) + 1);
+	if (*name == NULL) {
+		return ENOMEM;
+	}
+	sprintf(*name, "%s:%s", ctype, cname);
+	return 0;
+#endif
+}
+
 static void
 v5_free_cc_full_name(krb5_context ctx, char *name)
 {
@@ -1447,6 +1468,16 @@ v5_setup_armor_ccache_pkinit(krb5_context ctx,
 	krb5_get_init_creds_opt *gicopts;
 	char *unparsed;
 	int i;
+#ifdef KRB5_WELLKNOWN_NAMESTR
+	const char *wellknown = KRB5_WELLKNOWN_NAMESTR;
+#else
+	const char *wellknown = "WELLKNOWN";
+#endif
+#ifdef KRB5_ANONYMOUS_PRINCSTR
+	const char *anonymous = KRB5_ANONYMOUS_PRINCSTR;
+#else
+	const char *anonymous = "ANONYMOUS";
+#endif
 
 	/* Make sure we can set options. */
 	gicopts = NULL;
@@ -1468,8 +1499,8 @@ v5_setup_armor_ccache_pkinit(krb5_context ctx,
 	if (krb5_build_principal(ctx, &creds->client,
 				 strlen(options->realm),
 				 options->realm,
-				 KRB5_WELLKNOWN_NAMESTR,
-				 KRB5_ANONYMOUS_PRINCSTR,
+				 wellknown,
+				 anonymous,
 				 NULL) == 0) {
 		/* Force PKINIT. */
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_PREAUTH_LIST
@@ -1775,8 +1806,8 @@ v5_get_creds(krb5_context ctx,
 		}
 		if (*armor_ccache != NULL) {
 			opt = NULL;
-			if (krb5_cc_get_full_name(ctx, *armor_ccache,
-						  &opt) == 0) {
+			if (v5_cc_get_full_name(ctx, *armor_ccache,
+						&opt) == 0) {
 				krb5_get_init_creds_opt_set_fast_ccache_name(ctx,
 									     gic_options,
 									     opt);
