@@ -188,6 +188,7 @@ AC_CHECK_FUNCS(krb5_auth_con_setuseruserkey)
 AC_CHECK_FUNCS(krb5_aname_to_localname)
 AC_CHECK_FUNCS(krb5_set_trace_callback)
 AC_CHECK_FUNCS(krb5_cc_copy_creds)
+AC_CHECK_FUNCS(krb5_get_init_creds_opt_set_fast_ccache_name)
 LIBS="$LIBSsave"
 headers='
 #include <stdio.h>
