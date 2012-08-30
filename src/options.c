@@ -435,10 +435,10 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 	if (options->armor) {
 		debug("flag: armor");
 	}
-#endif
 	options->armor_strategy = option_s(argc, argv,
 					   ctx, options->realm, "armor_strategy",
 					   DEFAULT_ARMOR_STRATEGY);
+#endif
 
 	/* private option */
 	options->debug_sensitive = option_b(argc, argv, ctx, options->realm,
