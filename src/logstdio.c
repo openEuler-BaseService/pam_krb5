@@ -107,6 +107,23 @@ trace(krb5_context ctx, const struct krb5_trace_info *info, void *data)
 #endif
 
 void
+warn(const char *fmt, ...)
+{
+	va_list va;
+	char *fmt2;
+	maybe_setup_log_pid();
+	fmt2 = malloc(strlen(fmt) + strlen(log_progname) + strlen(": \n") + 1);
+	if (fmt2 == NULL) {
+		return;
+	}
+	sprintf(fmt2, "%s: %s\n", log_progname, fmt);
+	va_start(va, fmt);
+	vfprintf(stderr, fmt2, va);
+	va_end(va);
+	free(fmt2);
+}
+
+void
 notice(const char *fmt, ...)
 {
 	va_list va;
