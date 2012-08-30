@@ -342,7 +342,7 @@ v5_free_default_realm(krb5_context ctx, char *realm)
 }
 #endif
 
-void
+static void
 v5_free_cc_full_name(krb5_context ctx, char *name)
 {
 #ifdef HAVE_KRB5_FREE_STRING
@@ -370,8 +370,8 @@ v5_set_principal_realm(krb5_context ctx, krb5_principal *principal,
 		tmp = malloc(strlen(unparsed) + 1 + strlen(realm) + 1);
 		if (tmp != NULL) {
 			strcpy(tmp, unparsed);
-			if (strchr(tmp, '@') != NULL) {
-				strcpy(strchr(tmp, '@') + 1, realm);
+			if (strrchr(tmp, '@') != NULL) {
+				strcpy(strrchr(tmp, '@') + 1, realm);
 			} else {
 				strcat(tmp, "@");
 				strcat(tmp, realm);
@@ -1023,7 +1023,7 @@ v5_validate_using_ccache(krb5_context ctx, krb5_creds *creds,
 /* Select the principal name of the service to use when validating the creds in
  * question. */
 static int
-v5_select_keytab_service(krb5_context ctx, krb5_creds *creds,
+v5_select_keytab_service(krb5_context ctx, krb5_principal client,
 			 const char *ktname,
 			 krb5_principal *service)
 {
@@ -1098,7 +1098,7 @@ v5_select_keytab_service(krb5_context ctx, krb5_creds *creds,
 		}
 		/* Better entry (anything in the client's realm)? */
 		if ((score < 1) &&
-		    krb5_realm_compare(ctx, entry.principal, creds->client)) {
+		    krb5_realm_compare(ctx, entry.principal, client)) {
 			if (princ != NULL) {
 				krb5_free_principal(ctx, princ);
 			}
@@ -1116,7 +1116,7 @@ v5_select_keytab_service(krb5_context ctx, krb5_creds *creds,
 		 * client's realm)? */
 		if ((score < 2) &&
 		    (v5_princ_component_count(entry.principal) == 2) &&
-		    krb5_realm_compare(ctx, entry.principal, creds->client)) {
+		    krb5_realm_compare(ctx, entry.principal, client)) {
 			if (princ != NULL) {
 				krb5_free_principal(ctx, princ);
 			}
@@ -1134,7 +1134,7 @@ v5_select_keytab_service(krb5_context ctx, krb5_creds *creds,
 		 * instance, in the client's realm)? */
 		if ((score < 3) &&
 		    (v5_princ_component_count(entry.principal) == 2) &&
-		    krb5_realm_compare(ctx, entry.principal, creds->client) &&
+		    krb5_realm_compare(ctx, entry.principal, client) &&
 		    (v5_princ_component_length(entry.principal, 0) == 4) &&
 		    (memcmp(v5_princ_component_contents(entry.principal, 0),
 			    "host", 4) == 0)) {
@@ -1156,7 +1156,7 @@ v5_select_keytab_service(krb5_context ctx, krb5_creds *creds,
 		if ((score < 4) &&
 		    (host != NULL) &&
 		    (v5_princ_component_count(entry.principal) == 2) &&
-		    krb5_realm_compare(ctx, entry.principal, creds->client) &&
+		    krb5_realm_compare(ctx, entry.principal, client) &&
 		    (v5_princ_component_length(entry.principal, 1) ==
 		     v5_princ_component_length(host, 1)) &&
 		    (memcmp(v5_princ_component_contents(entry.principal, 1),
@@ -1180,7 +1180,7 @@ v5_select_keytab_service(krb5_context ctx, krb5_creds *creds,
 		if ((score < 5) &&
 		    (host != NULL) &&
 		    (v5_princ_component_count(entry.principal) == 2) &&
-		    krb5_realm_compare(ctx, entry.principal, creds->client) &&
+		    krb5_realm_compare(ctx, entry.principal, client) &&
 		    (v5_princ_component_length(entry.principal, 1) ==
 		     v5_princ_component_length(host, 1)) &&
 		    (memcmp(v5_princ_component_contents(entry.principal, 1),
@@ -1226,7 +1226,7 @@ v5_validate_using_keytab(krb5_context ctx,
 
 	/* Try to figure out the name of a suitable service. */
 	princ = NULL;
-	v5_select_keytab_service(ctx, creds, options->keytab, &princ);
+	v5_select_keytab_service(ctx, creds->client, options->keytab, &princ);
 
 	/* Try to get a text representation of the principal to which the key
 	 * belongs, for logging purposes. */
@@ -1330,6 +1330,266 @@ v5_validate(krb5_context ctx, krb5_creds *creds, krb5_ccache ccache,
 		break;
 	}
 	return ret;
+}
+
+static void
+v5_setup_armor_ccache_keytab(krb5_context ctx,
+			     struct _pam_krb5_options *options,
+			     krb5_creds *creds,
+			     krb5_ccache *armor_ccache)
+{
+	krb5_get_init_creds_opt *gicopts;
+	krb5_keytab keytab;
+	krb5_principal guess_client;
+	char *unparsed;
+	int i;
+
+	/* See if we can use the keytab first. */
+	keytab = NULL;
+	if (options->keytab != NULL) {
+		i = krb5_kt_resolve(ctx, options->keytab, &keytab);
+		if (i != 0) {
+			warn("unable to resolve keytab \"%s\" for armor",
+			     options->keytab);
+			return;
+		}
+	} else {
+		i = krb5_kt_default(ctx, &keytab);
+		if (i != 0) {
+			warn("unable to resolve default keytab for armor");
+			return;
+		}
+	}
+	/* Make sure we can set options. */
+	gicopts = NULL;
+	i = v5_alloc_get_init_creds_opt(ctx, &gicopts);
+	if (i != 0) {
+		/* Take our chances. */
+		gicopts = NULL;
+	} else {
+		/* Set hard-coded defaults for armor tickets which might not
+		 * match generally-used options. */
+		_pam_krb5_set_init_opts_for_armor(ctx,
+						  gicopts,
+						  options);
+	}
+	/* Make an initial client name guess. */
+	i = krb5_sname_to_principal(ctx, NULL, "host", KRB5_NT_SRV_HST,
+				    &guess_client);
+	if (i != 0) {
+		crit("error guessing name of a principal in keytab for armor");
+		if (gicopts != NULL) {
+			v5_free_get_init_creds_opt(ctx, gicopts);
+		}
+		krb5_kt_close(ctx, keytab);
+		return;
+	}
+	v5_set_principal_realm(ctx, &guess_client, options->realm);
+	/* Try to select a more suitable client name. */
+	if (creds->client != NULL) {
+		krb5_free_principal(ctx, creds->client);
+		creds->client = NULL;
+	}
+	i = v5_select_keytab_service(ctx, guess_client, options->keytab,
+				     &creds->client);
+	krb5_free_principal(ctx, guess_client);
+	if (creds->client == NULL) {
+		warn("unable to select an armor service from keytab: %d (%s)",
+		     i, v5_error_message(i));
+	} else {
+#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_OUT_CCACHE
+		if (armor_ccache != NULL) {
+			krb5_get_init_creds_opt_set_out_ccache(ctx, gicopts,
+							       *armor_ccache);
+		}
+#endif
+		/* Try to use the keytab to get a TGT. */
+		i = krb5_get_init_creds_keytab(ctx,
+					       creds,
+					       creds->client,
+					       keytab,
+					       0,
+					       NULL,
+					       gicopts);
+		if (options->debug) {
+			unparsed = NULL;
+			krb5_unparse_name(ctx, creds->client, &unparsed);
+			if (unparsed != NULL) {
+				debug("krb5_get_init_creds_keytab(%s) "
+				      "for armor returned %d (%s)",
+				      unparsed,
+				      i, v5_error_message(i));
+				v5_free_unparsed_name(ctx, unparsed);
+			} else {
+				debug("krb5_get_init_creds_keytab() "
+				      "for armor returned %d (%s)",
+				      i, v5_error_message(i));
+			}
+		}
+		if (i != 0) {
+			warn("error getting armor ticket via keytab: %d (%s)",
+			     i, v5_error_message(i));
+		}
+	}
+	if (gicopts != NULL) {
+		v5_free_get_init_creds_opt(ctx, gicopts);
+	}
+	krb5_kt_close(ctx, keytab);
+}
+
+static void
+v5_setup_armor_ccache_pkinit(krb5_context ctx,
+			     struct _pam_krb5_options *options,
+			     krb5_creds *creds,
+			     krb5_ccache *armor_ccache)
+{
+	krb5_get_init_creds_opt *gicopts;
+	char *unparsed;
+	int i;
+
+	/* Make sure we can set options. */
+	gicopts = NULL;
+	i = v5_alloc_get_init_creds_opt(ctx, &gicopts);
+	if (i != 0) {
+		/* Need to be able to force PKINIT only. */
+		return;
+	}
+	/* Set hard-coded defaults for armor tickets which might not
+	 * match generally-used options. */
+	_pam_krb5_set_init_opts_for_armor(ctx,
+					  gicopts,
+					  options);
+	/* Force the client name. */
+	if (creds->client != NULL) {
+		krb5_free_principal(ctx, creds->client);
+		creds->client = NULL;
+	}
+	if (krb5_build_principal(ctx, &creds->client,
+				 strlen(options->realm),
+				 options->realm,
+				 KRB5_WELLKNOWN_NAMESTR,
+				 KRB5_ANONYMOUS_PRINCSTR,
+				 NULL) == 0) {
+		/* Force PKINIT. */
+#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_PREAUTH_LIST
+		krb5_preauthtype pkinit;
+		pkinit = KRB5_PADATA_PK_AS_REQ;
+		krb5_get_init_creds_opt_set_preauth_list(gicopts, &pkinit, 1);
+#endif
+#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_PKINIT
+		krb5_get_init_creds_opt_set_pkinit(ctx,
+						   gicopts,
+						   creds->client,
+						   NULL,
+						   NULL,
+#ifdef KRB5_GET_INIT_CREDS_OPT_SET_PKINIT_TAKES_11_ARGS
+						   NULL,
+						   NULL,
+#endif
+						   options->pkinit_flags,
+						   _pam_krb5_always_fail_prompter,
+						   NULL,
+						   NULL);
+#endif
+#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_OUT_CCACHE
+		if (armor_ccache != NULL) {
+			krb5_get_init_creds_opt_set_out_ccache(ctx, gicopts,
+							       *armor_ccache);
+		}
+#endif
+		/* Hopefully we're only going to contact the KDC if things are
+		 * set up on our end. */
+		i = krb5_get_init_creds_password(ctx,
+						 creds,
+						 creds->client,
+						 NULL,
+						 _pam_krb5_always_fail_prompter,
+						 NULL,
+						 0,
+						 NULL,
+						 gicopts);
+		if (options->debug) {
+			unparsed = NULL;
+			krb5_unparse_name(ctx, creds->client, &unparsed);
+			if (unparsed != NULL) {
+				debug("krb5_get_init_creds_password(%s) "
+				      "for armor returned %d (%s)",
+				      unparsed,
+				      i, v5_error_message(i));
+				v5_free_unparsed_name(ctx, unparsed);
+			} else {
+				debug("krb5_get_init_creds_password() "
+				      "for armor returned %d (%s)",
+				      i, v5_error_message(i));
+			}
+		}
+		if (i != 0) {
+			warn("error getting armor ticket via "
+			     "anonymous pkinit: %d (%s)",
+			     i, v5_error_message(i));
+		}
+	}
+	v5_free_get_init_creds_opt(ctx, gicopts);
+}
+
+static void
+v5_setup_armor_ccache(krb5_context ctx,
+		      struct _pam_krb5_options *options,
+		      krb5_ccache *armor_ccache)
+{
+	krb5_creds creds;
+	char ccname[LINE_MAX];
+	int i;
+
+	if (armor_ccache == NULL) {
+		return;
+	}
+	memset(&creds, 0, sizeof(creds));
+	i = krb5_build_principal(ctx, &creds.server,
+	   			 strlen(options->realm),
+				 options->realm,
+				 KRB5_TGS_NAME,
+				 options->realm,
+				 NULL);
+	if (i != 0) {
+		return;
+	}
+	/* Build a minimal ccache. */
+	snprintf(ccname, sizeof(ccname), "MEMORY:%p", armor_ccache);
+	if (krb5_cc_resolve(ctx, ccname, armor_ccache) != 0) {
+		krb5_free_principal(ctx, creds.server);
+		return;
+	}
+	/* Try to use the keytab. */
+	if (v5_creds_check_initialized(ctx, &creds) != 0) {
+		v5_setup_armor_ccache_keytab(ctx, options, &creds,
+					     armor_ccache);
+	}
+	/* Try anonymous PKINIT. */
+	if (v5_creds_check_initialized(ctx, &creds) != 0) {
+		v5_setup_armor_ccache_pkinit(ctx, options, &creds,
+					     armor_ccache);
+	}
+	/* If we got creds, and they weren't stored in the ccache for us, set
+	 * up the armor ccache. */
+	if (v5_creds_check_initialized(ctx, &creds) == 0) {
+		if (v5_ccache_has_tgt(ctx, *armor_ccache, NULL) != 0) {
+			if (krb5_cc_initialize(ctx, *armor_ccache,
+					       creds.client) != 0) {
+				krb5_free_cred_contents(ctx, &creds);
+				krb5_cc_destroy(ctx, *armor_ccache);
+				*armor_ccache = NULL;
+				return;
+			}
+			if (krb5_cc_store_cred(ctx, *armor_ccache, &creds) != 0) {
+				krb5_free_cred_contents(ctx, &creds);
+				krb5_cc_destroy(ctx, *armor_ccache);
+				*armor_ccache = NULL;
+				return;
+			}
+		}
+		krb5_free_cred_contents(ctx, &creds);
+	}
 }
 
 int
@@ -1488,7 +1748,7 @@ v5_get_creds(krb5_context ctx,
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_CCACHE_NAME
 	if ((options->armor) && (armor_ccache != NULL)) {
 		if (*armor_ccache == NULL) {
-			warn("don't know how to set up armor yet");
+			v5_setup_armor_ccache(ctx, options, armor_ccache);
 		}
 		if (*armor_ccache != NULL) {
 			opt = NULL;
