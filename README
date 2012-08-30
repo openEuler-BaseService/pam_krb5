@@ -28,6 +28,15 @@ o always_allow_localname
   Always allow the local user, as derived from the principal name being
   authenticated, to access the account, even when not explicitly listed in
   the .k5login file or its equivalent(s).
+o armor
+  Attempt to use a secondary credential cache for armoring exchanges with
+  the KDC.
+o armor_strategy
+  Override how the module attempts to obtain credentials for use as armor.
+  By default, the module supports these methods:
+    keytab    Use the default or configured keytab to get a service's TGT.
+    pkinit    Use anonymous PKINIT.
+  The default list of methods, and their order, is noted in the manual pages.
 o banner=Kerberos
   When changing passwords, tell users that they are changing their Kerberos
   passwords (unset to avoid using any term other than "password").
@@ -133,9 +142,6 @@ o tokens
 o token_strategy
   Override how the module attempts to get credentials and set AFS tokens.
   By default, the module supports these methods:
-    v4    Get krb4 credentials and use the traditional rxkad token format.
-    524   Convert krb5 credentials to krb4 credentials with the help of a
-          running 524 service, and use the traditional rxkad token format.
     2b    Get krb5 credentials, and use the "2b" rxkad token format, which
           is only supported in OpenAFS 1.2.8 and later.
     rxk5  Get krb5 credentials, and use the rxk5 token format, which may be

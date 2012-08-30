@@ -4,6 +4,7 @@
 	 * add support for preserving configuration information in ccaches
 	 * add support for creating and cleaning up DIR: ccaches
 	 * finish cleaning up KEYRING: ccaches
+	 * add "armor" and "armor_strategy" options
 - 2.3.14:* also drop privileges when reinitializing or refreshing credentials,
            for the sake of login (#822493)
 - 2.3.13:* don't bother creating a v5 ccache in "external" mode
