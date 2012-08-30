@@ -44,6 +44,12 @@ messages are logged with priority \fILOG_DEBUG\fR.
 @MAN_ARMOR@attempt to use armoring when communicating with the KDC.
 @MAN_ARMOR@The default is \fBfalse\fR.
 @MAN_ARMOR@
+@MAN_ARMOR@.IP "armor_strategy = \fI@DEFAULT_ARMOR_STRATEGY@\fR"
+@MAN_ARMOR@controls how the module will attempt to obtain tickets for use as armor.
+@MAN_ARMOR@The value should be a comma-separated list of methods.
+@MAN_ARMOR@Supported methods include \fIketyab\fR and \fIpkinit\fR.
+@MAN_ARMOR@The default is \fB@DEFAULT_ARMOR_STRATEGY@\fR.
+@MAN_ARMOR@
 .IP "banner = \fIKerberos 5\fR"
 specifies what sort of password the module claims to be changing whenever it is
 called upon to change passwords.  The default is \fBKerberos 5\fR.
@@ -217,7 +223,7 @@ situation when a new password is called for.
 @MAN_AFS@applications, this flag is not necessary.
 @MAN_AFS@
 @MAN_AFS@.IP "token_strategy = \fIrxk5,2b[,...]\fR"
-@MAN_AFS@controls how, and using which format, pam_krb5.so should attept to
+@MAN_AFS@controls how, and using which format, pam_krb5.so should attempt to
 @MAN_AFS@set AFS tokens for the user's session.
 @MAN_AFS@By default, the module is configured with
 @MAN_AFS@"token_strategy = \fI@DEFAULT_TOKEN_STRATEGY@\fR".

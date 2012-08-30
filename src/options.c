@@ -427,6 +427,7 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 	}
 #endif
 
+	/* private options */
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_CCACHE_NAME
 	options->armor = option_b(argc, argv, ctx, options->realm,
 				  service, NULL, NULL,
@@ -435,6 +436,9 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 		debug("flag: armor");
 	}
 #endif
+	options->armor_strategy = option_s(argc, argv,
+					   ctx, options->realm, "armor_strategy",
+					   DEFAULT_ARMOR_STRATEGY);
 
 	/* private option */
 	options->debug_sensitive = option_b(argc, argv, ctx, options->realm,

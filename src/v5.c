@@ -1332,6 +1332,7 @@ v5_validate(krb5_context ctx, krb5_creds *creds, krb5_ccache ccache,
 	return ret;
 }
 
+#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_CCACHE_NAME
 static void
 v5_setup_armor_ccache_keytab(krb5_context ctx,
 			     struct _pam_krb5_options *options,
@@ -1539,7 +1540,19 @@ v5_setup_armor_ccache(krb5_context ctx,
 {
 	krb5_creds creds;
 	char ccname[LINE_MAX];
+	const char *p;
 	int i;
+	unsigned int u, len;
+	struct {
+		const char *name;
+		void (*fn)(krb5_context,
+			   struct _pam_krb5_options *,
+			   krb5_creds *,
+			   krb5_ccache *);
+	} methods[] = {
+		{"keytab", v5_setup_armor_ccache_keytab},
+		{"pkinit", v5_setup_armor_ccache_pkinit},
+	};
 
 	if (armor_ccache == NULL) {
 		return;
@@ -1560,18 +1573,27 @@ v5_setup_armor_ccache(krb5_context ctx,
 		krb5_free_principal(ctx, creds.server);
 		return;
 	}
-	/* Try to use the keytab. */
-	if (v5_creds_check_initialized(ctx, &creds) != 0) {
-		v5_setup_armor_ccache_keytab(ctx, options, &creds,
-					     armor_ccache);
-	}
-	/* Try anonymous PKINIT. */
-	if (v5_creds_check_initialized(ctx, &creds) != 0) {
-		v5_setup_armor_ccache_pkinit(ctx, options, &creds,
-					     armor_ccache);
+	/* Use the methods in the configured order. */
+	p = options->armor_strategy;
+	while (*p != '\0') {
+		len = strcspn(p, ",");
+		for (u = 0; u < sizeof(methods) / sizeof(methods[0]); u++) {
+			if (v5_creds_check_initialized(ctx, &creds) == 0) {
+				break;
+			}
+			if (strlen(methods[u].name) != len) {
+				continue;
+			}
+			if (memcmp(p, methods[u].name, len) == 0) {
+				(*(methods[u].fn))(ctx, options, &creds,
+						   armor_ccache);
+			}
+		}
+		p += len;
+		p += strspn(p, ",");
 	}
 	/* If we got creds, and they weren't stored in the ccache for us, set
-	 * up the armor ccache. */
+	 * up the armor ccache directly. */
 	if (v5_creds_check_initialized(ctx, &creds) == 0) {
 		if (v5_ccache_has_tgt(ctx, *armor_ccache, NULL) != 0) {
 			if (krb5_cc_initialize(ctx, *armor_ccache,
@@ -1591,6 +1613,7 @@ v5_setup_armor_ccache(krb5_context ctx,
 		krb5_free_cred_contents(ctx, &creds);
 	}
 }
+#endif
 
 int
 v5_get_creds(krb5_context ctx,

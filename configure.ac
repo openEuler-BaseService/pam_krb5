@@ -437,6 +437,11 @@ AC_DEFINE_UNQUOTED(DEFAULT_TOKEN_STRATEGY,"$default_token_strategy",[Define to t
 DEFAULT_TOKEN_STRATEGY="$default_token_strategy"
 AC_SUBST(DEFAULT_TOKEN_STRATEGY)
 AC_MSG_RESULT([Using "$default_token_strategy" as the default token-setting strategy.])
+AC_ARG_ENABLE(default-armor-strategy,AC_HELP_STRING([--enable-default-armor-strategy=STRATEGY],[default list of methods pam_krb5 should attempt to use to get tickets for use as armor (default is keytab,pkinit)]),default_armor_strategy=$enableval,default_armor_strategy=[keytab,pkinit])
+AC_DEFINE_UNQUOTED(DEFAULT_ARMOR_STRATEGY,"$default_armor_strategy",[Define to the ordered list of methods which should be used when attempting to get tickets for use as armor.])
+DEFAULT_ARMOR_STRATEGY="$default_armor_strategy"
+AC_SUBST(DEFAULT_ARMOR_STRATEGY)
+AC_MSG_RESULT([Using "$default_armor_strategy" as the default strategy for obtaining armoring tickets.])
 
 PAM_KRB5_APPNAME=pam
 AC_DEFINE_UNQUOTED(PAM_KRB5_APPNAME,"$PAM_KRB5_APPNAME",[Define to the application name, which defines which appdefaults section will be expected to hold this module's configuration in krb5.conf.])

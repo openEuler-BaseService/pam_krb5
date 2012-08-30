@@ -42,6 +42,7 @@ struct _pam_krb5_options {
 #endif
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_CCACHE_NAME
 	int armor;
+	char *armor_strategy;
 #endif
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_CANONICALIZE
 	int canonicalize;
