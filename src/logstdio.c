@@ -101,7 +101,7 @@ trace(krb5_context ctx, const struct krb5_trace_info *info, void *data)
 		       (strchr("\r\n", info->message[len - 1]) != NULL)) {
 			len--;
 		}
-		debug("libkrb5 trace message: %.*s", len, info->message);
+		fprintf(stderr, "libkrb5 trace message: %.*s\n", len, info->message);
 	}
 }
 #endif
