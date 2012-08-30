@@ -45,7 +45,7 @@ struct _pam_krb5_stash {
 	krb5_context v5ctx;
 	int v5attempted, v5result, v5expired, v5external;
 	struct _pam_krb5_ccname_list *v5ccnames;
-	krb5_ccache v5ccache;
+	krb5_ccache v5ccache, v5armorccache;
 	int v5setenv;
 	int v5shm;
 	pid_t v5shm_owner;

@@ -42,6 +42,7 @@
 int v5_get_creds(krb5_context ctx,
 		 pam_handle_t *pamh,
 		 krb5_ccache *ccache,
+		 krb5_ccache *armor_ccache,
 		 const char *user,
 		 struct _pam_krb5_user_info *userinfo,
 		 struct _pam_krb5_options *options,

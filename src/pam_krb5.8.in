@@ -59,6 +59,10 @@ messages are logged with priority \fILOG_DEBUG\fR.
 @MAN_MANAME@exists and can be read, but the principal is not explicitly listed,
 @MAN_MANAME@access is typically denied.  This setting is disabled by default.
 @MAN_MANAME@
+@MAN_ARMOR@.IP "armor = \fItrue\fR|\fIfalse\fR|\fIservice [...]\fR"
+@MAN_ARMOR@attempt to use armoring when communicating with the KDC.
+@MAN_ARMOR@The default is \fBfalse\fR.
+@MAN_ARMOR@
 .IP "banner=\fIKerberos 5\fR"
 tells pam_krb5.so how to identify itself when users attempt to change their
 passwords.  The default setting is "Kerberos 5".

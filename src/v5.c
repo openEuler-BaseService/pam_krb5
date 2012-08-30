@@ -316,7 +316,11 @@ v5_free_unparsed_name(krb5_context ctx, char *name)
 void
 v5_free_unparsed_name(krb5_context ctx, char *name)
 {
+#ifdef HAVE_KRB5_FREE_STRING
+	krb5_free_string(ctx, name);
+#else
 	xstrfree(name);
+#endif
 }
 #endif
 
@@ -330,9 +334,23 @@ v5_free_default_realm(krb5_context ctx, char *realm)
 void
 v5_free_default_realm(krb5_context ctx, char *realm)
 {
+#ifdef HAVE_KRB5_FREE_STRING
+	krb5_free_string(ctx, realm);
+#else
 	xstrfree(realm);
+#endif
 }
 #endif
+
+void
+v5_free_cc_full_name(krb5_context ctx, char *name)
+{
+#ifdef HAVE_KRB5_FREE_STRING
+	krb5_free_string(ctx, name);
+#else
+	xstrfree(name);
+#endif
+}
 
 #ifdef HAVE_KRB5_SET_PRINCIPAL_REALM
 int
@@ -1318,6 +1336,7 @@ int
 v5_get_creds(krb5_context ctx,
 	     pam_handle_t *pamh,
 	     krb5_ccache *ccache,
+	     krb5_ccache *armor_ccache,
 	     const char *user,
 	     struct _pam_krb5_user_info *userinfo,
 	     struct _pam_krb5_options *options,
@@ -1463,6 +1482,23 @@ v5_get_creds(krb5_context ctx,
 			warn("error resolving preauth option \"%s\" "
 			     "to a useful value",
 			     options->preauth_options[i]);
+		}
+	}
+#endif
+#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_CCACHE_NAME
+	if ((options->armor) && (armor_ccache != NULL)) {
+		if (*armor_ccache == NULL) {
+			warn("don't know how to set up armor yet");
+		}
+		if (*armor_ccache != NULL) {
+			opt = NULL;
+			if (krb5_cc_get_full_name(ctx, *armor_ccache,
+						  &opt) == 0) {
+				krb5_get_init_creds_opt_set_fast_ccache_name(ctx,
+									     gic_options,
+									     opt);
+				v5_free_cc_full_name(ctx, opt);
+			}
 		}
 	}
 #endif

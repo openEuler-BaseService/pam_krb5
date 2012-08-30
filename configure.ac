@@ -168,6 +168,7 @@ LIBS="$LIBS $KRB5_LIBS"
 AC_CHECK_FUNCS(krb5_init_secure_context)
 AC_CHECK_FUNCS(krb5_free_unparsed_name)
 AC_CHECK_FUNCS(krb5_free_default_realm)
+AC_CHECK_FUNCS(krb5_free_string)
 AC_CHECK_FUNCS(krb5_set_principal_realm)
 AC_CHECK_FUNCS(krb5_get_prompt_types)
 AC_CHECK_FUNCS(krb5_get_init_creds_opt_alloc)
@@ -285,6 +286,16 @@ else
 fi
 AC_SUBST(NO_MAN_TRACE)
 AC_SUBST(MAN_TRACE)
+
+if test x$ac_cv_func_krb5_get_init_creds_opt_set_fast_ccache_name = xyes ; then
+	MAN_ARMOR=""
+	NO_MAN_ARMOR=".\\\" "
+else
+	MAN_ARMOR=".\\\" "
+	NO_MAN_ARMOR=""
+fi
+AC_SUBST(NO_MAN_ARMOR)
+AC_SUBST(MAN_ARMOR)
 
 AC_CHECK_DECL(error_message,
 	      [AC_DEFINE(HAVE_ERROR_MESSAGE_DECL,1,[Define if your krb5.h declares the error_message() function.])],,[$headers])

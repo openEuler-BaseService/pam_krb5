@@ -238,7 +238,9 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 				}
 			}
 			retval = v5_get_creds(ctx, pamh,
-					      &stash->v5ccache, user, userinfo,
+					      &stash->v5ccache,
+					      &stash->v5armorccache,
+					      user, userinfo,
 					      options,
 					      KRB5_TGS_NAME,
 					      first_pass,
@@ -308,7 +310,9 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 				}
 			}
 			retval = v5_get_creds(ctx, pamh,
-					      &stash->v5ccache, user, userinfo,
+					      &stash->v5ccache,
+					      &stash->v5armorccache,
+					      user, userinfo,
 					      options,
 					      KRB5_TGS_NAME,
 					      second_pass,
@@ -346,7 +350,9 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 			      "allowing libkrb5 to prompt for more", user);
 		}
 		retval = v5_get_creds(ctx, pamh,
-				      &stash->v5ccache, user, userinfo,
+				      &stash->v5ccache,
+				      &stash->v5armorccache,
+				      user, userinfo,
 				      options,
 				      KRB5_TGS_NAME,
 				      NULL,

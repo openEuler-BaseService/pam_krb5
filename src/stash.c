@@ -121,6 +121,9 @@ _pam_krb5_stash_cleanup(pam_handle_t *pamh, void *data, int error)
 {
 	struct _pam_krb5_stash *stash = data;
 	struct _pam_krb5_ccname_list *node;
+	if (stash->v5armorccache != NULL) {
+		krb5_cc_destroy(stash->v5ctx, stash->v5armorccache);
+	};
 	if (stash->v5ccache != NULL) {
 		krb5_cc_destroy(stash->v5ctx, stash->v5ccache);
 	}
@@ -564,6 +567,7 @@ _pam_krb5_stash_get(pam_handle_t *pamh, const char *user,
 	stash->v5shm = -1;
 	stash->v5shm_owner = -1;
 	stash->v5ccache = NULL;
+	stash->v5armorccache = NULL;
 	stash->afspag = 0;
 	if (options->use_shmem) {
 		_pam_krb5_stash_shm_read(pamh, key, stash, options, user, info);

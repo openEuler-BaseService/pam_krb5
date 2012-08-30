@@ -40,6 +40,9 @@ struct _pam_krb5_options {
 #ifdef HAVE_KRB5_ANAME_TO_LOCALNAME
 	int always_allow_localname;
 #endif
+#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_CCACHE_NAME
+	int armor;
+#endif
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_CANONICALIZE
 	int canonicalize;
 #endif

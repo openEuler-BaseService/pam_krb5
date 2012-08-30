@@ -253,7 +253,9 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 			/* We have a password, so try to obtain initial
 			 * credentials using the password. */
 			i = v5_get_creds(ctx, pamh,
-					 &stash->v5ccache, user, userinfo,
+					 &stash->v5ccache,
+					 &stash->v5armorccache,
+					 user, userinfo,
 					 options,
 					 PASSWORD_CHANGE_PRINCIPAL,
 					 password, tmp_gicopts,
@@ -308,7 +310,9 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 				}
 			}
 			i = v5_get_creds(ctx, pamh,
-					 &stash->v5ccache, user, userinfo,
+					 &stash->v5ccache,
+					 &stash->v5armorccache,
+					 user, userinfo,
 					 options,
 					 PASSWORD_CHANGE_PRINCIPAL,
 					 password, tmp_gicopts,
@@ -338,7 +342,9 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 				      "allowing libkrb5 to prompt", user);
 			}
 			i = v5_get_creds(ctx, pamh,
-					 &stash->v5ccache, user, userinfo,
+					 &stash->v5ccache,
+					 &stash->v5armorccache,
+					 user, userinfo,
 					 options,
 					 PASSWORD_CHANGE_PRINCIPAL,
 					 NULL, tmp_gicopts,
@@ -508,6 +514,7 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 				      userinfo->unparsed_name);
 			}
 			i = v5_get_creds(ctx, pamh, &stash->v5ccache,
+					 &stash->v5armorccache,
 					 user, userinfo, options,
 					 KRB5_TGS_NAME,
 					 password, gic_options,
