@@ -1643,6 +1643,12 @@ v5_setup_armor_ccache(krb5_context ctx,
 		}
 		krb5_free_cred_contents(ctx, &creds);
 	}
+	/* Now if we still haven't got suitable creds, abandon this. */
+	if ((*armor_ccache != NULL) &&
+	    (v5_ccache_has_tgt(ctx, *armor_ccache, NULL) != 0)) {
+		krb5_cc_destroy(ctx, *armor_ccache);
+		*armor_ccache = NULL;
+	}
 }
 #endif
 
