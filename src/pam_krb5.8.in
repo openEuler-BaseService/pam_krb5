@@ -213,6 +213,7 @@ validation will be suppressed.
 @MAN_MPREAUTH@to libkrb5, if the system-defaults need to be overridden.
 @MAN_MPREAUTH@The list is treated as a template, and these sequences are
 @MAN_MPREAUTH@substituted:
+@MAN_MPREAUTH@
 @MAN_MPREAUTH@  %u	login name
 @MAN_MPREAUTH@  %U	login UID
 @MAN_MPREAUTH@  %p	principal name
@@ -221,6 +222,9 @@ validation will be suppressed.
 @MAN_MPREAUTH@  %d	the default ccache directory
 @MAN_MPREAUTH@  %P	the current process ID
 @MAN_MPREAUTH@  %%	literal '%'
+@MAN_MPREAUTH@
+@MAN_MPREAUTH@A list of recognized values should be listed in the kinit(1)
+@MAN_MPREAUTH@manual page as parameters for its -X option.
 @MAN_MPREAUTH@
 .IP pwhelp=\fIfilename\fR
 specifies the name of a text file whose contents will be displayed to
