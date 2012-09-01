@@ -1,6 +1,6 @@
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
-Version: 2.3.92
+Version: 2.3.93
 Release: 1%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz
 Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
@@ -60,7 +60,12 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %{_mandir}/man8/*
 
 %changelog
+* Sat Sep  1 2012 Nalin Dahyabhai <nalin@redhat.com> - 2.3.93-1
+- update to 2.3.92
+  - don't try to use an armor ccache if we fail to get an armor ticket
+
 * Thu Aug 30 2012 Nalin Dahyabhai <nalin@redhat.com> - 2.3.92-1
+- update to 2.3.92
   - armoring options
 
 * Wed Aug 29 2012 Nalin Dahyabhai <nalin@redhat.com> - 2.3.91-1
