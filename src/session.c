@@ -242,7 +242,8 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 	/* If we didn't create ccache files because we couldn't, just
 	 * pretend everything's fine. */
 	if ((i != PAM_SUCCESS) &&
-	    (v5_ccache_has_tgt(ctx, stash->v5ccache, NULL) != 0)) {
+	    (v5_ccache_has_tgt(ctx, stash->v5ccache,
+	    		       options->realm, NULL) != 0)) {
 		i = PAM_SUCCESS;
 	}
 

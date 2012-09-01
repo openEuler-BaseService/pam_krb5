@@ -287,7 +287,8 @@ _pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
 	*blob_size = 0;
 	/* Check that we have creds. */
 	if ((stash->v5ccache == NULL) ||
-	    (v5_ccache_has_tgt(ctx, stash->v5ccache, NULL) != 0)) {
+	    (v5_ccache_has_tgt(ctx, stash->v5ccache,
+	    		       options->realm, NULL) != 0)) {
 		warn("no creds to save");
 		return -1;
 	}
@@ -308,7 +309,8 @@ _pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
 		close(fd);
 		return -1;
 	}
-	if (v5_cc_copy(stash->v5ctx, stash->v5ccache, &ccache) != 0) {
+	if (v5_cc_copy(stash->v5ctx, options->realm,
+		       stash->v5ccache, &ccache) != 0) {
 		warn("error writing to credential cache file \"%s\"",
 		     ccname + 5);
 		krb5_cc_close(stash->v5ctx, ccache);

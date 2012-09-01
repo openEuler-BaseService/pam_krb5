@@ -200,7 +200,8 @@ _pam_krb5_stash_shm_read_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 
 	/* If we have an error reading the credential, there's nothing we can
 	 * do at this point to recover from it. */
-	if (v5_cc_copy(stash->v5ctx, ccache, &stash->v5ccache) == 0) {
+	if (v5_cc_copy(stash->v5ctx, options->realm,
+		       ccache, &stash->v5ccache) == 0) {
 		/* Read other variables. */
 		stash->v5attempted = ((int*)blob)[1];
 		stash->v5result = ((int*)blob)[2];
@@ -258,7 +259,8 @@ _pam_krb5_stash_shm_write_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 		close(fd);
 		return;
 	}
-	if (v5_cc_copy(stash->v5ctx, stash->v5ccache, &ccache) != 0) {
+	if (v5_cc_copy(stash->v5ctx, options->realm,
+		       stash->v5ccache, &ccache) != 0) {
 		warn("error writing to credential cache file \"%s\"",
 		     variable + 5);
 		krb5_cc_close(stash->v5ctx, ccache);
@@ -478,7 +480,8 @@ _pam_krb5_stash_external_read(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 			/* If we were able to read the default principal, then
 			 * copy the ccache's contents. */
 			if (read_default_principal) {
-				i = v5_cc_copy(stash->v5ctx, ccache, &stash->v5ccache);
+				i = v5_cc_copy(stash->v5ctx, options->realm,
+					       ccache, &stash->v5ccache);
 				if (i != 0) {
 					if (options->debug) {
 						debug("failed to copy "

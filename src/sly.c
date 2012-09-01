@@ -236,7 +236,8 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 	uid = options->user_check ? userinfo->uid : getuid();
 	gid = options->user_check ? userinfo->gid : getgid();
 
-	if (v5_ccache_has_tgt(ctx, stash->v5ccache, NULL) == 0) {
+	if (v5_ccache_has_tgt(ctx, stash->v5ccache,
+			      options->realm, NULL) == 0) {
 		if (v5pathname != NULL) {
 			/* Check the permissions on the ccache. */
 			if ((access(v5pathname, R_OK | W_OK) == 0) &&

@@ -1626,7 +1626,8 @@ v5_setup_armor_ccache(krb5_context ctx,
 	/* If we got creds, and they weren't stored in the ccache for us, set
 	 * up the armor ccache directly. */
 	if (v5_creds_check_initialized(ctx, &creds) == 0) {
-		if (v5_ccache_has_tgt(ctx, *armor_ccache, NULL) != 0) {
+		if (v5_ccache_has_tgt(ctx, *armor_ccache,
+				      options->realm, NULL) != 0) {
 			if (krb5_cc_initialize(ctx, *armor_ccache,
 					       creds.client) != 0) {
 				krb5_free_cred_contents(ctx, &creds);
@@ -1645,7 +1646,8 @@ v5_setup_armor_ccache(krb5_context ctx,
 	}
 	/* Now if we still haven't got suitable creds, abandon this. */
 	if ((*armor_ccache != NULL) &&
-	    (v5_ccache_has_tgt(ctx, *armor_ccache, NULL) != 0)) {
+	    (v5_ccache_has_tgt(ctx, *armor_ccache,
+	    		       options->realm, NULL) != 0)) {
 		krb5_cc_destroy(ctx, *armor_ccache);
 		*armor_ccache = NULL;
 	}
@@ -1847,7 +1849,8 @@ v5_get_creds(krb5_context ctx,
 	case 0:
 		/* Flat-out success.  Initialize the ccache, store the creds to
 		 * it, and validate the TGT if it's actually a TGT, if we can. */
-		if (v5_ccache_has_tgt(ctx, *ccache, NULL) != 0) {
+		if (v5_ccache_has_tgt(ctx, *ccache,
+				      options->realm, NULL) != 0) {
 			krb5_cc_initialize(ctx, *ccache,
 					   userinfo->principal_name);
 			krb5_cc_store_cred(ctx, *ccache, &creds);
@@ -1984,7 +1987,8 @@ v5_save_for_user(krb5_context ctx,
 	}
 
 	/* Ensure that we have credentials for saving. */
-	if (v5_ccache_has_tgt(ctx, stash->v5ccache, NULL) != 0) {
+	if (v5_ccache_has_tgt(ctx, stash->v5ccache,
+			      options->realm, NULL) != 0) {
 		if (options->debug) {
 			debug("credentials not initialized");
 		}
@@ -2108,7 +2112,8 @@ v5_ccache_has_cred(krb5_context ctx, krb5_ccache ccache, krb5_creds *creds,
 	if (creds == NULL) {
 		creds = &matched;
 	}
-	err = krb5_cc_retrieve_cred(ctx, ccache, 0, &match, creds);
+	err = krb5_cc_retrieve_cred(ctx, ccache, KRB5_TC_MATCH_SRV_NAMEONLY,
+				    &match, creds);
 	if (creds == &matched) {
 		krb5_free_cred_contents(ctx, creds);
 	}
@@ -2117,9 +2122,10 @@ v5_ccache_has_cred(krb5_context ctx, krb5_ccache ccache, krb5_creds *creds,
 }
 
 krb5_error_code
-v5_ccache_has_tgt(krb5_context ctx, krb5_ccache ccache, krb5_creds *creds)
+v5_ccache_has_tgt(krb5_context ctx, krb5_ccache ccache,
+		  const char *tgs_realm, krb5_creds *creds)
 {
-	return v5_ccache_has_cred(ctx, ccache, creds, KRB5_TGS_NAME, NULL);
+	return v5_ccache_has_cred(ctx, ccache, creds, KRB5_TGS_NAME, tgs_realm);
 }
 
 krb5_error_code
@@ -2129,8 +2135,10 @@ v5_ccache_has_pwc(krb5_context ctx, krb5_ccache ccache, krb5_creds *creds)
 }
 
 krb5_error_code
-v5_cc_copy(krb5_context ctx, krb5_ccache occache, krb5_ccache *nccache)
+v5_cc_copy(krb5_context ctx, const char *tgt_realm,
+	   krb5_ccache occache, krb5_ccache *nccache)
 {
+	krb5_creds tgt;
 	krb5_principal princ;
 	krb5_error_code err;
 	char ccname[LINE_MAX];
@@ -2146,14 +2154,17 @@ v5_cc_copy(krb5_context ctx, krb5_ccache occache, krb5_ccache *nccache)
 		}
 	}
 
-	princ = NULL;
-	if (krb5_cc_get_principal(ctx, occache, &princ) != 0) {
-		return -1;
+	memset(&tgt, 0, sizeof(tgt));
+	if (v5_ccache_has_tgt(ctx, occache, tgt_realm, &tgt) != 0) {
+		memset(&tgt, 0, sizeof(tgt));
+		if (krb5_cc_get_principal(ctx, occache, &tgt.client) != 0) {
+			return -1;
+		}
 	}
 
 #ifdef HAVE_KRB5_CC_COPY_CREDS
-	if (krb5_cc_initialize(ctx, *nccache, princ) != 0) {
-		krb5_free_principal(ctx, princ);
+	if (krb5_cc_initialize(ctx, *nccache, tgt.client) != 0) {
+		krb5_free_cred_contents(ctx, &tgt);
 		return -1;
 	}
 	err = krb5_cc_copy_creds(ctx, occache, *nccache);
@@ -2163,12 +2174,12 @@ v5_cc_copy(krb5_context ctx, krb5_ccache occache, krb5_ccache *nccache)
 #endif
 		krb5_creds creds;
 		krb5_cc_cursor cursor;
-		if (krb5_cc_initialize(ctx, *nccache, princ) != 0) {
-			krb5_free_principal(ctx, princ);
+		if (krb5_cc_initialize(ctx, *nccache, tgt.client) != 0) {
+			krb5_free_cred_contents(ctx, &tgt);
 			return -1;
 		}
 		if (krb5_cc_start_seq_get(ctx, occache, &cursor) != 0) {
-			krb5_free_principal(ctx, princ);
+			krb5_free_cred_contents(ctx, &tgt);
 			return -1;
 		}
 		memset(&creds, 0, sizeof(creds));
@@ -2179,6 +2190,6 @@ v5_cc_copy(krb5_context ctx, krb5_ccache occache, krb5_ccache *nccache)
 		}
 		krb5_cc_end_seq_get(ctx, occache, &cursor);
 	}
-	krb5_free_principal(ctx, princ);
+	krb5_free_cred_contents(ctx, &tgt);
 	return 0;
 }

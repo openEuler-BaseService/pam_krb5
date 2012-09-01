@@ -68,11 +68,11 @@ void v5_destroy(krb5_context ctx, struct _pam_krb5_stash *stash,
 	        struct _pam_krb5_options *options);
 
 krb5_error_code v5_ccache_has_tgt(krb5_context ctx, krb5_ccache ccache,
-				  krb5_creds *creds);
+				  const char *tgs_realm, krb5_creds *creds);
 krb5_error_code v5_ccache_has_pwc(krb5_context ctx, krb5_ccache ccache,
 				  krb5_creds *creds);
-krb5_error_code v5_cc_copy(krb5_context ctx, krb5_ccache occache,
-			   krb5_ccache *nccache);
+krb5_error_code v5_cc_copy(krb5_context ctx, const char *tgt_realm,
+			   krb5_ccache occache, krb5_ccache *nccache);
 int v5_creds_check_initialized(krb5_context ctx, krb5_creds *creds);
 int v5_creds_check_initialized_pwc(krb5_context ctx, krb5_creds *creds);
 int v5_creds_get_etype(krb5_creds *creds);
