@@ -19,6 +19,9 @@ EXTRA_DIST = run-tests.sh testenv.sh.in pwhelp.txt \
 	011-pkinit/run.sh \
 	011-pkinit/stderr.expected \
 	011-pkinit/stdout.expected \
+	012-armor/run.sh \
+	012-armor/stderr.expected \
+	012-armor/stdout.expected \
 	014-options-defccdir/run.sh \
 	014-options-defccdir/stderr.expected \
 	014-options-defccdir/stdout.expected \
