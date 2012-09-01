@@ -6,12 +6,13 @@
 [libdefaults]
  default_realm = EXAMPLE.COM
  udp_preference_limit = 1
+ dns_lookup_kdc = false
+ dns_lookup_realm = false
 
 [realms]
  EXAMPLE.COM = {
   pkinit_anchors = FILE:@TESTDIR@/kdc/ca.crt
-  kdc = @TESTHOST@:8800
-  admin_server = @TESTHOST@:8801
+  kdc = @TESTHOST@:8801
   kpasswd_server = @TESTHOST@:8802
  }
 
