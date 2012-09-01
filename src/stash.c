@@ -582,61 +582,6 @@ _pam_krb5_stash_get(pam_handle_t *pamh, const char *user,
 	return stash;
 }
 
-krb5_error_code
-v5_cc_copy(krb5_context ctx, krb5_ccache occache, krb5_ccache *nccache)
-{
-	krb5_principal princ;
-	krb5_error_code err;
-	char ccname[LINE_MAX];
-
-	if (nccache == NULL) {
-		return -1;
-	}
-
-	if (*nccache == NULL) {
-		snprintf(ccname, sizeof(ccname), "MEMORY:%p", nccache);
-		if ((err = krb5_cc_resolve(ctx, ccname, nccache)) != 0) {
-			return err;
-		}
-	}
-
-	princ = NULL;
-	if (krb5_cc_get_principal(ctx, occache, &princ) != 0) {
-		return -1;
-	}
-
-#ifdef HAVE_KRB5_CC_COPY_CREDS
-	if (krb5_cc_initialize(ctx, *nccache, princ) != 0) {
-		krb5_free_principal(ctx, princ);
-		return -1;
-	}
-	err = krb5_cc_copy_creds(ctx, occache, *nccache);
-	if (err != 0) {
-#else
-	{
-#endif
-		krb5_creds creds;
-		krb5_cc_cursor cursor;
-		if (krb5_cc_initialize(ctx, *nccache, princ) != 0) {
-			krb5_free_principal(ctx, princ);
-			return -1;
-		}
-		if (krb5_cc_start_seq_get(ctx, occache, &cursor) != 0) {
-			krb5_free_principal(ctx, princ);
-			return -1;
-		}
-		memset(&creds, 0, sizeof(creds));
-		while (krb5_cc_next_cred(ctx, occache, &cursor, &creds) == 0) {
-			krb5_cc_store_cred(ctx, *nccache, &creds);
-			krb5_free_cred_contents(ctx, &creds);
-			memset(&creds, 0, sizeof(creds));
-		}
-		krb5_cc_end_seq_get(ctx, occache, &cursor);
-	}
-	krb5_free_principal(ctx, princ);
-	return 0;
-}
-
 #ifdef HAVE_KEYUTILS
 static int
 _pam_krb5_read_keyring(key_serial_t keyring_id, key_serial_t **keys)
