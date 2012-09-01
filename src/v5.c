@@ -1813,13 +1813,27 @@ v5_get_creds(krb5_context ctx,
 			v5_setup_armor_ccache(ctx, options, armor_ccache);
 		}
 		if (*armor_ccache != NULL) {
+			char envstr[LINE_MAX];
 			opt = NULL;
 			if (v5_cc_get_full_name(ctx, *armor_ccache,
 						&opt) == 0) {
+				if (options->debug) {
+					snprintf(envstr, sizeof(envstr),
+						 "%s=%s",
+						 PACKAGE "_armor_ccache",
+						 opt);
+					pam_putenv(pamh, envstr);
+				}
 				krb5_get_init_creds_opt_set_fast_ccache_name(ctx,
 									     gic_options,
 									     opt);
 				v5_free_cc_full_name(ctx, opt);
+			} else {
+				if (options->debug) {
+					snprintf(envstr, sizeof(envstr), "%s",
+						 PACKAGE "_armor_ccache");
+					pam_putenv(pamh, envstr);
+				}
 			}
 		}
 	}
