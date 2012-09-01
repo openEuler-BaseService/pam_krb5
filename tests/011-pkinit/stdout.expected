@@ -1,0 +1,11 @@
+Calling module `pam_krb5.so'.
+AUTH	7	Authentication failure
+
+Calling module `pam_krb5.so'.
+AUTH	0	Success
+OPENSESS	0	Success
+WELLKNOWN/ANONYMOUS@WELLKNOWN:ANONYMOUS
+CLOSESESS	0	Success
+
+Calling module `pam_krb5.so'.
+AUTH	0	Success

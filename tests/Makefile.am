@@ -16,6 +16,9 @@ EXTRA_DIST = run-tests.sh testenv.sh.in pwhelp.txt \
 	005-pamchpw-success/run.sh \
 	005-pamchpw-success/stderr.expected \
 	005-pamchpw-success/stdout.expected \
+	011-pkinit/run.sh \
+	011-pkinit/stderr.expected \
+	011-pkinit/stdout.expected \
 	014-options-defccdir/run.sh \
 	014-options-defccdir/stderr.expected \
 	014-options-defccdir/stdout.expected \
