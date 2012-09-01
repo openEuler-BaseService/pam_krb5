@@ -5,7 +5,6 @@
 
 [libdefaults]
  default_realm = EXAMPLE.COM
- udp_preference_limit = 1
 
 [realms]
  EXAMPLE.COM = {
@@ -27,4 +26,5 @@
    string_parameter_2 = blah foo woof
    list_parameter_1 = ample sample example
    cchelper_path = @TESTDIR@/../src/pam_krb5_cchelper
+   keytab = @TESTDIR@/kdc/krb5.keytab
  }

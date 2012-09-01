@@ -1,1 +1,1 @@
-CLEANFILES = krb5kdc.log krb5libs.log kadmind.log stash_file kadmin_* principal* *_rcache
+CLEANFILES = krb5kdc.log krb5libs.log kadmind.log stash_file kadmin_* principal* *_rcache *.key *.csr *.crt *.pem *.p12 *.db *.keytab
