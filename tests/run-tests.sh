@@ -19,9 +19,11 @@ for test in ${@:-"$testdir"/0*} ; do
 	if ! test -s $test/run.sh ; then
 		continue
 	fi
-	echo -n `basename "$test"` ..." "
+	echo -n `basename "$test"` .
 	test_kdcinitdb
+	echo -n .
 	test_kdcprep
+	echo -n ." "
 	meanwhile "$run_kdc" -w "grepcommencing.sh $test/../kdc/krb5kdc.log" "$run_kadmind" -w "grepstarting.sh $test/../kdc/kadmind.log" "$test/run.sh" > $test/stdout 2> $test/stderr
 	kdcport=`expr $kdcport + 3`
 	kadminport=`expr $kdcport + 1`
