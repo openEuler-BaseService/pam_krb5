@@ -9,6 +9,7 @@
 
 [realms]
  EXAMPLE.COM = {
+  pkinit_anchors = FILE:@TESTDIR@/kdc/ca.crt
   kdc = @TESTHOST@:8800
   admin_server = @TESTHOST@:8801
   kpasswd_server = @TESTHOST@:8802
