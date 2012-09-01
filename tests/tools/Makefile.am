@@ -3,7 +3,7 @@ LIBS = @PAM_LIBS@ @KRB5_LIBS@ @KEYUTILS_LIBS@
 
 testdir = `cd $(builddir); /bin/pwd`
 
-noinst_PROGRAMS = pam_harness meanwhile klist_c
+noinst_PROGRAMS = pam_harness meanwhile klist_c klist_i
 EXTRA_DIST = save_cc_file.sh grepenv.sh
 noinst_SCRIPTS = save_cc_file.sh grepenv.sh
 
