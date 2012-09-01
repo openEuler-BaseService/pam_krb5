@@ -54,7 +54,7 @@ test_kdcinitdb() {
 	test -d @abs_builddir@/kdc || mkdir -p @abs_builddir@/kdc
 	kdb5_util destroy -f 2> /dev/null > /dev/null
 	rm -f @abs_builddir@/kdc/krb5.keytab > /dev/null
-	(echo .; echo .; echo .) | kdb5_util create -s 2> /dev/null > /dev/null
+	((echo .; echo .; echo .) | kdb5_util create -s -W || (echo .; echo .; echo .) | kdb5_util create -s ) 2> /dev/null > /dev/null
 	(cd @abs_builddir@/kdc; make-certs.sh @TESTHOST@ root sign encrypt tls-server id-pkinit-kdc krbtgt/EXAMPLE.COM@EXAMPLE.COM) 2> /dev/null > /dev/null
 	(cd @abs_builddir@/kdc; make-certs.sh "$test_principal" "$test_principal" sign encrypt tls-server id-pkinit-client "$test_principal"@EXAMPLE.COM) 2> /dev/null > /dev/null
 	$kadmin -q 'addpol -minlength 6 minimum_six' 2> /dev/null > /dev/null
