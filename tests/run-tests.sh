@@ -22,7 +22,7 @@ for test in ${@:-"$testdir"/0*} ; do
 	echo -n `basename "$test"` ..." "
 	test_kdcinitdb
 	test_kdcprep
-	meanwhile "$run_kdc" "$run_kadmind" "$test/run.sh" > $test/stdout 2> $test/stderr
+	meanwhile "$run_kdc" -w "grepcommencing.sh $test/../kdc/krb5kdc.log" "$run_kadmind" -w "grepstarting.sh $test/../kdc/kadmind.log" "$test/run.sh" > $test/stdout 2> $test/stderr
 	kdcport=`expr $kdcport + 3`
 	kadminport=`expr $kdcport + 1`
 	kpasswdport=`expr $kadminport + 1`

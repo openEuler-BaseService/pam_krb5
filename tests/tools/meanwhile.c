@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 Red Hat, Inc.
+ * Copyright 2011,2012 Red Hat, Inc.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -21,6 +21,7 @@
 #include <sys/types.h>
 #include <sys/signal.h>
 #include <sys/wait.h>
+#include <assert.h>
 #include <paths.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +33,7 @@ main(int argc, char **argv)
 {
 	pid_t *children;
 	int n_children, i, mul, sig, status, ret, verbose = 0;
-	char *cmd, *args[4], **cmds, **execs;
+	char *cmd, *args[4], **cmds, **readycmds, **execs;
 	signal(SIGCHLD, SIG_DFL);
 	if (argc < 2) {
 		return -1;
@@ -43,11 +44,18 @@ main(int argc, char **argv)
 		if (strcmp(argv[i], "-v") == 0) {
 			verbose++;
 		}
-		n_children++;
+		if (strcmp(argv[i], "-w") != 0) {
+			n_children++;
+		}
 	}
 	/* Make some room. */
 	cmds = malloc(sizeof(char *) * (n_children + 1));
 	if (cmds == NULL) {
+		perror("malloc");
+		return -1;
+	}
+	readycmds = malloc(sizeof(char *) * (n_children + 1));
+	if (readycmds == NULL) {
 		perror("malloc");
 		return -1;
 	}
@@ -70,7 +78,13 @@ main(int argc, char **argv)
 			verbose++;
 			continue;
 		}
+		if (strcmp(argv[i], "-w") == 0) {
+			assert(n_children > 0);
+			readycmds[n_children - 1] = argv[++i];
+			continue;
+		}
 		cmds[n_children] = argv[i];
+		readycmds[n_children] = NULL;
 		execs[n_children] = malloc(5 + strlen(argv[i]) + 1);
 		if (execs[n_children] == NULL) {
 			perror("malloc");
@@ -104,6 +118,22 @@ main(int argc, char **argv)
 			return -1;
 		default:
 			/* Parent. */
+			if (readycmds[i] != NULL) {
+				for (;;) {
+				ret = system(readycmds[i]);
+					if (WIFEXITED(ret)) {
+						if (WEXITSTATUS(ret) == 0) {
+							break;
+						}
+						if (WEXITSTATUS(ret) == 127) {
+							break;
+						}
+						usleep(100000);
+					} else {
+						break;
+					}
+				}
+			}
 			break;
 		}
 	}
