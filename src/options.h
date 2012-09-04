@@ -57,6 +57,7 @@ struct _pam_krb5_options {
 	int multiple_ccaches;
 	int null_afs_first;
 	int permit_password_callback;
+	int test_environment;
 	int tokens;
 #ifdef HAVE_KRB5_SET_TRACE_CALLBACK
 	int trace;

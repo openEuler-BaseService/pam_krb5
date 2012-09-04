@@ -193,7 +193,7 @@ option_s(int argc, PAM_KRB5_MAYBE_CONST char **argv,
 	for (i = 0; i < argc; i++) {
 		if ((strncmp(argv[i], s, strlen(s)) == 0) &&
 		    (argv[i][strlen(s)] == '=')) {
-		    	return xstrdup(argv[i] + strlen(s) + 1);
+			return xstrdup(argv[i] + strlen(s) + 1);
 		}
 	}
 
@@ -426,6 +426,14 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 		krb5_set_trace_callback(ctx, &trace, NULL);
 	}
 #endif
+
+	/* undocumented private option */
+	options->test_environment = option_b(argc, argv, ctx, options->realm,
+					     service, NULL, NULL,
+					     "test_environment", 0);
+	if (options->test_environment) {
+		debug("flag: test_environment");
+	}
 
 	/* private options */
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_CCACHE_NAME

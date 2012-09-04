@@ -1817,7 +1817,7 @@ v5_get_creds(krb5_context ctx,
 			opt = NULL;
 			if (v5_cc_get_full_name(ctx, *armor_ccache,
 						&opt) == 0) {
-				if (options->debug) {
+				if (options->test_environment) {
 					snprintf(envstr, sizeof(envstr),
 						 "%s=%s",
 						 PACKAGE "_armor_ccache",
@@ -1829,7 +1829,7 @@ v5_get_creds(krb5_context ctx,
 									     opt);
 				v5_free_cc_full_name(ctx, opt);
 			} else {
-				if (options->debug) {
+				if (options->test_environment) {
 					snprintf(envstr, sizeof(envstr), "%s",
 						 PACKAGE "_armor_ccache");
 					pam_putenv(pamh, envstr);

@@ -209,6 +209,8 @@ _pam_krb5_stash_shm_read_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 		if (options->debug) {
 			debug("recovered credentials from shared memory "
 			      "segment %d", key);
+		}
+		if (options->test_environment) {
 			/* Store this here so that we can check for it
 			 * in a self-test. */
 			snprintf(envstr, sizeof(envstr),
@@ -302,6 +304,8 @@ _pam_krb5_stash_shm_write_v5(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 				      "segment %d (creator pid %ld)", key,
 				      (long) getpid());
 				debug("set '%s' in environment", variable);
+			}
+			if (options->test_environment) {
 				/* Store this here so that we can check for it
 				 * in a self-test. */
 				snprintf(envstr, sizeof(envstr),
@@ -501,6 +505,8 @@ _pam_krb5_stash_external_read(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 						      "\"%s\" for \"%s\"",
 						      ccname,
 						      userinfo->unparsed_name);
+					}
+					if (options->test_environment) {
 						/* Store this here so that we
 						 * can check for it in a
 						 * self-test. */
@@ -544,7 +550,7 @@ _pam_krb5_stash_get(pam_handle_t *pamh, const char *user,
 	if ((key != NULL) &&
 	    (_pam_krb5_get_data_stash(pamh, key, &stash) == PAM_SUCCESS) &&
 	    (stash != NULL)) {
-	    	free(key);
+		free(key);
 		if ((options->external == 1) && (stash->v5attempted == 0)) {
 			_pam_krb5_stash_external_read(pamh, stash,
 						      user, info, options);
@@ -560,7 +566,7 @@ _pam_krb5_stash_get(pam_handle_t *pamh, const char *user,
 
 	stash = malloc(sizeof(struct _pam_krb5_stash));
 	if (stash == NULL) {
-	    	free(key);
+		free(key);
 		_pam_krb5_free_ctx(ctx);
 		return NULL;
 	}
@@ -674,7 +680,7 @@ _pam_krb5_stash_chown_keyring(krb5_context ctx, struct _pam_krb5_stash *stash,
 		free(keys);
 	}
 	/* now actually grant access to the keyring for the user, permissions
- 	 * first so that we don't get hosed */
+	 * first so that we don't get hosed */
 	if (options->debug) {
 		debug("setting permissions on keyring 0x%lx to 0x%lx",
 		      (long) id, perms);
