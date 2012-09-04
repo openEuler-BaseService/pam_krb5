@@ -189,7 +189,8 @@ AC_CHECK_FUNCS(krb5_auth_con_setuseruserkey)
 AC_CHECK_FUNCS(krb5_aname_to_localname)
 AC_CHECK_FUNCS(krb5_set_trace_callback)
 AC_CHECK_FUNCS(krb5_cc_copy_creds)
-AC_CHECK_FUNCS(krb5_get_init_creds_opt_set_fast_ccache_name)
+AC_CHECK_FUNCS(krb5_get_init_creds_opt_set_fast_ccache)
+AC_CHECK_FUNCS(krb5_get_init_creds_opt_set_fast_flags)
 AC_CHECK_FUNCS(krb5_get_init_creds_opt_set_out_ccache)
 AC_CHECK_FUNCS(krb5_get_init_creds_opt_set_preauth_list)
 AC_CHECK_FUNCS(krb5_cc_get_full_name)
@@ -290,7 +291,8 @@ fi
 AC_SUBST(NO_MAN_TRACE)
 AC_SUBST(MAN_TRACE)
 
-if test x$ac_cv_func_krb5_get_init_creds_opt_set_fast_ccache_name = xyes ; then
+if test x$ac_cv_func_krb5_get_init_creds_opt_set_fast_ccache = xyes && \
+   test x$ac_cv_func_krb5_get_init_creds_opt_set_fast_flags = xyes ; then
 	MAN_ARMOR=""
 	NO_MAN_ARMOR=".\\\" "
 else

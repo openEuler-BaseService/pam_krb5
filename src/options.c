@@ -435,8 +435,9 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 		debug("flag: test_environment");
 	}
 
+#if defined(HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_CCACHE) && \
+    defined(HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_FLAGS)
 	/* private options */
-#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_CCACHE_NAME
 	options->armor = option_b(argc, argv, ctx, options->realm,
 				  service, NULL, NULL,
 				  "armor", 0);

@@ -1353,7 +1353,8 @@ v5_validate(krb5_context ctx, krb5_creds *creds, krb5_ccache ccache,
 	return ret;
 }
 
-#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_CCACHE_NAME
+#if defined(HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_CCACHE) && \
+    defined(HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_FLAGS)
 static void
 v5_setup_armor_ccache_keytab(krb5_context ctx,
 			     struct _pam_krb5_options *options,
@@ -1807,16 +1808,20 @@ v5_get_creds(krb5_context ctx,
 		}
 	}
 #endif
-#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_CCACHE_NAME
+#if defined(HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_CCACHE) && \
+    defined(HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_FLAGS)
 	if ((options->armor) && (armor_ccache != NULL)) {
 		if (*armor_ccache == NULL) {
 			v5_setup_armor_ccache(ctx, options, armor_ccache);
 		}
 		if (*armor_ccache != NULL) {
-			char envstr[LINE_MAX];
 			opt = NULL;
+			krb5_get_init_creds_opt_set_fast_ccache(ctx,
+								gic_options,
+								*armor_ccache);
 			if (v5_cc_get_full_name(ctx, *armor_ccache,
 						&opt) == 0) {
+				char envstr[LINE_MAX];
 				if (options->test_environment) {
 					snprintf(envstr, sizeof(envstr),
 						 "%s=%s",
@@ -1824,16 +1829,7 @@ v5_get_creds(krb5_context ctx,
 						 opt);
 					pam_putenv(pamh, envstr);
 				}
-				krb5_get_init_creds_opt_set_fast_ccache_name(ctx,
-									     gic_options,
-									     opt);
 				v5_free_cc_full_name(ctx, opt);
-			} else {
-				if (options->test_environment) {
-					snprintf(envstr, sizeof(envstr), "%s",
-						 PACKAGE "_armor_ccache");
-					pam_putenv(pamh, envstr);
-				}
 			}
 		}
 	}
