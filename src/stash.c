@@ -438,7 +438,9 @@ _pam_krb5_stash_external_read(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 			/* Read the name of the default principal from the
 			 * ccache. */
 			if (krb5_cc_get_principal(stash->v5ctx, ccache, &princ) != 0) {
-				warn("error reading ccache's default principal name");
+				warn("error reading ccache's default principal "
+				     "name from \"%s\", not reading "
+				     "externally-provided creds", ccname);
 			} else {
 				read_default_principal++;
 				/* If they're different, update the userinfo
@@ -487,13 +489,18 @@ _pam_krb5_stash_external_read(pam_handle_t *pamh, struct _pam_krb5_stash *stash,
 						debug("failed to copy "
 						      "credentials from \"%s\" "
 						      "for \"%s\"",
-						      ccname, unparsed);
+						      ccname,
+						      userinfo->unparsed_name);
 					}
 				} else {
+					stash->v5attempted = 1;
+					stash->v5result = 0;
+					stash->v5external = 1;
 					if (options->debug) {
 						debug("copied credentials from "
 						      "\"%s\" for \"%s\"",
-						      ccname, unparsed);
+						      ccname,
+						      userinfo->unparsed_name);
 						/* Store this here so that we
 						 * can check for it in a
 						 * self-test. */
@@ -538,7 +545,7 @@ _pam_krb5_stash_get(pam_handle_t *pamh, const char *user,
 	    (_pam_krb5_get_data_stash(pamh, key, &stash) == PAM_SUCCESS) &&
 	    (stash != NULL)) {
 	    	free(key);
-		if (options->external && (stash->v5attempted == 0)) {
+		if ((options->external == 1) && (stash->v5attempted == 0)) {
 			_pam_krb5_stash_external_read(pamh, stash,
 						      user, info, options);
 		}
