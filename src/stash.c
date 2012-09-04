@@ -371,8 +371,10 @@ _pam_krb5_stash_shm_read(pam_handle_t *pamh, const char *partial_key,
 			}
 		}
 	} else {
-		debug("no value for \"%s\" set, no credentials recovered "
-		      "from shared memory", variable);
+		if (options->debug) {
+			debug("no value for \"%s\" set, no credentials "
+			      "recovered from shared memory", variable);
+		}
 	}
 
 	/* Get a copy of the contents of the shared memory segment. */
