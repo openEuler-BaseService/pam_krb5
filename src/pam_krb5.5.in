@@ -42,11 +42,17 @@ messages are logged with priority \fILOG_DEBUG\fR.
 @MAN_MANAME@
 @MAN_ARMOR@.IP "armor = \fItrue\fR|\fIfalse\fR|\fIservice [...]\fR"
 @MAN_ARMOR@attempt to use armoring when communicating with the KDC.
+@MAN_ARMOR@This option is currently mainly only useful for testing, as the
+@MAN_ARMOR@\fIkeytab\fR method should not be expected to work when the module
+@MAN_ARMOR@is called from an unprivileged process, and the \fIpkinit\fR
+@MAN_ARMOR@method requires that the KDC is properly configured
+@MAN_ARMOR@to offer anonymous PKINIT, and that the client is also properly
+@MAN_ARMOR@configured to trust the KDC's CA.
 @MAN_ARMOR@The default is \fBfalse\fR.
 @MAN_ARMOR@
 @MAN_ARMOR@.IP "armor_strategy = \fI@DEFAULT_ARMOR_STRATEGY@\fR"
-@MAN_ARMOR@controls how the module will attempt to obtain tickets for use as armor.
-@MAN_ARMOR@The value should be a comma-separated list of methods.
+@MAN_ARMOR@controls how the module will attempt to obtain tickets for use as
+@MAN_ARMOR@armor. The value should be a comma-separated list of methods.
 @MAN_ARMOR@Supported methods include \fIketyab\fR and \fIpkinit\fR.
 @MAN_ARMOR@The default is \fB@DEFAULT_ARMOR_STRATEGY@\fR.
 @MAN_ARMOR@
