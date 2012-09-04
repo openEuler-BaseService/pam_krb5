@@ -159,7 +159,9 @@ _pam_krb5_kuserok(krb5_context ctx,
 		 * read the user's .k5login file. */
 		allowed = krb5_kuserok(ctx, userinfo->principal_name, user);
 		if (options->debug) {
-			debug("krb5_kuserok() says %d", allowed);
+			debug("krb5_kuserok() says \"%s\" for (\"%s\",\"%s\")",
+			      allowed ? "true" : "false",
+			      userinfo->unparsed_name, user);
 		}
 #ifdef HAVE_KRB5_ANAME_TO_LOCALNAME
 		if (!allowed && options->always_allow_localname) {
