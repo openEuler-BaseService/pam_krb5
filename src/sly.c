@@ -238,6 +238,9 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 
 	if (v5_ccache_has_tgt(ctx, stash->v5ccache,
 			      options->realm, NULL) == 0) {
+		if ((options->ignore_afs == 0) && tokens_useful()) {
+			tokens_obtain(ctx, stash, options, userinfo, 0);
+		}
 		if (v5pathname != NULL) {
 			/* Check the permissions on the ccache. */
 			if ((access(v5pathname, R_OK | W_OK) == 0) &&
@@ -308,10 +311,6 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 			      v5ccname);
 		}
 		retval = PAM_SUCCESS;
-	}
-
-	if (stored && !options->ignore_afs) {
-		tokens_obtain(ctx, stash, options, userinfo, 0);
 	}
 
 	if (options->debug) {
