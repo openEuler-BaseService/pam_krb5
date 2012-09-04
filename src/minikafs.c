@@ -436,7 +436,8 @@ minikafs_realm_of_cell_with_ctx(krb5_context ctx,
 				realm[length - 1] = '\0';
 				krb5_free_host_realm(use_ctx, realms);
 				if (options->debug) {
-					debug("%s is in realm %s", host, realm);
+					debug("%s is in realm \"%s\"",
+					      host, realm);
 				}
 				i = 0;
 				break;
