@@ -18,12 +18,12 @@ test_run -auth $test_principal $pam_krb5 $test_flags use_first_pass preauth_opti
 
 # User PKINIT, encrypted creds, no PIN.
 echo ""
-test_run -auth $test_principal $pam_krb5 $test_flags use_first_pass preauth_options=X509_anchors=FILE:$testdir/kdc/ca.crt,X509_user_identity=PKCS12:$testdir/kdc/${test_principal}-pw.p12 pkinit_identity=PKCS12:$testdir/kdc/${test_principal}-pw.p12
+test_run -auth $test_principal $pam_krb5 $test_flags use_first_pass preauth_options=X509_anchors=FILE:$testdir/kdc/ca.crt,X509_user_identity=PKCS12:$testdir/kdc/test-pw.p12 pkinit_identity=PKCS12:$testdir/kdc/test-pw.p12
 
 # User PKINIT, encrypted creds, no PIN, wrong password.
 echo ""
-test_run -auth $test_principal -authtok blargh $pam_krb5 $test_flags use_first_pass no_subsequent_prompt preauth_options=X509_anchors=FILE:$testdir/kdc/ca.crt,X509_user_identity=PKCS12:$testdir/kdc/${test_principal}-pw.p12 pkinit_identity=PKCS12:$testdir/kdc/${test_principal}-pw.p12
+test_run -auth $test_principal -authtok blargh $pam_krb5 $test_flags use_first_pass no_subsequent_prompt preauth_options=X509_anchors=FILE:$testdir/kdc/ca.crt,X509_user_identity=PKCS12:$testdir/kdc/test-pw.p12 pkinit_identity=PKCS12:$testdir/kdc/test-pw.p12
 
 # User PKINIT, encrypted creds, PIN.
 echo ""
-test_run -auth $test_principal $pam_krb5 $test_flags use_first_pass preauth_options=X509_anchors=FILE:$testdir/kdc/ca.crt,X509_user_identity=PKCS12:$testdir/kdc/${test_principal}-pw.p12 pkinit_identity=PKCS12:$testdir/kdc/${test_principal}-pw.p12 -- p12eh
+test_run -auth $test_principal $pam_krb5 $test_flags use_first_pass preauth_options=X509_anchors=FILE:$testdir/kdc/ca.crt,X509_user_identity=PKCS12:$testdir/kdc/test-pw.p12 pkinit_identity=PKCS12:$testdir/kdc/test-pw.p12 -- p12eh
