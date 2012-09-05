@@ -2100,6 +2100,10 @@ v5_ccache_has_cred(krb5_context ctx, krb5_ccache ccache, krb5_creds *creds,
 	const char *realm;
 	int rlength;
 
+	if (ccache == NULL) {
+		return KRB5_FCC_NOFILE;
+	}
+
 	memset(&match, 0, sizeof(match));
 	memset(&matched, 0, sizeof(matched));
 	err = krb5_cc_get_principal(ctx, ccache, &match.client);
