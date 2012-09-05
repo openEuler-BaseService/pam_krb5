@@ -1,6 +1,12 @@
+%if 0%{?fedora} > 16 || 0%{?rhel} > 6
+%global security_parent_dir /%{_libdir}
+%else
+%global security_parent_dir /%{_lib}
+%endif
+
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
-Version: 2.3.95
+Version: 2.3.96
 Release: 1%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz
 Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
@@ -12,10 +18,9 @@ BuildRequires: keyutils-libs-devel, krb5-devel, pam-devel
 # BuildRequires: krb5-server, krb5-workstation
 
 %description 
-This is pam_krb5, a pluggable authentication module that can be used with
-Linux-PAM and Kerberos 5. This module supports password checking, ticket
-creation, and optional TGT verification and conversion to Kerberos IV tickets.
-The included pam_krb5afs module also gets AFS tokens if so configured.
+This is pam_krb5, a pluggable authentication module that can be used by
+PAM-aware applications to check passwords and obtain ticket granting tickets
+using Kerberos 5, and to change user passwords.
 
 %prep
 %setup -q
@@ -25,7 +30,7 @@ configure_flags=
 %if 0%{?fedora} > 17 || 0%{?rhel} > 6
 configure_flags=--enable-default-ccname-template=DIR:/run/user/%%U/krb5cc_XXXXXX
 %endif
-%configure --libdir=/%{_lib} \
+%configure --libdir=/%{security_parent_dir} \
 	--with-default-use-shmem="sshd" \
 	--with-default-external="sshd sshd-rekey gssftp" \
 	--with-default-multiple-ccaches="su su-l" \
@@ -35,8 +40,8 @@ make %{?_smp_mflags}
 
 %install
 make install DESTDIR=$RPM_BUILD_ROOT INSTALL="install -p"
-ln -s pam_krb5.so $RPM_BUILD_ROOT/%{_lib}/security/pam_krb5afs.so
-rm -f $RPM_BUILD_ROOT/%{_lib}/security/*.la
+ln -s pam_krb5.so $RPM_BUILD_ROOT/%{security_parent_dir}/security/pam_krb5afs.so
+rm -f $RPM_BUILD_ROOT/%{security_parent_dir}/security/*.la
 
 # Make the paths jive to avoid conflicts on multilib systems.
 sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
@@ -52,14 +57,17 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %defattr(-,root,root,-)
 %doc README* COPYING* ChangeLog NEWS
 %{_bindir}/*
-/%{_lib}/security/pam_krb5.so
-/%{_lib}/security/pam_krb5afs.so
-/%{_lib}/security/pam_krb5
+%{security_parent_dir}/security/*.so
+%{security_parent_dir}/security/pam_krb5
 %{_mandir}/man1/*
 %{_mandir}/man5/*
 %{_mandir}/man8/*
 
 %changelog
+* Tue Sep  4 2012 Nalin Dahyabhai <nalin@redhat.com> - 2.3.96-1
+- update to 2.3.96
+  - fix during credential reinitialization when we don't have credentials
+
 * Tue Sep  4 2012 Nalin Dahyabhai <nalin@redhat.com> - 2.3.95-1
 - update to 2.3.95
   - more tests
