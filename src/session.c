@@ -243,7 +243,7 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 	 * pretend everything's fine. */
 	if ((i != PAM_SUCCESS) &&
 	    (v5_ccache_has_tgt(ctx, stash->v5ccache,
-	    		       options->realm, NULL) != 0)) {
+			       options->realm, NULL) != 0)) {
 		i = PAM_SUCCESS;
 	}
 

@@ -288,7 +288,7 @@ _pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
 	/* Check that we have creds. */
 	if ((stash->v5ccache == NULL) ||
 	    (v5_ccache_has_tgt(ctx, stash->v5ccache,
-	    		       options->realm, NULL) != 0)) {
+			       options->realm, NULL) != 0)) {
 		warn("no creds to save");
 		return -1;
 	}

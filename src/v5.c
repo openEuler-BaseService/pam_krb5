@@ -1591,7 +1591,7 @@ v5_setup_armor_ccache(krb5_context ctx,
 	}
 	memset(&creds, 0, sizeof(creds));
 	i = krb5_build_principal(ctx, &creds.server,
-	   			 strlen(options->realm),
+				 strlen(options->realm),
 				 options->realm,
 				 KRB5_TGS_NAME,
 				 options->realm,
@@ -1648,7 +1648,7 @@ v5_setup_armor_ccache(krb5_context ctx,
 	/* Now if we still haven't got suitable creds, abandon this. */
 	if ((*armor_ccache != NULL) &&
 	    (v5_ccache_has_tgt(ctx, *armor_ccache,
-	    		       options->realm, NULL) != 0)) {
+			       options->realm, NULL) != 0)) {
 		krb5_cc_destroy(ctx, *armor_ccache);
 		*armor_ccache = NULL;
 	}
@@ -1667,7 +1667,7 @@ v5_get_creds(krb5_context ctx,
 	     char *password,
 	     krb5_get_init_creds_opt *gic_options,
 	     krb5_error_code prompter(krb5_context,
-	    			      void *,
+				      void *,
 				      const char *,
 				      const char *,
 				      int,
