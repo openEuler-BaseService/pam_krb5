@@ -278,7 +278,7 @@ _pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
 			     struct _pam_krb5_options *options,
 			     unsigned char **blob, ssize_t *blob_size)
 {
-	krb5_ccache ccache;
+	krb5_ccache fccache;
 	char ccname[PATH_MAX];
 	struct stat st;
 	int fd;
@@ -301,8 +301,8 @@ _pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
 		return -1;
 	}
 	/* Write the credentials to that file. */
-	ccache = NULL;
-	if (krb5_cc_resolve(stash->v5ctx, ccname, &ccache) != 0) {
+	fccache = NULL;
+	if (krb5_cc_resolve(stash->v5ctx, ccname, &fccache) != 0) {
 		warn("error opening credential cache file \"%s\" for writing",
 		     ccname + 5);
 		unlink(ccname + 5);
@@ -310,20 +310,20 @@ _pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
 		return -1;
 	}
 	if (v5_cc_copy(stash->v5ctx, options->realm,
-		       stash->v5ccache, &ccache) != 0) {
+		       stash->v5ccache, &fccache) != 0) {
 		warn("error writing to credential cache file \"%s\"",
 		     ccname + 5);
-		krb5_cc_close(stash->v5ctx, ccache);
+		krb5_cc_close(stash->v5ctx, fccache);
 		unlink(ccname + 5);
 		close(fd);
 		return -1;
 	}
-	krb5_cc_close(stash->v5ctx, ccache);
+	krb5_cc_close(stash->v5ctx, fccache);
 	/* Read the file's size. */
 	if (lstat(ccname + 5, &st) != 0) {
 		warn("error lstat()ing credential cache file \"%s\": %s",
 		     ccname + 5, strerror(errno));
-		krb5_cc_close(stash->v5ctx, ccache);
+		krb5_cc_close(stash->v5ctx, fccache);
 		unlink(ccname + 5);
 		close(fd);
 		return -1;
@@ -332,7 +332,7 @@ _pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
 	*blob = malloc(st.st_size);
 	if (*blob == NULL) {
 		warn("out of memory reading \"%s\"", ccname + 5);
-		krb5_cc_close(stash->v5ctx, ccache);
+		krb5_cc_close(stash->v5ctx, fccache);
 		unlink(ccname + 5);
 		close(fd);
 		return -1;
@@ -344,7 +344,7 @@ _pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
 	if (fd == -1) {
 		warn("error opening \"%s\": %s", ccname + 5, strerror(errno));
 		close(fd);
-		krb5_cc_close(stash->v5ctx, ccache);
+		krb5_cc_close(stash->v5ctx, fccache);
 		unlink(ccname + 5);
 		free(*blob);
 		*blob = NULL;
@@ -354,7 +354,7 @@ _pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
 	if (_pam_krb5_read_with_retry(fd, *blob, *blob_size) != *blob_size) {
 		warn("error reading \"%s\": %s", ccname + 5, strerror(errno));
 		close(fd);
-		krb5_cc_close(stash->v5ctx, ccache);
+		krb5_cc_close(stash->v5ctx, fccache);
 		unlink(ccname + 5);
 		free(*blob);
 		*blob = NULL;
