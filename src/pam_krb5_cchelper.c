@@ -140,13 +140,25 @@ main(int argc, const char **argv)
 	 * and that is expressly allowed. */
 	current_gid = getgid();
 	if (getuid() == 0) {
-		setgroups(0, &current_gid);
+		if (setgroups(0, &current_gid) == -1) {
+			if (geteuid() == 0) {
+				return 6;
+			}
+		}
 	}
 	if (getgid() != gid) {
-		fd = setregid(gid, gid);
+		if (setregid(gid, gid) == -1) {
+			if (geteuid() == 0) {
+				return 6;
+			}
+		}
 	}
 	if (getuid() != uid) {
-		fd = setreuid(uid, uid);
+		if (setreuid(uid, uid) == -1) {
+			if (geteuid() == 0) {
+				return 5;
+			}
+		}
 	}
 
 	/* Read stdin. */
