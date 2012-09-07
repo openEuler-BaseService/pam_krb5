@@ -278,7 +278,7 @@ _pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
 			     struct _pam_krb5_options *options,
 			     unsigned char **blob, ssize_t *blob_size)
 {
-	krb5_ccache fccache;
+	krb5_ccache fccache, mccache;
 	char ccname[PATH_MAX];
 	struct stat st;
 	int fd;
@@ -292,12 +292,26 @@ _pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
 		warn("no creds to save");
 		return -1;
 	}
+	/* Create a temporary memory cache. */
+	snprintf(ccname, sizeof(ccname), "MEMORY:%p", &mccache);
+	if (krb5_cc_resolve(stash->v5ctx, ccname, &mccache) != 0) {
+		warn("error creating temporary credential cache");
+		return -1;
+	}
+	if (v5_cc_copy(stash->v5ctx, options->realm,
+		       stash->v5ccache, &mccache) != 0) {
+		warn("error writing to temporary credential cache \"%s\"",
+		     ccname);
+		krb5_cc_destroy(stash->v5ctx, mccache);
+		return -1;
+	}
 	/* Create a temporary ccache file. */
 	snprintf(ccname, sizeof(ccname),
 		 "FILE:%s/pam_krb5_tmp_XXXXXX", options->ccache_dir);
 	fd = mkstemp(ccname + 5);
 	if (fd == -1) {
 		warn("error creating temporary ccache file \"%s\"", ccname + 5);
+		krb5_cc_destroy(stash->v5ctx, mccache);
 		return -1;
 	}
 	/* Write the credentials to that file. */
@@ -307,18 +321,21 @@ _pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
 		     ccname + 5);
 		unlink(ccname + 5);
 		close(fd);
+		krb5_cc_destroy(stash->v5ctx, mccache);
 		return -1;
 	}
 	if (v5_cc_copy(stash->v5ctx, options->realm,
-		       stash->v5ccache, &fccache) != 0) {
+		       mccache, &fccache) != 0) {
 		warn("error writing to credential cache file \"%s\"",
 		     ccname + 5);
 		krb5_cc_close(stash->v5ctx, fccache);
 		unlink(ccname + 5);
 		close(fd);
+		krb5_cc_destroy(stash->v5ctx, mccache);
 		return -1;
 	}
 	krb5_cc_close(stash->v5ctx, fccache);
+	krb5_cc_destroy(stash->v5ctx, mccache);
 	/* Read the file's size. */
 	if (lstat(ccname + 5, &st) != 0) {
 		warn("error lstat()ing credential cache file \"%s\": %s",
