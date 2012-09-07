@@ -6,7 +6,7 @@
 
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
-Version: 2.3.96
+Version: 2.3.97
 Release: 1%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz
 Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
@@ -64,6 +64,12 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %{_mandir}/man8/*
 
 %changelog
+* Fri Sep  7 2012 Nalin Dahyabhai <nalin@redhat.com> - 2.3.97-1
+- update to 2.3.97
+  - fix the order of credentials in a user ccache looking wrong
+  - in the ticket manipulation helper, if we're trying to switch IDs and
+    can't, if we should be able to do so, flag an error
+
 * Tue Sep  4 2012 Nalin Dahyabhai <nalin@redhat.com> - 2.3.96-1
 - update to 2.3.96
   - fix during credential reinitialization when we don't have credentials
