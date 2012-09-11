@@ -78,9 +78,7 @@ unlabeled_mkdir(const char *path, mode_t perms, uid_t uid, gid_t gid)
 	int ret;
 	ret = mkdir(path, perms);
 	if (ret == 0) {
-		if (chown(path, uid, gid) == 0) {
-			ret = -1;
-		}
+		ret = chown(path, uid, gid);
 	}
 	return ret;
 }
