@@ -421,6 +421,30 @@ else
 fi
 AM_CONDITIONAL(WITH_DIRECT_LIBPAM,[test "$with_libpam" != no])
 
+LIBSsave="$LIBS"
+AC_CHECK_HEADERS(selinux/selinux.h)
+AC_CHECK_HEADERS(selinux/label.h)
+AC_CHECK_FUNC(selabel_open,,[AC_CHECK_LIB(selinux,selabel_open)])
+AC_CHECK_FUNC(is_selinux_enabled,,[AC_CHECK_LIB(selinux,is_selinux_enabled)])
+if test x$ac_cv_header_selinux_selinux_h = xyes ; then
+	if test x$ac_cv_header_selinux_label_h = xyes ; then
+		if test x$ac_cv_lib_selinux_selabel_open = xyes ; then
+			ac_cv_func_selabel_open=yes
+		fi
+		if test x$ac_cv_lib_selinux_is_selinux_enabled = xyes ; then
+			ac_cv_func_is_selinux_enabled=yes
+		fi
+		if test x$ac_cv_func_is_selinux_enabled = xyes ; then
+			if test x$ac_cv_func_selabel_open = xyes ; then
+				AC_DEFINE(USE_SELINUX,1,[Label directories if we create them.])
+			fi
+		fi
+	fi
+fi
+SELINUX_LIBS="$LIBS"
+LIBS="$LIBSsave"
+AC_SUBST(SELINUX_LIBS)
+
 AC_ARG_ENABLE(default-realm,AC_HELP_STRING([--enable-default-realm=REALM],[last-ditch fallback realm (default is EXAMPLE.COM)]),default_realm=$enableval,default_realm=EXAMPLE.COM)
 AC_DEFINE_UNQUOTED(DEFAULT_REALM,"$default_realm",[Define to the realm name which will be used if no realm is given as a parameter and none is given in krb5.conf.])
 AC_MSG_RESULT([Using "$default_realm" as the default realm.])

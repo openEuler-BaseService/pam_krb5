@@ -1,6 +1,7 @@
 AM_CFLAGS = @KRB5_CFLAGS@
 LD_AS_NEEDED = @LD_AS_NEEDED@
 KRB_LIBS = @KRB5_LIBS@ @KEYUTILS_LIBS@
+SELINUX_LIBS = @SELINUX_LIBS@
 
 securitydir = $(libdir)/security
 security_LTLIBRARIES = pam_krb5.la
@@ -87,7 +88,7 @@ pam_newpag_la_SOURCES = \
 
 pam_krb5_cchelper_SOURCES = \
 	pam_krb5_cchelper.c
-pam_krb5_cchelper_LDFLAGS = @KRB5_LIBS@ @KEYUTILS_LIBS@
+pam_krb5_cchelper_LDFLAGS = @KRB5_LIBS@ @SELINUX_LIBS@ @KEYUTILS_LIBS@
 pam_krb5_cchelper_LDADD = xstr.lo
 
 afs5log_SOURCES = \
