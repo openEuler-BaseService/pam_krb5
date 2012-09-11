@@ -57,6 +57,7 @@
 
 #include "cchelper.h"
 #include "log.h"
+#include "mkdir.h"
 #include "options.h"
 #include "stash.h"
 #include "userinfo.h"
@@ -394,6 +395,7 @@ _pam_krb5_cchelper_create(krb5_context ctx, struct _pam_krb5_stash *stash,
 {
 	unsigned char *cred_blob, output[PATH_MAX];
 	char *ccpattern;
+	const char *residual;
 	int i;
 	ssize_t cred_blob_size, osize;
 
@@ -409,6 +411,17 @@ _pam_krb5_cchelper_create(krb5_context ctx, struct _pam_krb5_stash *stash,
 		free(ccpattern);
 		return -1;
 	}
+	residual = strchr(ccpattern, ':');
+	if (residual != NULL) {
+		residual++;
+		if (_pam_krb5_leading_mkdir(residual) != 0) {
+			if (options->debug) {
+				debug("error ensuring directory for \"%s\"",
+				      residual);
+			}
+		}
+	}
+
 	i = _pam_krb5_cchelper_run(options->cchelper_path, "-c", ccpattern,
 				   uid, gid, cred_blob, cred_blob_size,
 				   output, sizeof(output), &osize);

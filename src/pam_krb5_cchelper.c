@@ -50,115 +50,7 @@
 #include <keyutils.h>
 #endif
 
-#ifdef USE_SELINUX
-#include <selinux/selinux.h>
-#include <selinux/label.h>
-#endif
-
 #include "xstr.h"
-
-#define PATH_SEPARATOR_S "/"
-#define TMP_RUNTIME "/tmp"
-#define TMP_PREFIX TMP_RUNTIME PATH_SEPARATOR_S
-#define USER_RUNTIME "/run/user"
-#define USER_PREFIX USER_RUNTIME PATH_SEPARATOR_S
-
-static int
-unlabeled_mkdir(const char *path, mode_t perms, uid_t uid, gid_t gid)
-{
-	int ret;
-	ret = mkdir(path, perms);
-	if (ret == 0) {
-		if (chown(path, uid, gid) == 0) {
-			ret = -1;
-		}
-	}
-	return ret;
-}
-
-#ifdef USE_SELINUX
-static int
-labeled_mkdir(const char *path, mode_t perms, uid_t uid, gid_t gid)
-{
-	struct selabel_handle *labels;
-	security_context_t context;
-	int ret;
-
-	if (!is_selinux_enabled()) {
-		return unlabeled_mkdir(path, perms, uid, gid);
-	}
-
-	ret = -1;
-	labels = selabel_open(SELABEL_CTX_FILE, NULL, 0);
-	if (labels != NULL) {
-		memset(&context, 0, sizeof(context));
-		if (selabel_lookup(labels, &context, path, S_IFDIR) == 0) {
-			if (setfscreatecon(context) == 0) {
-				ret = unlabeled_mkdir(path, perms, uid, gid);
-				setfscreatecon(NULL);
-			}
-		} else {
-			ret = unlabeled_mkdir(path, perms, uid, gid);
-		}
-		selabel_close(labels);
-	}
-
-	return ret;
-}
-#else
-static int
-labeled_mkdir(const char *path, mode_t perms, uid_t uid, gid_t gid)
-{
-	return unlabeled_mkdir(path, perms, uid, gid);
-}
-#endif
-
-static int
-leading_mkdir(const char *path)
-{
-	char target[PATH_MAX], *p, *component;
-	struct passwd *pwd;
-	mode_t saved_umask;
-	int ret;
-	long uid;
-
-	/* Leading directories may be world-writable. */
-	saved_umask = umask(0);
-	/* Now, we're only doing this if we know about a given prefix. */
-	ret = -1;
-#if 0
-	if (strncmp(path, TMP_PREFIX, strlen(TMP_PREFIX)) == 0) {
-		/* We "know" how to create /tmp. */
-		ret = labeled_mkdir(TMP_RUNTIME,
-				    S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO,
-				    0, 0);
-	} else
-#endif
-	if (strncmp(path, USER_PREFIX, strlen(USER_PREFIX)) == 0) {
-		p = NULL;
-		pwd = NULL;
-		/* We "know" how to create /run/user/XXX .*/
-		snprintf(target, sizeof(target), "%s", path);
-		component = target + strlen(USER_PREFIX);
-		component[strcspn(component, "/")] = '\0';
-		uid = strtol(component, &p, 10);
-		if ((uid != LONG_MIN) && (uid != LONG_MAX) &&
-		    (p != NULL) && (p != component) && (*p == '\0')) {
-			pwd = getpwuid(uid);
-		} else {
-			if (strlen(component) > 0) {
-				pwd = getpwnam(component);
-			}
-		}
-		if (pwd != NULL) {
-			ret = labeled_mkdir(target, S_IRWXU,
-					    pwd->pw_uid, pwd->pw_gid);
-		}
-	}
-	/* Okay, reset the umask. */
-	umask(saved_umask);
-	return ret;
-}
 
 /* A simple (hopefully) helper which creates a file using mkstemp() and a
  * supplied pattern, attempts to set the ownership of that file, stores
@@ -359,16 +251,6 @@ main(int argc, const char **argv)
 				return 9;
 			}
 			fd = mkstemp(ccname + 5);
-			if ((fd == -1) && (errno == ENOENT)) {
-				fd = errno;
-				if (leading_mkdir(ccname + 5) == 0) {
-					strcpy(ccname, argv[2]);
-					fd = mkstemp(ccname + 5);
-				} else {
-					errno = fd;
-					fd = -1;
-				}
-			}
 		} else {
 			/* Check that we're in update mode. */
 			if (!u_flag) {
@@ -451,16 +333,6 @@ main(int argc, const char **argv)
 					i = EINVAL;
 				} else {
 					i = mkdir(ccname + 4, S_IRWXU);
-					if ((i == -1) && (errno == ENOENT)) {
-						i = errno;
-						if (leading_mkdir(ccname + 4) == 0) {
-							i = mkdir(ccname + 4,
-								  S_IRWXU);
-						} else {
-							errno = i;
-							i = -1;
-						}
-					}
 				}
 			} while ((i != 0) && (errno == EEXIST));
 			if (i != 0) {

@@ -8,9 +8,7 @@
 
 .SH DESCRIPTION
 The pam_krb5.so module uses pam_krb5_cchelper to create, update, and remove
-credential caches.  If it is asked to create a FILE: or DIR:-type credential
-cache in a subdirectory of \fI/run/user\fP, it will attempt to create that
-subdirectory if it does not already exist.
+credential caches.
 
 .SH ARGUMENTS
 .IP -c|-u|-d

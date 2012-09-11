@@ -35,6 +35,8 @@ libpam_krb5_la_SOURCES = \
 	cchelper.h \
 	conv.c \
 	conv.h \
+	getpw.c \
+	getpw.h \
 	init.c \
 	init.h \
 	initopts.c \
@@ -43,6 +45,8 @@ libpam_krb5_la_SOURCES = \
 	kuserok.h \
 	map.c \
 	map.h \
+	mkdir.c \
+	mkdir.h \
 	minikafs.h \
 	options.c \
 	options.h \
@@ -64,7 +68,7 @@ libpam_krb5_la_SOURCES = \
 	v5.h
 	
 pam_krb5_la_LDFLAGS = -avoid-version -export-dynamic -module -export-symbols-regex 'pam_sm.*' @SYMBOLIC_LINKER_FLAG@
-pam_krb5_la_LIBADD = libpam_krb5.la $(KRB_LIBS) $(DIRECT_LIBPAM)
+pam_krb5_la_LIBADD = libpam_krb5.la $(KRB_LIBS) $(SELINUX_LIBS) $(DIRECT_LIBPAM)
 pam_krb5_la_SOURCES = \
 	pamitems.c \
 	items.h \
@@ -88,7 +92,7 @@ pam_newpag_la_SOURCES = \
 
 pam_krb5_cchelper_SOURCES = \
 	pam_krb5_cchelper.c
-pam_krb5_cchelper_LDFLAGS = @KRB5_LIBS@ @SELINUX_LIBS@ @KEYUTILS_LIBS@
+pam_krb5_cchelper_LDFLAGS = @KRB5_LIBS@ @KEYUTILS_LIBS@
 pam_krb5_cchelper_LDADD = xstr.lo
 
 afs5log_SOURCES = \
@@ -98,14 +102,14 @@ afs5log_SOURCES = \
 	logstdio.c \
 	logstdio.h \
 	log.h
-afs5log_LDADD = libpam_krb5.la @PAM_LIBS@ $(KRB_LIBS)
+afs5log_LDADD = libpam_krb5.la @PAM_LIBS@ @SELINUX_LIBS@ $(KRB_LIBS)
 
 pagsh_SOURCES = \
 	pagsh.c \
 	logstdio.c \
 	logstdio.h \
 	log.h
-pagsh_LDADD = libpam_krb5.la pamitems.lo @PAM_LIBS@ $(KRB_LIBS)
+pagsh_LDADD = libpam_krb5.la pamitems.lo @SELINUX_LIBS@ @PAM_LIBS@ $(KRB_LIBS)
 
 harness_SOURCES = harness.c
 harness_LDADD = \
@@ -118,7 +122,7 @@ harness_LDADD = \
 	perms.lo \
 	sly.lo \
 	v5.lo
-harness_LDADD += libpam_krb5.la @PAM_LIBS@ $(KRB_LIBS)
+harness_LDADD += libpam_krb5.la @SELINUX_LIBS@ @PAM_LIBS@ $(KRB_LIBS)
 
 harness_newpag_SOURCES = harness.c \
 	pam_dummy_acct.c \
@@ -129,14 +133,14 @@ harness_newpag_LDADD = \
 	logstdio.lo \
 	perms.lo \
 	v5.lo
-harness_newpag_LDADD += libpam_krb5.la @PAM_LIBS@ $(KRB_LIBS)
+harness_newpag_LDADD += libpam_krb5.la @SELINUX_LIBS@ @PAM_LIBS@ $(KRB_LIBS)
 
 shmcat_SOURCES = shmcat.c noitems.c
-shmcat_LDADD = logstdio.lo libpam_krb5.la @PAM_LIBS@ $(KRB_LIBS)
+shmcat_LDADD = logstdio.lo libpam_krb5.la @SELINUX_LIBS@ @PAM_LIBS@ $(KRB_LIBS)
 
-uuauth_LDADD = logstdio.lo noitems.lo libpam_krb5.la @PAM_LIBS@ $(KRB_LIBS)
+uuauth_LDADD = logstdio.lo noitems.lo libpam_krb5.la @SELINUX_LIBS@ @PAM_LIBS@ $(KRB_LIBS)
 
-vfy_LDADD = logstdio.lo noitems.lo libpam_krb5.la @PAM_LIBS@ $(KRB_LIBS)
+vfy_LDADD = logstdio.lo noitems.lo libpam_krb5.la @SELINUX_LIBS@ @PAM_LIBS@ $(KRB_LIBS)
 
 if AFS
 libpam_krb5_la_SOURCES += minikafs.c minikafs.h tokens.c tokens.h

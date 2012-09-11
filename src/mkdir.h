@@ -1,5 +1,5 @@
 /*
- * Copyright 2003,2012 Red Hat, Inc.
+ * Copyright 2012 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,26 +30,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef pam_krb5_userinfo_h
-#define pam_krb5_userinfo_h
+#ifndef pam_krb5_mkdir_h
+#define pam_krb5_mkdir_h
 
-#include "map.h"
-
-struct _pam_krb5_user_info {
-	uid_t uid;
-	gid_t gid;
-	char *homedir;
-	krb5_principal principal_name;
-	char *unparsed_name;
-};
-
-struct _pam_krb5_user_info *_pam_krb5_user_info_init(krb5_context ctx,
-						     const char *name,
-						     struct _pam_krb5_options *options);
-
-void _pam_krb5_user_info_free(krb5_context ctx,
-			      struct _pam_krb5_user_info *info);
-
-int _pam_krb5_get_pw_ids(const char *name, long id, uid_t *uid, gid_t *gid);
+int _pam_krb5_leading_mkdir(const char *path);
 
 #endif
