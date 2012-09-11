@@ -18,6 +18,9 @@
 
 [kdc]
  profile = @TESTDIR@/config/kdc.conf
+ enable-pkinit = yes
+ pkinit_anchors = FILE:@TESTDIR@/kdc/ca.crt
+ pkinit_identity = PKCS12:@TESTDIR@/kdc/@TESTHOST@.p12
 
 [appdefaults]
  pam = {
