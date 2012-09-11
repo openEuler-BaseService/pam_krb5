@@ -117,8 +117,8 @@ does when the calling application opens and closes a PAM session, when the
 calling application establishes and deletes PAM credentials.  This is done
 to compensate for applications which expect to create a credential cache but
 which don't use PAM session management.  It is usually a harmless redundancy
-in applications which don't require it, so this option is enabled by default.
-except for services in this list: "\fI@DEFAULT_NO_CRED_SESSION@\fR".
+in applications which don't require it, so this option is enabled by default
+except for these services: "\fI@DEFAULT_NO_CRED_SESSION@\fR".
 
 .IP external
 .IP external=\fIsshd\fR
