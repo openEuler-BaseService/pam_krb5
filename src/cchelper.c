@@ -411,6 +411,7 @@ _pam_krb5_cchelper_create(krb5_context ctx, struct _pam_krb5_stash *stash,
 		free(ccpattern);
 		return -1;
 	}
+
 	residual = strchr(ccpattern, ':');
 	if (residual != NULL) {
 		residual++;
