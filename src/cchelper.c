@@ -388,6 +388,7 @@ _pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
 int
 _pam_krb5_cchelper_create(krb5_context ctx, struct _pam_krb5_stash *stash,
 			  struct _pam_krb5_options *options,
+			  const char *ccname_template,
 			  const char *user,
 			  struct _pam_krb5_user_info *userinfo,
 			  uid_t uid, gid_t gid,
@@ -400,7 +401,7 @@ _pam_krb5_cchelper_create(krb5_context ctx, struct _pam_krb5_stash *stash,
 	ssize_t cred_blob_size, osize;
 
 	ccpattern = v5_user_info_subst(ctx, user, userinfo, options,
-				       options->ccname_template);
+				       ccname_template);
 	if (ccpattern == NULL) {
 		return -1;
 	}

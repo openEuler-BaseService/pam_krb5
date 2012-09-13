@@ -43,7 +43,7 @@ ssize_t _pam_krb5_read_with_retry(int fd, unsigned char *buffer, ssize_t len);
 
 int _pam_krb5_cchelper_create(krb5_context ctx, struct _pam_krb5_stash *stash,
 			      struct _pam_krb5_options *options,
-			      const char *user,
+			      const char *ccname_template, const char *user,
 			      struct _pam_krb5_user_info *userinfo,
 			      uid_t uid, gid_t gid,
 			      char **ccname);

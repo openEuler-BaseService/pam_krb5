@@ -1981,13 +1981,15 @@ v5_get_creds(krb5_context ctx,
 	}
 }
 
-int
-v5_save_for_user(krb5_context ctx,
-		 struct _pam_krb5_stash *stash,
-		 const char *user,
-		 struct _pam_krb5_user_info *userinfo,
-		 struct _pam_krb5_options *options,
-		 const char **ccname)
+static int
+v5_save(krb5_context ctx,
+	struct _pam_krb5_stash *stash,
+	const char *ccname_template,
+	int preserve_existing_ccaches,
+	const char *user,
+	struct _pam_krb5_user_info *userinfo,
+	struct _pam_krb5_options *options,
+	const char **ccname)
 {
 	krb5_ccache ccache;
 	static int counter = 0;
@@ -2006,7 +2008,10 @@ v5_save_for_user(krb5_context ctx,
 	}
 
 	/* Derive the ccache name from the supplied template and create one. */
-	_pam_krb5_stash_push(ctx, stash, options,
+	_pam_krb5_stash_push(ctx, stash,
+			     options,
+			     ccname_template,
+			     preserve_existing_ccaches,
 			     user, userinfo,
 			     options->user_check ? userinfo->uid : getuid(),
 			     options->user_check ? userinfo->gid : getgid());
@@ -2016,6 +2021,32 @@ v5_save_for_user(krb5_context ctx,
 	} else {
 		return PAM_SESSION_ERR;
 	}
+}
+
+int
+v5_save_for_user(krb5_context ctx,
+		 struct _pam_krb5_stash *stash,
+		 const char *user,
+		 struct _pam_krb5_user_info *userinfo,
+		 struct _pam_krb5_options *options,
+		 const char **ccname)
+{
+	return v5_save(ctx, stash, options->ccname_template, FALSE,
+		       user, userinfo, options, ccname);
+}
+
+int
+v5_save_for_kuserok(krb5_context ctx,
+		    struct _pam_krb5_stash *stash,
+		    const char *user,
+		    struct _pam_krb5_user_info *userinfo,
+		    struct _pam_krb5_options *options,
+		    const char **ccname)
+{
+	char pattern[PATH_MAX];
+	snprintf(pattern, sizeof(pattern), "FILE:/tmp/krb5cc_%%U_XXXXXX");
+	return v5_save(ctx, stash, pattern, TRUE,
+		       user, userinfo, options, ccname);
 }
 
 void

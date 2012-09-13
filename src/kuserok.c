@@ -1,5 +1,5 @@
 /*
- * Copyright 2008,2009,2010 Red Hat, Inc.
+ * Copyright 2008,2009,2010,2012 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -145,8 +145,8 @@ _pam_krb5_kuserok(krb5_context ctx,
 		 * out-of-process filesystem helper (rpc.gssd) needs the user's
 		 * creds, we probably need to provide them. */
 		ccname = NULL;
-		i = v5_save_for_user(ctx, stash, user, userinfo, options,
-				     &ccname);
+		i = v5_save_for_kuserok(ctx, stash, user, userinfo, options,
+					&ccname);
 		if ((i == PAM_SUCCESS) && (strlen(ccname) > 0)) {
 			if (options->debug) {
 				debug("created ccache '%s' for '%s'",

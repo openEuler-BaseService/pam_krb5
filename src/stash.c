@@ -721,6 +721,8 @@ void
 _pam_krb5_stash_push(krb5_context ctx,
 		     struct _pam_krb5_stash *stash,
 		     struct _pam_krb5_options *options,
+		     const char *ccname_template,
+		     int preserve_existing_ccaches,
 		     const char *user,
 		     struct _pam_krb5_user_info *userinfo,
 		     uid_t uid, gid_t gid)
@@ -735,11 +737,13 @@ _pam_krb5_stash_push(krb5_context ctx,
 		return;
 	}
 	newname = NULL;
-	if (_pam_krb5_cchelper_create(ctx, stash, options, user, userinfo,
+	if (_pam_krb5_cchelper_create(ctx, stash, options,
+				      ccname_template, user, userinfo,
 				      uid, gid, &newname) == 0) {
 		/* If we're not doing multiple ccaches, chuck the others we've
 		 * previously created. */
-		if (options->multiple_ccaches == 0) {
+		if ((options->multiple_ccaches == 0) &&
+		    (preserve_existing_ccaches == 0)) {
 			struct _pam_krb5_ccname_list *list = stash->v5ccnames;
 			while (list != NULL) {
 				_pam_krb5_stash_pop(ctx, stash, options);
