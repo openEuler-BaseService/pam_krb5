@@ -147,8 +147,8 @@ labeled_mkdir(const char *path, mode_t perms, uid_t uid, gid_t gid,
 			}
 		} else {
 			if (options->debug) {
-				debug("no specific SELinux label configured for "
-				      "\"%s\", using default "
+				debug("no specific SELinux label configured "
+				      "for \"%s\", using default "
 				      "file creation context", path);
 			}
 			ret = unlabeled_mkdir(path, perms, uid, gid);
@@ -232,7 +232,7 @@ _pam_krb5_leading_mkdir(const char *path, struct _pam_krb5_options *options)
 		}
 		ret = labeled_mkdir(target, S_IRWXU, uid, gid, options);
 		if ((ret != 0) && options->debug) {
-			debug("error creating \"%s\": %s", target,
+			debug("error creating or chowning\"%s\": %s", target,
 			      strerror(errno));
 		}
 		umask(saved_umask);
