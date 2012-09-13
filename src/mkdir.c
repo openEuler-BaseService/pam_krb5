@@ -113,6 +113,24 @@ labeled_mkdir(const char *path, mode_t perms, uid_t uid, gid_t gid,
 				if (setfscreatecon(context) == 0) {
 					ret = unlabeled_mkdir(path, perms, uid, gid);
 					err = errno;
+					if (options->debug) {
+						if (previous_context != NULL) {
+							debug("resetting file "
+							      "creation context"
+							      " to \"%s\""
+							      "after trying to "
+							      "create \"%s\"",
+							      previous_context,
+							      path);
+						} else {
+							debug("resetting file "
+							      "creation "
+							      "context after "
+							      "trying to "
+							      "create \"%s\"",
+							      path);
+						}
+					}
 					setfscreatecon(previous_context);
 				} else {
 					if (options->debug) {
@@ -122,6 +140,9 @@ labeled_mkdir(const char *path, mode_t perms, uid_t uid, gid_t gid,
 						      "\"%s\", not trying",
 						      context, path);
 					}
+				}
+				if (previous_context != NULL) {
+					freecon(previous_context);
 				}
 			}
 		} else {
