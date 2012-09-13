@@ -33,6 +33,9 @@
 #ifndef pam_krb5_mkdir_h
 #define pam_krb5_mkdir_h
 
-int _pam_krb5_leading_mkdir(const char *path);
+struct _pam_krb5_options;
+
+int _pam_krb5_leading_mkdir(const char *path,
+			    struct _pam_krb5_options *options);
 
 #endif

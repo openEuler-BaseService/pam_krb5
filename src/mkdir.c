@@ -59,10 +59,11 @@
 #endif
 
 #ifdef USE_SELINUX
-#include <selinux/selinux.h>
 #include <selinux/label.h>
+#include <selinux/selinux.h>
 #endif
 
+#include "log.h"
 #include "mkdir.h"
 #include "userinfo.h"
 
@@ -85,11 +86,12 @@ unlabeled_mkdir(const char *path, mode_t perms, uid_t uid, gid_t gid)
 
 #ifdef USE_SELINUX
 static int
-labeled_mkdir(const char *path, mode_t perms, uid_t uid, gid_t gid)
+labeled_mkdir(const char *path, mode_t perms, uid_t uid, gid_t gid,
+	      struct _pam_krb5_options *options)
 {
 	struct selabel_handle *labels;
 	security_context_t context, previous_context;
-	int ret;
+	int ret, err = errno;
 
 	if (!is_selinux_enabled()) {
 		return unlabeled_mkdir(path, perms, uid, gid);
@@ -102,29 +104,52 @@ labeled_mkdir(const char *path, mode_t perms, uid_t uid, gid_t gid)
 		memset(&previous_context, 0, sizeof(previous_context));
 		if (selabel_lookup(labels, &context, path, S_IFDIR) == 0) {
 			if (getfscreatecon(&previous_context) == 0) {
+				if (options->debug) {
+					debug("setting file creation context "
+					      "to \"%s\" before creating "
+					      "\"%s\"",
+					      context, path);
+				}
 				if (setfscreatecon(context) == 0) {
 					ret = unlabeled_mkdir(path, perms, uid, gid);
+					err = errno;
 					setfscreatecon(previous_context);
+				} else {
+					if (options->debug) {
+						debug("error setting "
+						      "file creation context "
+						      "\"%s\" for creating "
+						      "\"%s\", not trying",
+						      context, path);
+					}
 				}
 			}
 		} else {
+			if (options->debug) {
+				debug("no specific SELinux label configured for "
+				      "\"%s\", using default "
+				      "file creation context", path);
+			}
 			ret = unlabeled_mkdir(path, perms, uid, gid);
+			err = errno;
 		}
 		selabel_close(labels);
 	}
 
+	errno = err;
 	return ret;
 }
 #else
 static int
-labeled_mkdir(const char *path, mode_t perms, uid_t uid, gid_t gid)
+labeled_mkdir(const char *path, mode_t perms, uid_t uid, gid_t gid,
+	      struct _pam_krb5_options *options)
 {
 	return unlabeled_mkdir(path, perms, uid, gid);
 }
 #endif
 
 int
-_pam_krb5_leading_mkdir(const char *path)
+_pam_krb5_leading_mkdir(const char *path, struct _pam_krb5_options *options)
 {
 	char target[PATH_MAX], *p, *component;
 	struct stat st;
@@ -147,11 +172,19 @@ _pam_krb5_leading_mkdir(const char *path)
 		if ((stat(target, &st) == 0) || (errno != ENOENT)) {
 			/* Nothing to do. Reset the umask and return. */
 			umask(saved_umask);
+			if (options->debug) {
+				debug("no need to create \"%s\"", target);
+			}
 			return 0;
 		}
 		id = strtol(component, &p, 10);
 		if ((id != LONG_MIN) && (id != LONG_MAX) &&
 		    (p != NULL) && (p != component) && (*p == '\0')) {
+			if (options->debug) {
+				debug("need to create \"%s\""
+				      "owned by UID \"%ld\"",
+				      target, id);
+			}
 			if (_pam_krb5_get_pw_ids(NULL, id, &uid, &gid) != 0) {
 				/* Fail. */
 				umask(saved_umask);
@@ -159,6 +192,11 @@ _pam_krb5_leading_mkdir(const char *path)
 			}
 		} else {
 			if (strlen(component) > 0) {
+				if (options->debug) {
+					debug("need to create \"%s\""
+					      "owned by user \"%s\"",
+					      target, component);
+				}
 				if (_pam_krb5_get_pw_ids(component, -1,
 							 &uid, &gid) != 0) {
 					/* Fail. */
@@ -171,7 +209,11 @@ _pam_krb5_leading_mkdir(const char *path)
 				return -1;
 			}
 		}
-		ret = labeled_mkdir(target, S_IRWXU, uid, gid);
+		ret = labeled_mkdir(target, S_IRWXU, uid, gid, options);
+		if ((ret != 0) && options->debug) {
+			debug("error creating \"%s\": %s", target,
+			      strerror(errno));
+		}
 	}
 	/* Okay, reset the umask. */
 	umask(saved_umask);

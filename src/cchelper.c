@@ -415,7 +415,7 @@ _pam_krb5_cchelper_create(krb5_context ctx, struct _pam_krb5_stash *stash,
 	residual = strchr(ccpattern, ':');
 	if (residual != NULL) {
 		residual++;
-		if (_pam_krb5_leading_mkdir(residual) != 0) {
+		if (_pam_krb5_leading_mkdir(residual, options) != 0) {
 			if (options->debug) {
 				debug("error ensuring directory for \"%s\"",
 				      residual);
