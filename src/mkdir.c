@@ -80,6 +80,9 @@ unlabeled_mkdir(const char *path, mode_t perms, uid_t uid, gid_t gid)
 	ret = mkdir(path, perms);
 	if (ret == 0) {
 		ret = chown(path, uid, gid);
+		if (ret != 0) {
+			rmdir(path);
+		}
 	}
 	return ret;
 }
@@ -208,6 +211,8 @@ _pam_krb5_leading_mkdir(const char *path, struct _pam_krb5_options *options)
 			}
 			if (_pam_krb5_get_pw_ids(NULL, id, &uid, &gid) != 0) {
 				/* Fail. */
+				warn("error looking up primary GID for account "
+				     "with UID %ld", id);
 				umask(saved_umask);
 				return -1;
 			}
@@ -221,6 +226,8 @@ _pam_krb5_leading_mkdir(const char *path, struct _pam_krb5_options *options)
 				if (_pam_krb5_get_pw_ids(component, -1,
 							 &uid, &gid) != 0) {
 					/* Fail. */
+					warn("error looking up UID and primary "
+					     "GID for user \"%s\"", component);
 					umask(saved_umask);
 					return -1;
 				}
