@@ -1,3 +1,4 @@
+- 2.4.1: * handle creation of /run/user/XXX for FILE: and DIR: caches
 - 2.4.0: * drop configuration settings that duplicated library settings
 	 * drop the existing_ticket option
 	 * drop krb4 support

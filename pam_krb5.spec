@@ -6,14 +6,14 @@
 
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
-Version: 2.4.0
+Version: 2.4.1
 Release: 1%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz
 Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
 License: BSD or LGPLv2+
 Group: System Environment/Base
 URL: https://fedorahosted.org/pam_krb5/
-BuildRequires: keyutils-libs-devel, krb5-devel, pam-devel
+BuildRequires: keyutils-libs-devel, krb5-devel, pam-devel, libselinux-devel
 # Needed by tests.
 # BuildRequires: krb5-server, krb5-workstation
 
@@ -64,6 +64,10 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %{_mandir}/man8/*
 
 %changelog
+* Wed Sep 12 2012 Nalin Dahyabhai <nalin@redhat.com> - 2.4.1-1
+- update to 2.4.1
+  - create /run/user/XXX, if needed, when we go to create DIR: or FILE: caches
+
 * Mon Sep 10 2012 Nalin Dahyabhai <nalin@redhat.com> - 2.4.0-1
 - update to 2.4.0
 
