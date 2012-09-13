@@ -214,8 +214,27 @@ _pam_krb5_leading_mkdir(const char *path, struct _pam_krb5_options *options)
 			debug("error creating \"%s\": %s", target,
 			      strerror(errno));
 		}
+		umask(saved_umask);
+		return ret;
 	}
-	/* Okay, reset the umask. */
+	/* Check if the parent directory exists .*/
+	snprintf(target, sizeof(target), "%s", path);
+	component = strrchr(target, '/');
+	if (component != NULL) {
+		*component = '\0';
+		if ((stat(target, &st) == 0) || (errno != ENOENT)) {
+			/* Nothing to do.  Just reset the umask and return. */
+			umask(saved_umask);
+			if (options->debug) {
+				debug("no need to create \"%s\"", target);
+			}
+			return 0;
+		}
+	} else {
+		/* Nothing to do.  Just reset the umask and return. */
+		umask(saved_umask);
+		return 0;
+	}
 	umask(saved_umask);
 	return ret;
 }
