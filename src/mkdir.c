@@ -181,8 +181,8 @@ _pam_krb5_leading_mkdir(const char *path, struct _pam_krb5_options *options)
 		if ((id != LONG_MIN) && (id != LONG_MAX) &&
 		    (p != NULL) && (p != component) && (*p == '\0')) {
 			if (options->debug) {
-				debug("need to create \"%s\""
-				      "owned by UID \"%ld\"",
+				debug("need to create \"%s\" "
+				      "owned by UID %ld",
 				      target, id);
 			}
 			if (_pam_krb5_get_pw_ids(NULL, id, &uid, &gid) != 0) {
