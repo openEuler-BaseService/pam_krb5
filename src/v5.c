@@ -2043,7 +2043,7 @@ v5_save_for_kuserok(krb5_context ctx,
 		    struct _pam_krb5_options *options,
 		    const char **ccname)
 {
-	return v5_save(ctx, stash, options->ccname_template, TRUE,
+	return v5_save(ctx, stash, "FILE:%d/krb5cc_%U_XXXXXX", TRUE,
 		       user, userinfo, options, ccname);
 }
 
