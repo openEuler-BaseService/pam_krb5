@@ -365,10 +365,10 @@ _pam_krb5_stash_shm_read(pam_handle_t *pamh, const char *partial_key,
 			if (options->debug) {
 				debug("found shm segment %d owned by UID %lu",
 				      key, (unsigned long) owner);
-			} else {
-				warn("error parsing \"%s\"=\"%s\" for "
-				     "segment ID and owner", variable, value);
 			}
+		} else {
+			warn("error parsing \"%s\"=\"%s\" for "
+			     "segment ID and owner", variable, value);
 		}
 	} else {
 		if (options->debug) {
