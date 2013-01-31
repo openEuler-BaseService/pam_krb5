@@ -577,7 +577,7 @@ AC_SUBST(default_ccache_dir)
 AC_SUBST(default_ccname_template)
 
 AM_GNU_GETTEXT([external])
-AM_GNU_GETTEXT_VERSION([0.17])
+AM_GNU_GETTEXT_VERSION([0.18])
 
 AH_VERBATIM([_ZZENABLE_NLS],
 [
