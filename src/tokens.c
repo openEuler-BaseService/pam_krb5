@@ -86,12 +86,11 @@ tokens_obtain(krb5_context context,
 	      struct _pam_krb5_options *options,
 	      struct _pam_krb5_user_info *info, int newpag)
 {
-	int i, ret, use_2b;
+	int i, ret;
 	unsigned int n;
 	char localcell[LINE_MAX], homecell[LINE_MAX], homedir[LINE_MAX],
 	     lnk[LINE_MAX];
 	struct stat st;
-	char ccname[PATH_MAX];
 	uid_t uid;
 	const struct {
 		const char *name; int method;
@@ -101,7 +100,6 @@ tokens_obtain(krb5_context context,
 	};
 	int *methods, n_methods;
 	const char *p, *q;
-	static int counter = 0;
 
 	if (options->debug) {
 		debug("obtaining afs tokens");
@@ -129,10 +127,6 @@ tokens_obtain(krb5_context context,
 		minikafs_setpag();
 		stash->afspag = 1;
 	}
-
-	/* We need to try to use 2b-style tokens, because we'll never get
-	 * v4-formatted credentials for use with AFS. */
-	use_2b = 1;
 
 	/* Parse the token_strategy option. */
 	methods = malloc((strlen(options->token_strategy) + 1) * sizeof(int));

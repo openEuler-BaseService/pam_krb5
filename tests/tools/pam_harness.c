@@ -423,6 +423,7 @@ main(int argc, char **argv)
 					j = write(fds[1], env[i],
 						  strlen(env[i]));
 					j = write(fds[1], "\n", 1);
+					j++;
 				}
 				close(fds[1]);
 				exit(0);
@@ -561,6 +562,7 @@ main(int argc, char **argv)
 					j = write(fds[1], env[i],
 						  strlen(env[i]));
 					j = write(fds[1], "\n", 1);
+					j++;
 				}
 				close(fds[1]);
 				exit(0);

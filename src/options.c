@@ -235,6 +235,7 @@ option_i(int argc, PAM_KRB5_MAYBE_CONST char **argv,
 
 	return i;
 }
+#if 0
 static krb5_deltat
 option_t(int argc, PAM_KRB5_MAYBE_CONST char **argv,
 	 krb5_context ctx, const char *realm, const char *s)
@@ -257,6 +258,7 @@ option_t(int argc, PAM_KRB5_MAYBE_CONST char **argv,
 
 	return i;
 }
+#endif
 static char **
 option_l(int argc, PAM_KRB5_MAYBE_CONST char **argv,
 	 krb5_context ctx, const char *realm, const char *s, const char *def)
@@ -322,7 +324,6 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 	int i;
 	char *default_realm, **list;
 	char *service;
-	struct stat stroot, stafs;
 
 	options = malloc(sizeof(struct _pam_krb5_options));
 	if (options == NULL) {

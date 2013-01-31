@@ -1681,8 +1681,6 @@ v5_get_creds(krb5_context ctx,
 	const char *realm;
 	struct pam_message message;
 	struct _pam_krb5_prompter_data prompter_data;
-	struct _pam_krb5_perms *saved_perms;
-	krb5_principal service_principal;
 	krb5_creds creds;
 	krb5_get_init_creds_opt *tmp_gicopts;
 	char ccname[LINE_MAX];
@@ -1991,9 +1989,6 @@ v5_save(krb5_context ctx,
 	struct _pam_krb5_options *options,
 	const char **ccname)
 {
-	krb5_ccache ccache;
-	static int counter = 0;
-
 	if (ccname != NULL) {
 		*ccname = NULL;
 	}
@@ -2182,7 +2177,6 @@ v5_cc_copy(krb5_context ctx, const char *tgt_realm,
 	   krb5_ccache occache, krb5_ccache *nccache)
 {
 	krb5_creds tgt;
-	krb5_principal princ;
 	krb5_error_code err;
 	char ccname[LINE_MAX];
 

@@ -104,7 +104,7 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 	struct _pam_krb5_user_info *userinfo;
 	struct _pam_krb5_stash *stash;
 	struct stat st;
-	int i, retval, stored;
+	int i, retval;
 	uid_t uid;
 	gid_t gid;
 	const char *v5ccname, *v5pathname;
@@ -232,7 +232,6 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 		}
 	}
 
-	stored = 0;
 	uid = options->user_check ? userinfo->uid : getuid();
 	gid = options->user_check ? userinfo->gid : getgid();
 
@@ -283,7 +282,6 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 					retval = sly_v5(ctx, v5ccname, options,
 							user, userinfo,
 							uid, gid, stash);
-					stored = (retval == PAM_SUCCESS);
 				}
 			} else {
 				if (errno == ENOENT) {
@@ -302,7 +300,6 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 				retval = sly_v5(ctx, v5ccname, options,
 						user, userinfo,
 						uid, gid, stash);
-				stored = (retval == PAM_SUCCESS);
 			}
 		}
 	} else {

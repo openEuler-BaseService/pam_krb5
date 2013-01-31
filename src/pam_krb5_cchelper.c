@@ -72,7 +72,7 @@ main(int argc, const char **argv)
 	long long uid, gid;
 	gid_t current_gid;
 	long id;
-	int fd, i, j, n_written, c_flag = 0, d_flag = 0, u_flag = 0;
+	int fd, i, j, c_flag = 0, d_flag = 0, u_flag = 0;
 	size_t n_input, n_output;
 
 	/* Get this out of the way. */

@@ -727,7 +727,7 @@ _pam_krb5_stash_push(krb5_context ctx,
 		     struct _pam_krb5_user_info *userinfo,
 		     uid_t uid, gid_t gid)
 {
-	char *filename, *newname;
+	char *newname;
 	struct _pam_krb5_ccname_list *node;
 
 	/* Allocate space in the list of ccaches.  Do it now while an error is
@@ -784,8 +784,6 @@ _pam_krb5_stash_pop(krb5_context ctx,
 		    struct _pam_krb5_options *options)
 {
 	struct _pam_krb5_ccname_list *node, **list = &stash->v5ccnames;
-	krb5_ccache ccache;
-	int i;
 
 	if (*list != NULL) {
 		node = *list;
