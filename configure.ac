@@ -162,6 +162,7 @@ if test x$ac_cv_header_krb5_h = xyes ; then
 else
 	AC_DEFINE(KRB5_H,[<krb5/krb5.h>],[Define to the name of your Kerberos 5 header.])
 fi
+AC_CHECK_TYPES([struct krb5_trace_info,struct _krb5_trace_info],,,[#include KRB5_H])
 
 LIBSsave="$LIBS"
 LIBS="$LIBS $KRB5_LIBS"

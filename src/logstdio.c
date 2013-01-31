@@ -92,7 +92,11 @@ debug(const char *fmt, ...)
 
 #ifdef HAVE_KRB5_SET_TRACE_CALLBACK
 void
+#if defined(HAVE_STRUCT__KRB5_TRACE_INFO)
+trace(krb5_context ctx, const struct _krb5_trace_info *info, void *data)
+#elif defined(HAVE_STRUCT_KRB5_TRACE_INFO)
 trace(krb5_context ctx, const struct krb5_trace_info *info, void *data)
+#endif
 {
 	int len;
 	if (info != NULL) {

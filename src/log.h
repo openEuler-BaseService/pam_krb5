@@ -41,7 +41,11 @@ void notice(const char *fmt, ...) PAM_KRB5_GNUC_PRINTF (1, 2);
 void crit(const char *fmt, ...) PAM_KRB5_GNUC_PRINTF (1, 2);
 void notice_user(struct pam_handle *pamh, const char *fmt, ...) PAM_KRB5_GNUC_PRINTF (2, 3);
 #ifdef HAVE_KRB5_SET_TRACE_CALLBACK
+#if defined(HAVE_STRUCT__KRB5_TRACE_INFO)
+void trace(krb5_context ctx, const struct _krb5_trace_info *info, void *data);
+#elif defined(HAVE_STRUCT_KRB5_TRACE_INFO)
 void trace(krb5_context ctx, const struct krb5_trace_info *info, void *data);
+#endif
 #endif
 
 #endif
