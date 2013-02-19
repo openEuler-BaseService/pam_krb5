@@ -6,10 +6,10 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: pam_krb5 2.3.90\n"
+"Project-Id-Version: pam_krb5 2.4.2\n"
 "Report-Msgid-Bugs-To: http://git.fedorahosted.org/git/?p=pam_krb5.git;a=blob;"
 "f=AUTHORS;hb=HEAD\n"
-"POT-Creation-Date: 2012-08-28 17:08-0400\n"
+"POT-Creation-Date: 2013-02-19 18:38-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,21 +18,21 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/auth.c:126 src/auth.c:276
+#: src/auth.c:126 src/auth.c:278 src/prompter.c:347
 msgid "Password: "
 msgstr ""
 
-#: src/password.c:285
+#: src/password.c:287
 #, c-format
 msgid "%s%sPassword: "
 msgstr ""
 
-#: src/password.c:423
+#: src/password.c:429 src/prompter.c:357 src/prompter.c:360
 #, c-format
 msgid "New %s%sPassword: "
 msgstr ""
 
-#: src/password.c:426
+#: src/password.c:432 src/prompter.c:373 src/prompter.c:376
 #, c-format
 msgid "Repeat New %s%sPassword: "
 msgstr ""

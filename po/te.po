@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: pam_krb5\n"
 "Report-Msgid-Bugs-To: http://git.fedorahosted.org/git/?p=pam_krb5.git;a=blob;"
 "f=AUTHORS;hb=HEAD\n"
-"POT-Creation-Date: 2012-08-28 17:08-0400\n"
+"POT-Creation-Date: 2013-02-19 18:38-0500\n"
 "PO-Revision-Date: 2011-03-22 15:18+0000\n"
 "Last-Translator: nalin <nalin@fedoraproject.org>\n"
 "Language-Team: Telugu <>\n"
@@ -18,21 +18,21 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
 
-#: src/auth.c:126 src/auth.c:276
+#: src/auth.c:126 src/auth.c:278 src/prompter.c:347
 msgid "Password: "
 msgstr "సంకేతపదము: "
 
-#: src/password.c:285
+#: src/password.c:287
 #, c-format
 msgid "%s%sPassword: "
 msgstr "%s%sసంకేతపదము: "
 
-#: src/password.c:423
+#: src/password.c:429 src/prompter.c:357 src/prompter.c:360
 #, c-format
 msgid "New %s%sPassword: "
 msgstr "కొత్త %s%s సంకేతపదము: "
 
-#: src/password.c:426
+#: src/password.c:432 src/prompter.c:373 src/prompter.c:376
 #, c-format
 msgid "Repeat New %s%sPassword: "
 msgstr "కొత్త %s%sసంకేతపదమును పునరావృతం చేయుము: "
