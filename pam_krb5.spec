@@ -534,7 +534,7 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 * Tue Jul 31 2001 Nalin Dahyabhai <nalin@redhat.com>
 - merge patch from Chris Chiappa for building with Heimdal
 
-* Mon Jul 24 2001 Nalin Dahyabhai <nalin@redhat.com>
+* Tue Jul 24 2001 Nalin Dahyabhai <nalin@redhat.com>
 - note that we had to prepend the current directory to a given path in
   dlopen.c when we had to (noted by Onime Clement)
 
@@ -559,7 +559,7 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
   and set PAM_USER to the result when authenticating
 - some autoconf fixes for failure cases
 
-* Wed Jun 26 2001 Nalin Dahyabhai <nalin@redhat.com>
+* Tue Jun 26 2001 Nalin Dahyabhai <nalin@redhat.com>
 - use krb5_change_password() to change passwords
 
 * Tue Jun 12 2001 Nalin Dahyabhai <nalin@redhat.com>
