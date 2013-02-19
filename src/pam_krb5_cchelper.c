@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Red Hat, Inc.
+ * Copyright 2012,2013 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,6 +52,86 @@
 
 #include "xstr.h"
 
+krb5_error_code
+cc_resolve_and_initialize(krb5_context ctx, const char *ccname,
+			  krb5_principal client, krb5_ccache *ccout)
+{
+	krb5_ccache ccache;
+	krb5_error_code err;
+#if defined(HAVE_KRB5_CC_SUPPORT_SWITCH) && \
+    defined(HAVE_KRB5_CC_CACHE_MATCH) && \
+    defined(HAVE_KRB5_CC_NEW_UNIQUE)
+	krb5_cccol_cursor cursor;
+	krb5_boolean make_primary;
+	char cctype[LINE_MAX], *hint, *defcc;
+	const char *cdefcc;
+
+	/* Set the default name to the already-not-a-template location that
+	 * we're planning to use, in case we end up calling
+	 * krb5_cc_new_unique() below. */
+	cdefcc = krb5_cc_default_name(ctx);
+	defcc = (cdefcc != NULL) ? strdup(cdefcc) : NULL;
+	err = krb5_cc_set_default_name(ctx, ccname);
+
+	/* Isolate the cctype. */
+	snprintf(cctype, sizeof(cctype), "%s", ccname);
+	hint = strchr(cctype, ':');
+	if (hint != NULL) {
+		*hint++ = '\0';
+	}
+
+	/* If the type supports switching... */
+	if (krb5_cc_support_switch(ctx, cctype)) {
+		/* check if there are any ccaches in there yet */
+		make_primary = FALSE;
+		if (krb5_cccol_cursor_new(ctx, &cursor) == 0) {
+			ccache = NULL;
+			if ((krb5_cccol_cursor_next(ctx, cursor,
+						    &ccache) == 0) &&
+			    (ccache != NULL)) {
+				make_primary = FALSE;
+			} else {
+				make_primary = TRUE;
+			}
+			krb5_cccol_cursor_free(ctx, &cursor);
+		}
+		/* check if we already have a ccache for this client. */
+		ccache = NULL;
+		err = krb5_cc_cache_match(ctx, client, &ccache);
+		if (err != 0) {
+			if (err == KRB5_CC_NOTFOUND) {
+				/* We don't have one -> create a new one. */
+				err = krb5_cc_new_unique(ctx, cctype, hint,
+							 &ccache);
+			} else {
+				/* Some other error -> just start over. */
+				err = krb5_cc_resolve(ctx, ccname, &ccache);
+			}
+		}
+		/* make this the primary ccache if there wasn't already one */
+		if ((ccache != NULL) && make_primary) {
+			krb5_cc_switch(ctx, ccache);
+		}
+	} else {
+		/* Just resolve the name for overwriting later. */
+		err = krb5_cc_resolve(ctx, ccname, &ccache);
+	}
+	krb5_cc_set_default_name(ctx, defcc);
+#else
+	err = krb5_cc_resolve(ctx, ccname, &ccache);
+#endif
+	*ccout = NULL;
+	if (err == 0) {
+		err = krb5_cc_initialize(ctx, ccache, client);
+		if (err == 0) {
+			*ccout = ccache;
+			return 0;
+		}
+		krb5_cc_close(ctx, ccache);
+	}
+	return err;
+}
+
 /* A simple (hopefully) helper which creates a file using mkstemp() and a
  * supplied pattern, attempts to set the ownership of that file, stores
  * whatever it reads from stdin in that file, and then prints the file's name
@@ -76,7 +156,7 @@ main(int argc, const char **argv)
 	size_t n_input, n_output;
 
 	/* Get this out of the way. */
-	umask(S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	umask(S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
 
 	/* We're not intended to be set*id! */
 	if ((getuid() != geteuid()) || (getgid() != getegid())) {
@@ -429,16 +509,13 @@ main(int argc, const char **argv)
 
 	/* Copy the credentials from the temporary ccache to the
 	 * ready-to-receive-them destination. */
-	i = krb5_cc_resolve(ctx, ccname, &ccache);
-	if (i != 0) {
-		krb5_cc_destroy(ctx, tmp_ccache);
-		krb5_free_context(ctx);
-		return i;
-	}
-	i = krb5_cc_initialize(ctx, ccache, client);
+	ccache = NULL;
+	i = cc_resolve_and_initialize(ctx, ccname, client, &ccache);
 	krb5_free_principal(ctx, client);
 	if (i != 0) {
-		krb5_cc_destroy(ctx, ccache);
+		if (ccache != NULL) {
+			krb5_cc_destroy(ctx, ccache);
+		}
 		krb5_cc_destroy(ctx, tmp_ccache);
 		krb5_free_context(ctx);
 		return i;
