@@ -9,7 +9,7 @@ Name: pam_krb5
 Version: 2.4.2
 Release: 1%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz
-Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
+#Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
 License: BSD or LGPLv2+
 Group: System Environment/Base
 URL: https://fedorahosted.org/pam_krb5/
