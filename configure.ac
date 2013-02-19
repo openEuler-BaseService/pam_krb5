@@ -1,6 +1,6 @@
 AC_INIT(configure.ac)
 AC_PREREQ(2.59)
-AM_INIT_AUTOMAKE(pam_krb5,2.4.1)
+AM_INIT_AUTOMAKE(pam_krb5,2.4.2)
 AC_PROG_CC
 AC_LANG([C])
 AC_DISABLE_STATIC
@@ -195,6 +195,9 @@ AC_CHECK_FUNCS(krb5_get_init_creds_opt_set_fast_flags)
 AC_CHECK_FUNCS(krb5_get_init_creds_opt_set_out_ccache)
 AC_CHECK_FUNCS(krb5_get_init_creds_opt_set_preauth_list)
 AC_CHECK_FUNCS(krb5_cc_get_full_name)
+AC_CHECK_FUNCS(krb5_cc_support_switch)
+AC_CHECK_FUNCS(krb5_cc_cache_match)
+AC_CHECK_FUNCS(krb5_cc_new_unique)
 LIBS="$LIBSsave"
 headers='
 #include <stdio.h>

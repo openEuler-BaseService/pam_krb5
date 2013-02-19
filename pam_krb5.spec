@@ -6,7 +6,7 @@
 
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
-Version: 2.4.1
+Version: 2.4.2
 Release: 1%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz
 Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
@@ -64,6 +64,15 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %{_mandir}/man8/*
 
 %changelog
+* Tue Feb 19 2013 Nalin Dahyabhai <nalin@redhat.com> - 2.4.2-1
+- update to 2.4.2
+  - don't override the primary ccache selection when updating DIR: caches
+  - handle the signature of trace callbacks being different between 1.10 and
+    1.11
+
+* Thu Feb 14 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.4.1-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_19_Mass_Rebuild
+
 * Wed Sep 12 2012 Nalin Dahyabhai <nalin@redhat.com> - 2.4.1-1
 - update to 2.4.1
   - create /run/user/XXX, if needed, when we go to create DIR: or FILE: caches
