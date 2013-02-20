@@ -63,7 +63,7 @@ cc_resolve_and_initialize(krb5_context ctx, const char *ccname,
     defined(HAVE_KRB5_CC_NEW_UNIQUE)
 	krb5_cccol_cursor cursor;
 	krb5_boolean make_primary;
-	char cctype[LINE_MAX], *hint, *defcc;
+	char *cctype, *hint, *defcc;
 	const char *cdefcc;
 
 	/* Set the default name to the already-not-a-template location that
@@ -74,7 +74,7 @@ cc_resolve_and_initialize(krb5_context ctx, const char *ccname,
 	err = krb5_cc_set_default_name(ctx, ccname);
 
 	/* Isolate the cctype. */
-	snprintf(cctype, sizeof(cctype), "%s", ccname);
+	cctype = strdup(ccname);
 	hint = strchr(cctype, ':');
 	if (hint != NULL) {
 		*hint++ = '\0';

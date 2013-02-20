@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Red Hat, Inc.
+ * Copyright 2012,2013 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <grp.h>
+#include <limits.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
