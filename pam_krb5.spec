@@ -6,7 +6,7 @@
 
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
-Version: 2.4.3
+Version: 2.4.4
 Release: 1%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz
 #Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
@@ -64,6 +64,10 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %{_mandir}/man8/*
 
 %changelog
+* Wed Feb 20 2013 Nalin Dahyabhai <nalin@redhat.com> - 2.4.4-1
+- update to 2.4.4
+  - fix compile errors against other versions of Kerberos
+
 * Tue Feb 19 2013 Nalin Dahyabhai <nalin@redhat.com> - 2.4.3-1
 - update to 2.4.3
   - nominal translation updates
