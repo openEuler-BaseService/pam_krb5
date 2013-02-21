@@ -32,7 +32,7 @@ archive:
 		cd $$tmpdir/pam_krb5;\
 		git checkout $(GITTAG);\
 		./autogen;\
-		tx pull -f;\
+		tx pull -f -a;\
 		make dist;\
 		mkdir -p $$tmpdir/rpm-build-top;\
 		rpmbuild \
