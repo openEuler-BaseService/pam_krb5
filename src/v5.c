@@ -1041,6 +1041,19 @@ v5_validate_using_ccache(krb5_context ctx, krb5_creds *creds,
 	return PAM_SUCCESS;
 }
 
+/* Try to free the entry's contents, using krb5_free_keytab_entry_contents(),
+ * if it's available, or krb5_kt_free_entry(), which despite the name, doesn't
+ * tend to try to free the entry. */
+static void
+v5_free_keytab_entry_contents(krb5_context ctx, krb5_keytab_entry *entry)
+{
+#ifdef HAVE_KRB5_FREE_KEYTAB_ENTRY_CONTENTS
+	krb5_free_keytab_entry_contents(ctx, entry);
+#else
+	krb5_kt_free_entry(ctx, entry);
+#endif
+}
+
 /* Select the principal name of the service to use when validating the creds in
  * question. */
 static int
@@ -1111,6 +1124,7 @@ v5_select_keytab_service(krb5_context ctx, krb5_principal client,
 			i = krb5_copy_principal(ctx, entry.principal, &princ);
 			if (i != 0) {
 				warn("internal error copying principal name");
+				v5_free_keytab_entry_contents(ctx, &entry);
 				krb5_kt_end_seq_get(ctx, keytab, &cursor);
 				krb5_kt_close(ctx, keytab);
 				krb5_free_principal(ctx, host);
@@ -1126,6 +1140,7 @@ v5_select_keytab_service(krb5_context ctx, krb5_principal client,
 			i = krb5_copy_principal(ctx, entry.principal, &princ);
 			if (i != 0) {
 				warn("internal error copying principal name");
+				v5_free_keytab_entry_contents(ctx, &entry);
 				krb5_kt_end_seq_get(ctx, keytab, &cursor);
 				krb5_kt_close(ctx, keytab);
 				krb5_free_principal(ctx, host);
@@ -1144,6 +1159,7 @@ v5_select_keytab_service(krb5_context ctx, krb5_principal client,
 			i = krb5_copy_principal(ctx, entry.principal, &princ);
 			if (i != 0) {
 				warn("internal error copying principal name");
+				v5_free_keytab_entry_contents(ctx, &entry);
 				krb5_kt_end_seq_get(ctx, keytab, &cursor);
 				krb5_kt_close(ctx, keytab);
 				krb5_free_principal(ctx, host);
@@ -1165,6 +1181,7 @@ v5_select_keytab_service(krb5_context ctx, krb5_principal client,
 			i = krb5_copy_principal(ctx, entry.principal, &princ);
 			if (i != 0) {
 				warn("internal error copying principal name");
+				v5_free_keytab_entry_contents(ctx, &entry);
 				krb5_kt_end_seq_get(ctx, keytab, &cursor);
 				krb5_kt_close(ctx, keytab);
 				krb5_free_principal(ctx, host);
@@ -1189,6 +1206,7 @@ v5_select_keytab_service(krb5_context ctx, krb5_principal client,
 			i = krb5_copy_principal(ctx, entry.principal, &princ);
 			if (i != 0) {
 				warn("internal error copying principal name");
+				v5_free_keytab_entry_contents(ctx, &entry);
 				krb5_kt_end_seq_get(ctx, keytab, &cursor);
 				krb5_kt_close(ctx, keytab);
 				krb5_free_principal(ctx, host);
@@ -1216,6 +1234,7 @@ v5_select_keytab_service(krb5_context ctx, krb5_principal client,
 			i = krb5_copy_principal(ctx, entry.principal, &princ);
 			if (i != 0) {
 				warn("internal error copying principal name");
+				v5_free_keytab_entry_contents(ctx, &entry);
 				krb5_kt_end_seq_get(ctx, keytab, &cursor);
 				krb5_kt_close(ctx, keytab);
 				krb5_free_principal(ctx, host);
@@ -1223,6 +1242,7 @@ v5_select_keytab_service(krb5_context ctx, krb5_principal client,
 			}
 			score = 5;
 		}
+		v5_free_keytab_entry_contents(ctx, &entry);
 	}
 
 	krb5_kt_end_seq_get(ctx, keytab, &cursor);

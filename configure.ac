@@ -198,6 +198,7 @@ AC_CHECK_FUNCS(krb5_cc_get_full_name)
 AC_CHECK_FUNCS(krb5_cc_support_switch)
 AC_CHECK_FUNCS(krb5_cc_cache_match)
 AC_CHECK_FUNCS(krb5_cc_new_unique)
+AC_CHECK_FUNCS(krb5_free_keytab_entry_contents)
 LIBS="$LIBSsave"
 headers='
 #include <stdio.h>
