@@ -120,7 +120,7 @@ main(int argc, char **argv)
 			/* Parent. */
 			if (readycmds[i] != NULL) {
 				for (;;) {
-				ret = system(readycmds[i]);
+					ret = system(readycmds[i]);
 					if (WIFEXITED(ret)) {
 						if (WEXITSTATUS(ret) == 0) {
 							break;
