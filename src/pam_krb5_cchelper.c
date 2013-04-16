@@ -210,7 +210,7 @@ main(int argc, const char **argv)
 		gid = strtol(argv[4], &p, 0);
 #endif
 		if ((p == NULL) || (*p != '\0')) {
-			return 6;
+			return 5;
 		}
 	} else {
 		gid = getgid();
@@ -237,7 +237,7 @@ main(int argc, const char **argv)
 	if (getuid() != uid) {
 		if (setreuid(uid, uid) == -1) {
 			if (geteuid() == 0) {
-				return 5;
+				return 6;
 			}
 		}
 	}
