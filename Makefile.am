@@ -34,7 +34,7 @@ archive:
 		./autogen;\
 		tx pull -f -a;\
 		make dist;\
-		mkdir -p $$tmpdir/rpm-build-top;\
+		$(MKDIR_P) $$tmpdir/rpm-build-top;\
 		rpmbuild \
 			--define "_topdir $$tmpdir/rpm-build-top" \
 			--define "_sourcedir $$tmpdir/rpm-build-top" \
