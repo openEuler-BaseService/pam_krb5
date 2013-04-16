@@ -229,13 +229,13 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 		i = v5_save_for_user(ctx, stash, user, userinfo,
 				     options, &ccname);
 		if ((i == PAM_SUCCESS) && (strlen(ccname) > 0)) {
-			if (options->debug) {
-				debug("created ccache '%s' for '%s'",
-				      ccname, user);
-			}
 			sprintf(envstr, "KRB5CCNAME=%s", ccname);
 			pam_putenv(pamh, envstr);
 			stash->v5setenv = 1;
+		} else {
+			if (options->debug) {
+				debug("failed to create ccache for '%s'", user);
+			}
 		}
 	}
 
@@ -382,9 +382,10 @@ _pam_krb5_close_session(pam_handle_t *pamh, int flags,
 				pam_putenv(pamh, "KRB5CCNAME");
 				stash->v5setenv = 0;
 			}
-			if (options->debug) {
-				debug("destroyed ccache for '%s'", user);
-			}
+		}
+	} else {
+		if (options->debug) {
+			debug("leaving external ccache for '%s'", user);
 		}
 	}
 

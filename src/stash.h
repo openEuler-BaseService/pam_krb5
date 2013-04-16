@@ -37,6 +37,7 @@
 
 struct _pam_krb5_ccname_list {
 	char *name;
+	int session_specific;
 	struct _pam_krb5_ccname_list *next;
 };
 

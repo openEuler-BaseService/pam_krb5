@@ -193,10 +193,6 @@ _pam_krb5_kuserok(krb5_context ctx,
 		/* Clean up. */
 		if (ccname != NULL) {
 			v5_destroy(ctx, stash, options);
-			if (options->debug) {
-				debug("destroyed ccache '%s'",
-				      envstr + strlen("KRB5CCNAME="));
-			}
 		}
 		result = (allowed == 1);
 		_pam_krb5_write_with_retry(outpipe[1], &result, 1);

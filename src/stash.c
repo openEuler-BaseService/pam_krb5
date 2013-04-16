@@ -757,6 +757,8 @@ _pam_krb5_stash_push(krb5_context ctx,
 		/* Save the name of this ccache. */
 		node->name = newname;
 		node->next = stash->v5ccnames;
+		node->session_specific =
+			(strstr(ccname_template, "XXXXXX") != NULL);
 		stash->v5ccnames = node;
 		/* If the new ccache is a keyring, give ownership away
 		 * to the designated user. */
@@ -787,20 +789,29 @@ _pam_krb5_stash_pop(krb5_context ctx,
 
 	if (*list != NULL) {
 		node = *list;
-		if (_pam_krb5_cchelper_destroy(ctx, stash, options,
-					       node->name) == 0) {
-			if (options->debug) {
-				debug("destroyed ccache \"%s\"", node->name);
+		if (node->session_specific) {
+			if (_pam_krb5_cchelper_destroy(ctx, stash, options,
+						       node->name) != 0) {
+				warn("error destroying ccache \"%s\"",
+				     node->name);
+				return -1;
 			}
-			xstrfree(node->name);
-			node->name = NULL;
-			*list = node->next;
-			free(node);
-			return 0;
 		} else {
-			warn("error destroying ccache \"%s\"", node->name);
-			return -1;
+			if (options->debug) {
+				if (((node->next == NULL) ||
+				     (node->next->name == NULL) ||
+				     (strcmp(node->name,
+					      node->next->name) != 0))) {
+					debug("leaving ccache \"%s\" to "
+					      "potentially linger", node->name);
+				}
+			}
 		}
+		xstrfree(node->name);
+		node->name = NULL;
+		*list = node->next;
+		free(node);
+		return 0;
 	} else {
 		return 0;
 	}
