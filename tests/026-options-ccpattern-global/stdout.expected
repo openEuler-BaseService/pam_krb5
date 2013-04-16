@@ -3,14 +3,16 @@ Calling module `pam_krb5.so'.
 AUTH	0	Success
 ESTCRED	0	Success
 OPENSESS	0	Success
-FILE:$testdir/kdc/krb5_cc_$UID_XXXXXX
+FILE:$testdir/kdc/krb5_cc_$UID
 CLOSESESS	0	Success
 DELCRED	0	Success
+kdc/krb5_cc_$UID
 Calling module `pam_krb5.so'.
 `Password: ' -> `foo'
 AUTH	0	Success
 ESTCRED	0	Success
 OPENSESS	0	Success
-DIR:$testdir/kdc/krb5_XXXXXX
+DIR:$testdir/kdc/krb5cc
 CLOSESESS	0	Success
 DELCRED	0	Success
+kdc/krb5cc
