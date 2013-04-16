@@ -1,4 +1,4 @@
-.TH pam_krb5_cchelper 8 2012/07/20 "@OS_DISTRIBUTION@" "System Administrator's Manual"
+.TH pam_krb5_cchelper 8 2013/04/16 "@OS_DISTRIBUTION@" "System Administrator's Manual"
 
 .SH NAME
 @SECURITYDIR@/@PACKAGE@/pam_krb5_cchelper \- Credential cache helper
@@ -14,13 +14,13 @@ credential caches.
 .IP -c|-u|-d
 A flag indicating whether the helper is expected to create, update, or
 destroy a ccache.  When creating a ccache, the \fIccname\fP argument
-should be a pattern ending in XXXXXX.  When updating or deleting a ccache,
-the \fIccname\fP argument should be the name of an extant ccache.
+should be a name or a pattern ending in XXXXXX.  When updating or deleting a
+ccache, the \fIccname\fP argument should be the name of an extant ccache.
 
 .IP ccname
 A credential cache name or name pattern of the form
 \fITYPE\fR:\fI@default_ccache_dir@/foo or
-\fITYPE\fR:\fI@default_ccache_dir@/fooXXXXXX\fR.  If
+\fITYPE\fR:\fI@default_ccache_dir@/fooXXXXXX\fR.
 
 .IP uid
 An optional numeric UID which the helper will attempt to switch to before

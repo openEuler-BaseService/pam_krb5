@@ -53,6 +53,8 @@
 
 #include "xstr.h"
 
+#define PATH_SEPARATOR '/'
+
 krb5_error_code
 cc_resolve_and_initialize(krb5_context ctx, const char *ccname,
 			  krb5_principal client, krb5_ccache *ccout)
@@ -148,8 +150,9 @@ main(int argc, const char **argv)
 	krb5_context ctx = NULL;
 	krb5_ccache ccache = NULL, tmp_ccache = NULL;
 	krb5_principal client = NULL;
-	char *ccname, *p, input[128 * 1024], pattern[PATH_MAX];
+	char *ccname, *ccparent, *p, input[128 * 1024], pattern[PATH_MAX];
 	struct dirent **dents = NULL;
+	struct stat st;
 	long long uid, gid;
 	gid_t current_gid;
 	long id;
@@ -333,11 +336,64 @@ main(int argc, const char **argv)
 			}
 			fd = mkstemp(ccname + 5);
 		} else {
-			/* Check that we're in update mode. */
+			/* Check that we're either in update mode, or that we
+			 * already own the file, or the parent directory if the
+			 * file doesn't exist. */
 			if (!u_flag) {
-				return 9;
+				ccparent = strdup(ccname + 5);
+				if (ccparent == NULL) {
+					return 9;
+				}
+				for (i = strlen(ccparent) - 1;
+				     i > 0;
+				     i--) {
+					if (ccparent[i] == PATH_SEPARATOR) {
+						ccparent[i] = '\0';
+					} else {
+						break;
+					}
+					break;
+				}
+				for (i = strlen(ccparent) - 1;
+				     i > 0;
+				     i--) {
+					if (ccparent[i] != PATH_SEPARATOR) {
+						ccparent[i] = '\0';
+					} else {
+						break;
+					}
+				}
+				for (i = strlen(ccparent) - 1;
+				     i > 0;
+				     i--) {
+					if (ccparent[i] == PATH_SEPARATOR) {
+						ccparent[i] = '\0';
+					} else {
+						break;
+					}
+					break;
+				}
+				if (stat(ccname + 5, &st) == 0) {
+					/* Check that we own the file. */
+					if ((st.st_uid != uid) ||
+					    (st.st_gid != gid) ||
+					    ((st.st_mode & (S_IRWXG | S_IRWXO)) != 0) ||
+					    !S_ISREG(st.st_mode)) {
+						return 9;
+					}
+				} else if ((errno == ENOENT) &&
+					   (stat(ccparent, &st) == 0)) {
+					/* Check that we own the parent
+					 * directory. */
+					if ((st.st_uid != uid) ||
+					    (st.st_gid != gid) ||
+					    !S_ISDIR(st.st_mode)) {
+						return 9;
+					}
+				}
 			}
-			fd = open(ccname + 5, O_WRONLY | O_TRUNC);
+			fd = open(ccname + 5, O_CREAT | O_WRONLY | O_TRUNC,
+				  S_IRUSR | S_IWUSR);
 		}
 		if (fd == -1) {
 			fd = errno;
@@ -424,9 +480,65 @@ main(int argc, const char **argv)
 		} else {
 			/* Check that we're in update mode. */
 			if (!u_flag) {
-				krb5_cc_destroy(ctx, tmp_ccache);
-				krb5_free_context(ctx);
-				return 9;
+				ccparent = strdup(ccname + 4);
+				if (ccparent == NULL) {
+					return 9;
+				}
+				for (i = strlen(ccparent) - 1;
+				     i > 0;
+				     i--) {
+					if (ccparent[i] == PATH_SEPARATOR) {
+						ccparent[i] = '\0';
+					} else {
+						break;
+					}
+					break;
+				}
+				for (i = strlen(ccparent) - 1;
+				     i > 0;
+				     i--) {
+					if (ccparent[i] != PATH_SEPARATOR) {
+						ccparent[i] = '\0';
+					} else {
+						break;
+					}
+				}
+				for (i = strlen(ccparent) - 1;
+				     i > 0;
+				     i--) {
+					if (ccparent[i] == PATH_SEPARATOR) {
+						ccparent[i] = '\0';
+					} else {
+						break;
+					}
+					break;
+				}
+				if (stat(ccname + 4, &st) == 0) {
+					/* Check that we own the directory. */
+					if ((st.st_uid != uid) ||
+					    (st.st_gid != gid) ||
+					    ((st.st_mode & (S_IRWXG | S_IRWXO)) != 0) ||
+					    !S_ISDIR(st.st_mode)) {
+						return 9;
+					}
+				} else if ((errno == ENOENT) &&
+					   (stat(ccparent, &st) == 0)) {
+					/* Check that we own the parent
+					 * directory. */
+					if ((st.st_uid != uid) ||
+					    (st.st_gid != gid) ||
+					    !S_ISDIR(st.st_mode)) {
+						return 9;
+					}
+					i = mkdir(ccname + 4, S_IRWXU);
+					if (i != 0) {
+						return i;
+					}
+				} else {
+					krb5_cc_destroy(ctx, tmp_ccache);
+					krb5_free_context(ctx);
+					return 9;
+				}
 			}
 		}
 	} else if (strncmp(ccname, "SCC:", 4) == 0) {
@@ -495,9 +607,22 @@ main(int argc, const char **argv)
 		} else {
 			/* Check that we're in update mode. */
 			if (!u_flag) {
-				krb5_cc_destroy(ctx, tmp_ccache);
-				krb5_free_context(ctx);
-				return 9;
+				/* Create the keyring if it doesn't already exist. */
+				id = keyctl_search(KEY_SPEC_SESSION_KEYRING,
+						   "keyring",
+						   ccname + 8, 0);
+				if (id == (long) -1) {
+					id = add_key("keyring",
+						     ccname + 8,
+						     NULL, 0,
+						     KEY_SPEC_SESSION_KEYRING);
+					if (id == (long) -1) {
+						i = errno;
+						krb5_cc_destroy(ctx, tmp_ccache);
+						krb5_free_context(ctx);
+						return i;
+					}
+				}
 			}
 		}
 #endif
