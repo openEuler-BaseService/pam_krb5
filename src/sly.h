@@ -1,5 +1,5 @@
 /*
- * Copyright 2003 Red Hat, Inc.
+ * Copyright 2003,2013 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +35,7 @@
 
 /* Refresh credentials if it's sane to do so. */
 int _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
+				const char *why,
 				int argc, PAM_KRB5_MAYBE_CONST char **argv);
 /* Check if it's sane to refresh credentials. Return zero *only* if it's safe,
  * else a different code for each reason why it isn't:

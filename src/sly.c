@@ -95,7 +95,7 @@ _pam_krb5_sly_looks_unsafe(void)
 }
 
 int
-_pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
+_pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags, const char *why,
 			    int argc, PAM_KRB5_MAYBE_CONST char **argv)
 {
 	PAM_KRB5_MAYBE_CONST char *user;
@@ -311,7 +311,7 @@ _pam_krb5_sly_maybe_refresh(pam_handle_t *pamh, int flags,
 	}
 
 	if (options->debug) {
-		debug("_pam_krb5_sly_refresh returning %d (%s)", retval,
+		debug("%s returning %d (%s)", why, retval,
 		      pam_strerror(pamh, retval));
 	}
 

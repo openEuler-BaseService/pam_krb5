@@ -1,5 +1,5 @@
 /*
- * Copyright 2003,2004,2005,2006,2007,2008,2009,2010,2012 Red Hat, Inc.
+ * Copyright 2003,2004,2005,2006,2007,2008,2009,2010,2012,2013 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -432,14 +432,23 @@ int
 pam_sm_setcred(pam_handle_t *pamh, int flags,
 	       int argc, PAM_KRB5_MAYBE_CONST char **argv)
 {
+	const char *why = "";
 	if (flags & PAM_ESTABLISH_CRED) {
 		return _pam_krb5_open_session(pamh, flags, argc, argv,
 					      "pam_setcred(PAM_ESTABLISH_CRED)",
 					      _pam_krb5_session_caller_setcred);
 	}
 	if (flags & (PAM_REINITIALIZE_CRED | PAM_REFRESH_CRED)) {
+		if (flags & PAM_REINITIALIZE_CRED) {
+			why = "pam_setcred(PAM_REINITIALIZE_CRED)";
+			if (flags & PAM_REFRESH_CRED) {
+				why = "pam_setcred(PAM_REINITIALIZE_CRED|PAM_REFRESH_CRED)";
+			}
+		} else {
+			why = "pam_setcred(PAM_REFRESH_CRED)";
+		}
 		if (_pam_krb5_sly_looks_unsafe() == 0) {
-			return _pam_krb5_sly_maybe_refresh(pamh, flags,
+			return _pam_krb5_sly_maybe_refresh(pamh, flags, why,
 							   argc, argv);
 		} else {
 			return PAM_IGNORE;
