@@ -68,6 +68,7 @@
 #include "mkdir.h"
 #include "userinfo.h"
 
+#define PATH_SEPARATOR '/'
 #define PATH_SEPARATOR_S "/"
 #define TMP_RUNTIME "/tmp"
 #define TMP_PREFIX TMP_RUNTIME PATH_SEPARATOR_S
@@ -179,7 +180,7 @@ _pam_krb5_leading_mkdir(const char *path, struct _pam_krb5_options *options)
 	char target[PATH_MAX], *p, *component;
 	struct stat st;
 	mode_t saved_umask;
-	int ret;
+	int ret, i;
 	long id;
 	uid_t uid = -1;
 	gid_t gid = -1;
@@ -193,7 +194,7 @@ _pam_krb5_leading_mkdir(const char *path, struct _pam_krb5_options *options)
 		/* We "know" how to create /run/user/XXX .*/
 		snprintf(target, sizeof(target), "%s", path);
 		component = target + strlen(USER_PREFIX);
-		component[strcspn(component, "/")] = '\0';
+		component[strcspn(component, PATH_SEPARATOR_S)] = '\0';
 		if ((stat(target, &st) == 0) || (errno != ENOENT)) {
 			/* Nothing to do. Reset the umask and return. */
 			umask(saved_umask);
@@ -248,9 +249,37 @@ _pam_krb5_leading_mkdir(const char *path, struct _pam_krb5_options *options)
 	}
 	/* Check if the parent directory exists .*/
 	snprintf(target, sizeof(target), "%s", path);
-	component = strrchr(target, '/');
+	component = strchr(target, PATH_SEPARATOR);
 	if (component != NULL) {
-		*component = '\0';
+		for (i = strlen(target) - 1;
+		     i > 0;
+		     i--) {
+			if (target[i] == PATH_SEPARATOR) {
+				target[i] = '\0';
+			} else {
+				break;
+			}
+			break;
+		}
+		for (i = strlen(target) - 1;
+		     i > 0;
+		     i--) {
+			if (target[i] != PATH_SEPARATOR) {
+				target[i] = '\0';
+			} else {
+				break;
+			}
+		}
+		for (i = strlen(target) - 1;
+		     i > 0;
+		     i--) {
+			if (target[i] == PATH_SEPARATOR) {
+				target[i] = '\0';
+			} else {
+				break;
+			}
+			break;
+		}
 		if ((stat(target, &st) == 0) || (errno != ENOENT)) {
 			/* Nothing to do.  Just reset the umask and return. */
 			umask(saved_umask);
