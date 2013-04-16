@@ -286,10 +286,10 @@ main(int argc, const char **argv)
 			if ((j = scandir(ccname + 4, &dents,
 					 NULL, &alphasort)) > 0) {
 				while (j > 0) {
-					if ((strcmp(dents[j - 1]->d_name,
-						    ".") != 0) &&
-					    (strcmp(dents[j - 1]->d_name,
-						    "..") != 0) &&
+					if (((strcmp(dents[j - 1]->d_name,
+						     "primary") == 0) ||
+					     (strncmp(dents[j - 1]->d_name,
+						      "tkt", 3) == 0)) &&
 					    (snprintf(pattern, sizeof(pattern),
 						      "%s/%s", ccname + 4,
 						      dents[j - 1]->d_name) <
