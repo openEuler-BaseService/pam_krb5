@@ -53,8 +53,6 @@
 
 #include "xstr.h"
 
-#define PATH_SEPARATOR '/'
-
 krb5_error_code
 cc_resolve_and_initialize(krb5_context ctx, const char *ccname,
 			  krb5_principal client, krb5_ccache *ccout)
@@ -150,9 +148,9 @@ main(int argc, const char **argv)
 	krb5_context ctx = NULL;
 	krb5_ccache ccache = NULL, tmp_ccache = NULL;
 	krb5_principal client = NULL;
-	char *ccname, *ccparent, *p, input[128 * 1024], pattern[PATH_MAX];
+	char *ccname, *workccname, *p, input[128 * 1024], pattern[PATH_MAX];
 	struct dirent **dents = NULL;
-	struct stat st;
+	struct stat st, st2;
 	long long uid, gid;
 	gid_t current_gid;
 	long id;
@@ -190,6 +188,7 @@ main(int argc, const char **argv)
 	if ((ccname == NULL) || (strchr(ccname, ':') == NULL)) {
 		return 4;
 	}
+	workccname = NULL;
 
 	/* Parse the UID, if given. */
 	if (argc > 3) {
@@ -340,64 +339,30 @@ main(int argc, const char **argv)
 			}
 			fd = mkstemp(ccname + 5);
 		} else {
-			/* Check that we're either in update mode, or that we
-			 * already own the file, or the parent directory if the
-			 * file doesn't exist. */
-			if (!u_flag) {
-				ccparent = strdup(ccname + 5);
-				if (ccparent == NULL) {
+			/* Try to create the file, in case it doesn't exist. */
+			fd = open(ccname + 5, O_CREAT | O_EXCL | O_WRONLY,
+				  S_IRUSR | S_IWUSR);
+			if ((fd == -1) && (errno == EEXIST)) {
+				/* Verify that we own the existing file, and
+				 * nothing funny's going on. */
+				if ((lstat(ccname + 5, &st) != 0) ||
+				    (st.st_uid != uid) ||
+				    (st.st_gid != gid) ||
+				    (st.st_nlink != 1) ||
+				    ((st.st_mode & (S_IRWXG | S_IRWXO)) != 0) ||
+				    !S_ISREG(st.st_mode)) {
+					krb5_free_context(ctx);
 					return 9;
 				}
-				for (i = strlen(ccparent) - 1;
-				     i > 0;
-				     i--) {
-					if (ccparent[i] == PATH_SEPARATOR) {
-						ccparent[i] = '\0';
-					} else {
-						break;
-					}
-					break;
-				}
-				for (i = strlen(ccparent) - 1;
-				     i > 0;
-				     i--) {
-					if (ccparent[i] != PATH_SEPARATOR) {
-						ccparent[i] = '\0';
-					} else {
-						break;
-					}
-				}
-				for (i = strlen(ccparent) - 1;
-				     i > 0;
-				     i--) {
-					if (ccparent[i] == PATH_SEPARATOR) {
-						ccparent[i] = '\0';
-					} else {
-						break;
-					}
-					break;
-				}
-				if (stat(ccname + 5, &st) == 0) {
-					/* Check that we own the file. */
-					if ((st.st_uid != uid) ||
-					    (st.st_gid != gid) ||
-					    ((st.st_mode & (S_IRWXG | S_IRWXO)) != 0) ||
-					    !S_ISREG(st.st_mode)) {
-						return 9;
-					}
-				} else if ((errno == ENOENT) &&
-					   (stat(ccparent, &st) == 0)) {
-					/* Check that we own the parent
-					 * directory. */
-					if ((st.st_uid != uid) ||
-					    (st.st_gid != gid) ||
-					    !S_ISDIR(st.st_mode)) {
-						return 9;
-					}
+				fd = open(ccname + 5, O_WRONLY);
+				if ((fd == -1) ||
+				    (fstat(fd, &st2) != 0) ||
+				    (st2.st_dev != st.st_dev) ||
+				    (st2.st_ino != st.st_ino)) {
+					krb5_free_context(ctx);
+					return 9;
 				}
 			}
-			fd = open(ccname + 5, O_CREAT | O_WRONLY | O_TRUNC,
-				  S_IRUSR | S_IWUSR);
 		}
 		if (fd == -1) {
 			fd = errno;
@@ -405,6 +370,14 @@ main(int argc, const char **argv)
 			return fd;
 		}
 		/* Write the ccache contents to the file. */
+		if (ftruncate(fd, 0) != 0) {
+			krb5_free_context(ctx);
+			return 9;
+		}
+		if (lseek(fd, 0, SEEK_SET) != 0) {
+			krb5_free_context(ctx);
+			return 9;
+		}
 		n_output = 0;
 		while (n_output < n_input) {
 			i = write(fd, input + n_output,
@@ -482,67 +455,24 @@ main(int argc, const char **argv)
 				return i;
 			}
 		} else {
-			/* Check that we're in update mode. */
-			if (!u_flag) {
-				ccparent = strdup(ccname + 4);
-				if (ccparent == NULL) {
-					return 9;
-				}
-				for (i = strlen(ccparent) - 1;
-				     i > 0;
-				     i--) {
-					if (ccparent[i] == PATH_SEPARATOR) {
-						ccparent[i] = '\0';
-					} else {
-						break;
-					}
-					break;
-				}
-				for (i = strlen(ccparent) - 1;
-				     i > 0;
-				     i--) {
-					if (ccparent[i] != PATH_SEPARATOR) {
-						ccparent[i] = '\0';
-					} else {
-						break;
-					}
-				}
-				for (i = strlen(ccparent) - 1;
-				     i > 0;
-				     i--) {
-					if (ccparent[i] == PATH_SEPARATOR) {
-						ccparent[i] = '\0';
-					} else {
-						break;
-					}
-					break;
-				}
-				if (stat(ccname + 4, &st) == 0) {
-					/* Check that we own the directory. */
-					if ((st.st_uid != uid) ||
-					    (st.st_gid != gid) ||
-					    ((st.st_mode & (S_IRWXG | S_IRWXO)) != 0) ||
-					    !S_ISDIR(st.st_mode)) {
-						return 9;
-					}
-				} else if ((errno == ENOENT) &&
-					   (stat(ccparent, &st) == 0)) {
-					/* Check that we own the parent
-					 * directory. */
-					if ((st.st_uid != uid) ||
-					    (st.st_gid != gid) ||
-					    !S_ISDIR(st.st_mode)) {
-						return 9;
-					}
-					i = mkdir(ccname + 4, S_IRWXU);
-					if (i != 0) {
-						return i;
-					}
-				} else {
+			/* See if we can create the directory. */
+			i = mkdir(ccname + 4, S_IRWXU);
+			if ((i != 0) && (i == EEXIST)) {
+				/* It exists.  Check that it's ours. */
+				if (chdir(ccname + 4) != 0) {
 					krb5_cc_destroy(ctx, tmp_ccache);
 					krb5_free_context(ctx);
 					return 9;
 				}
+				if ((lstat(".", &st) != 0) ||
+				    (st.st_uid != uid) ||
+				    (st.st_gid != gid) ||
+				    ((st.st_mode & (S_IRWXG | S_IRWXO)) != 0)) {
+					krb5_cc_destroy(ctx, tmp_ccache);
+					krb5_free_context(ctx);
+					return 9;
+				}
+				workccname = "DIR:.";
 			}
 		}
 	} else if (strncmp(ccname, "SCC:", 4) == 0) {
@@ -640,7 +570,8 @@ main(int argc, const char **argv)
 	/* Copy the credentials from the temporary ccache to the
 	 * ready-to-receive-them destination. */
 	ccache = NULL;
-	i = cc_resolve_and_initialize(ctx, ccname, client, &ccache);
+	i = cc_resolve_and_initialize(ctx, workccname ? workccname : ccname,
+				      client, &ccache);
 	krb5_free_principal(ctx, client);
 	if (i != 0) {
 		if (ccache != NULL) {
