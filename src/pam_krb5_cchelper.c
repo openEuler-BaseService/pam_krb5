@@ -324,6 +324,7 @@ main(int argc, const char **argv)
 
 	/* Non-zero-length input puts us in either create or update mode. */
 	if (!c_flag && !u_flag) {
+		krb5_free_context(ctx);
 		return 9;
 	}
 
@@ -334,6 +335,7 @@ main(int argc, const char **argv)
 			/* Check that we're in create mode, and create
 			 * the file. */
 			if (!c_flag) {
+				krb5_free_context(ctx);
 				return 9;
 			}
 			fd = mkstemp(ccname + 5);
