@@ -5,8 +5,8 @@
 test_flags="$test_flags ignore_afs"
 
 echo ""; echo Setting password to \"foo\".
-$kadmin -q 'cpw -pw foo '$test_principal 2> /dev/null > /dev/null
-$kadmin -q 'modprinc -pwexpire never '$test_principal 2> /dev/null > /dev/null
+setpw $test_principal foo
+pwexpire $test_principal never
 
 echo ""; echo Fail: incorrect password.
 test_run -auth $test_principal $pam_krb5 $test_flags -- bar

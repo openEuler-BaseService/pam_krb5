@@ -2,8 +2,8 @@
 
 . $testdir/testenv.sh
 
-$kadmin -q 'cpw -pw foo '$test_principal 2> /dev/null > /dev/null
-$kadmin -q 'modprinc -pwexpire never '$test_principal 2> /dev/null > /dev/null
+setpw $test_principal foo
+pwexpire $test_principal never
 
 CCSAVE=${testdir}/kdc/krb5cc_save; export CCSAVE
 test_run -auth -session $test_principal -run save_cc_file.sh $pam_krb5 $test_flags ccname_template=FILE:${testdir}/kdc/krb5cc_%U_XXXXXX -- foo

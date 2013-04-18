@@ -3,8 +3,8 @@
 . $testdir/testenv.sh
 
 echo "";echo Checking handling of options.
-$kadmin -q 'cpw -pw foo '$test_principal 2> /dev/null > /dev/null
-$kadmin -q 'modprinc -pwexpire never '$test_principal 2> /dev/null > /dev/null
+setpw $test_principal foo
+pwexpire $test_principal never
 
 echo "";echo Default ccache directory.
 test_run -auth -setcred $test_principal -run klist_c $pam_krb5 $test_flags -- foo

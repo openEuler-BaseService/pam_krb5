@@ -66,6 +66,12 @@ test_kdcinitdb() {
 	$kadmin -q 'modprinc -maxrenewlife "1 day" -maxlife "7 day" krbtgt/EXAMPLE.COM' 2> /dev/null > /dev/null
 	$kadmin -q 'modprinc -maxrenewlife "1 day" -maxlife "7 day" '$test_principal 2> /dev/null > /dev/null
 }
+setpw() {
+	$kadmin -q 'cpw -pw '"$2  $1" 2> /dev/null > /dev/null
+}
+pwexpire() {
+	$kadmin -q 'modprinc -pwexpire '"$2  $1" 2> /dev/null > /dev/null
+}
 
 test_kdcprep() {
 	rm -f @abs_builddir@/kdc/krb5kdc.log

@@ -2,8 +2,8 @@
 
 . $testdir/testenv.sh
 
-$kadmin -q 'cpw -pw foo '$test_principal 2> /dev/null > /dev/null
-$kadmin -q 'modprinc -pwexpire never '$test_principal 2> /dev/null > /dev/null
+setpw $test_principal foo
+pwexpire $test_principal never
 
 keyctl new_session > /dev/null
 klist -c KEYRING:foo > /dev/null 2> $KRB5RCACHEDIR/klist.keyring.out

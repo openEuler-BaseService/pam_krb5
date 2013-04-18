@@ -2,8 +2,8 @@
 
 . $testdir/testenv.sh
 
-$kadmin -q 'cpw -pw foo '$test_principal 2> /dev/null > /dev/null
-$kadmin -q 'modprinc -pwexpire never '$test_principal 2> /dev/null > /dev/null
+setpw $test_principal foo
+pwexpire $test_principal never
 
 test_run -auth -setcred -session $test_principal -run klist_c $pam_krb5 $test_flags ccname_template=FILE:${testdir}/kdc/krb5_cc_%U -- foo | sed s,_`id -u`,_'$UID',g
 find kdc -name "krb5*cc*" | sed s,_`id -u`,_'$UID',g
