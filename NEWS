@@ -1,3 +1,5 @@
+- 2.4.4: * compilation fixes
+- 2.4.3: * translation updates
 - 2.4.2: * handle different function signatures for krb5_trace_callback
 	 * avoid overriding the primary when updating DIR: caches
 - 2.4.1: * handle creation of /run/user/XXX for FILE: and DIR: caches
