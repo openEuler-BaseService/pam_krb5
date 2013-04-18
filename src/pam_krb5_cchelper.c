@@ -285,7 +285,9 @@ main(int argc, const char **argv)
 		}
 		i = krb5_cc_destroy(ctx, ccache);
 		/* Some ccache types require a bit more work. */
-		if ((i == 0) && (strncmp(ccname, "DIR:", 4) == 0)) {
+		if ((i == 0) &&
+		    (strncmp(ccname, "DIR:", 4) == 0) &&
+		    (ccname[4] != ':')) {
 			if ((j = scandir(ccname + 4, &dents,
 					 NULL, &alphasort)) > 0) {
 				while (j > 0) {
