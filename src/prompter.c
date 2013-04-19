@@ -419,6 +419,11 @@ _pam_krb5_generic_prompter(krb5_context context, void *data,
 		if (_pam_krb5_prompt_default_is_password(&prompts[i], pdata)) {
 			continue;
 		}
+		if (_pam_krb5_prompt_is_for_password(&prompts[i], pdata, i)) {
+			if (suppress_password_prompts) {
+				continue;
+			}
+		}
 		/* If the conversation function failed to read anything. */
 		if (responses[j + headers].resp_retcode != PAM_SUCCESS) {
 			_pam_krb5_maybe_free_responses(responses, num_msgs);
