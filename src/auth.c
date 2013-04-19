@@ -237,7 +237,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 					      "password for '%s'", user);
 				}
 			}
-			retval = v5_get_creds(ctx, pamh,
+			retval = v5_get_creds(stash->v5ctx, pamh,
 					      &stash->v5ccache,
 					      &stash->v5armorccache,
 					      user, userinfo,
@@ -309,7 +309,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 					      "password for '%s'", user);
 				}
 			}
-			retval = v5_get_creds(ctx, pamh,
+			retval = v5_get_creds(stash->v5ctx, pamh,
 					      &stash->v5ccache,
 					      &stash->v5armorccache,
 					      user, userinfo,
@@ -349,7 +349,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 			debug("not using an entered password for '%s', "
 			      "allowing libkrb5 to prompt for more", user);
 		}
-		retval = v5_get_creds(ctx, pamh,
+		retval = v5_get_creds(stash->v5ctx, pamh,
 				      &stash->v5ccache,
 				      &stash->v5armorccache,
 				      user, userinfo,
