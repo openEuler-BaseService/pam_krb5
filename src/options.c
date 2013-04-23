@@ -940,6 +940,11 @@ _pam_krb5_options_free(pam_handle_t *pamh, krb5_context ctx,
 	options->pwhelp = NULL;
 	free_s(options->token_strategy);
 	options->token_strategy = NULL;
+#if defined(HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_CCACHE) && \
+    defined(HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_FLAGS)
+	free_s(options->armor_strategy);
+	options->armor_strategy = NULL;
+#endif
 	free_s(options->cchelper_path);
 	options->cchelper_path = NULL;
 	free_s(options->realm);
