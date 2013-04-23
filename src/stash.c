@@ -136,6 +136,7 @@ _pam_krb5_stash_cleanup(pam_handle_t *pamh, void *data, int error)
 		stash->v5ccnames = node->next;
 		free(node);
 	}
+	krb5_free_context(stash->v5ctx);
 	memset(stash, 0, sizeof(struct _pam_krb5_stash));
 	free(stash);
 }
