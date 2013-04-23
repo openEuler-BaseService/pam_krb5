@@ -330,6 +330,8 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 		return NULL;
 	}
 	memset(options, 0, sizeof(struct _pam_krb5_options));
+	options->argc = argc;
+	options->argv = argv;
 
 	service = NULL;
 	if (pamh != NULL) {

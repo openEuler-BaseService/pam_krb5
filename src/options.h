@@ -35,7 +35,8 @@
 
 struct _pam_krb5_options {
 	int debug;
-	char *cchelper_path;
+	int argc;
+	PAM_KRB5_MAYBE_CONST char **argv;
 
 #ifdef HAVE_KRB5_ANAME_TO_LOCALNAME
 	int always_allow_localname;
@@ -77,6 +78,7 @@ struct _pam_krb5_options {
 
 	char *banner;
 	char *ccache_dir;
+	char *cchelper_path;
 	char *ccname_template;
 	char *keytab;
 	char *pwhelp;

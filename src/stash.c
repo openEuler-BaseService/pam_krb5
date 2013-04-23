@@ -562,7 +562,8 @@ _pam_krb5_stash_get(pam_handle_t *pamh, const char *user,
 	}
 
 	/* Build a new one. */
-	if (_pam_krb5_init_ctx(&ctx, 0, NULL) != PAM_SUCCESS) {
+	if (_pam_krb5_init_ctx(&ctx, options->argc,
+			       options->argv) != PAM_SUCCESS) {
 		warn("error initializing kerberos");
 		return NULL;
 	}
