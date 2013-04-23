@@ -34,24 +34,14 @@ AC_ARG_WITH(os-distribution,
 	    OS_DISTRIBUTION="Red Hat Linux")
 AC_SUBST(OS_DISTRIBUTION)
 
-AC_PATH_PROG(KRB5KDC,krb5kdc,:,[${KRB5_BINDIR}:${KRB5_BINDIR}/../sbin:${KRB5_BINDIR}/../libexec])
-if test x$KRB5KDC = x: ; then
-	unset ac_cv_path_KRB5KDC
-	AC_PATH_PROG(KRB5KDC,kdc,:,[${KRB5_BINDIR}:${KRB5_BINDIR}/../sbin:${KRB5_BINDIR}/../libexec])
-fi
-AC_PATH_PROG(KADMIND,kadmind,:,[${KRB5_BINDIR}:${KRB5_BINDIR}/../sbin:${KRB5_BINDIR}/../libexec])
-AC_PATH_PROG(KADMIN,kadmin,:,[${KRB5_BINDIR}:${KRB5_BINDIR}/../sbin:${KRB5_BINDIR}/../libexec])
-if test x$KADMIN != x: ; then
-	KADMINMAYBELOCAL="$KADMIN --local"
-else
-	KADMINMAYBELOCAL=":"
-fi
-AC_PATH_PROG(KADMINLOCAL,kadmin.local,$KADMINMAYBELOCAL,[${KRB5_BINDIR}:${KRB5_BINDIR}/../sbin:${KRB5_BINDIR}/../libexec])
+AC_PATH_PROGS(KRB5KDC,krb5kdc kdc,:,[${KRB5_BINDIR}:${KRB5_BINDIR}/../sbin:${KRB5_BINDIR}/../libexec])
+AC_PATH_PROGS(KPASSWDD,kpasswdd kadmind,:,[${KRB5_BINDIR}:${KRB5_BINDIR}/../sbin:${KRB5_BINDIR}/../libexec])
+AC_PATH_PROGS(KADMINLOCAL,kadmin.local kadmin,:,[${KRB5_BINDIR}:${KRB5_BINDIR}/../sbin:${KRB5_BINDIR}/../libexec])
 AM_CONDITIONAL(KRB5KDC,[test x"$KRB5KDC" != x: ])
-AM_CONDITIONAL(KADMIND,[test x"$KADMIND" != x: ])
+AM_CONDITIONAL(KPASSWDD,[test x"$KPASSWDD" != x: ])
 AM_CONDITIONAL(KADMINLOCAL,[test x"$KADMINLOCAL" != x: ])
 AC_SUBST(KRB5KDC)
-AC_SUBST(KADMIND)
+AC_SUBST(KPASSWDD)
 AC_SUBST(KADMINLOCAL)
 
 AC_ARG_WITH(afs,

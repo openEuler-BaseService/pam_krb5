@@ -2,6 +2,10 @@
  default = FILE:@TESTDIR@/kdc/krb5libs.log
  kdc = FILE:@TESTDIR@/kdc/krb5kdc.log
  admin_server = FILE:@TESTDIR@/kdc/kadmind.log
+ kpasswdd = FILE:@TESTDIR@/kdc/kadmind.log
+ kpasswd = FILE:@TESTDIR@/kdc/kadmind.log
+ kadmind = FILE:@TESTDIR@/kdc/kadmind.log
+ kadmin = FILE:@TESTDIR@/kdc/kadmind.log
 
 [libdefaults]
  default_realm = EXAMPLE.COM
@@ -21,6 +25,13 @@
  enable-pkinit = yes
  pkinit_anchors = FILE:@TESTDIR@/kdc/ca.crt
  pkinit_identity = PKCS12:@TESTDIR@/kdc/@TESTHOST@.p12
+ # Heimdal KDC settings
+ database = {
+  dbname = db:@TESTDIR@/kdc/hdb
+  acl_file = @TESTDIR@/kdc/hdb.acl
+  log_file = @TESTDIR@/kdc/hdb.log
+ }
+ ports = 8801
 
 [appdefaults]
  pam = {

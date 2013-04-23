@@ -14,9 +14,9 @@ krb5kdc="@KRB5KDC@"
 if test "$krb5kdc" = : ; then
 	krb5kdc=
 fi
-kadmind="@KADMIND@"
-if test "$kadmind" = : ; then
-	kadmind=
+kpasswdd="@KPASSWDD@"
+if test "$kpasswdd" = : ; then
+	kpasswdd=
 fi
 kadmin="@KADMINLOCAL@"
 if test "$kadmin" = : ; then
@@ -30,11 +30,11 @@ KRB5RCACHEDIR=@abs_builddir@/kdc ; export KRB5RCACHEDIR
 KRB5CCNAME=/dev/bogus-missing-file ; export KRB5CCNAME
 test_flags=unsecure_for_debugging_only
 
-test_settle() {
+function test_settle() {
 	sleep 1
 }
 
-test_cleanmsg ()
+function test_cleanmsg ()
 {
 	sed -r \
 	    -e "s,Warning: Your password will expire in less than one hour.[^\']*,WARN1HOUR,g" \
@@ -47,39 +47,104 @@ test_cleanmsg ()
 	    -e "s|_shm_segment=([0-9]+/[0-9]+)|_shm_segment=KEY/UID|g"
 }
 
-run_kdc="$krb5kdc -r EXAMPLE.COM -n > /dev/null 2> /dev/null"
-run_kadmind="$kadmind -r EXAMPLE.COM -nofork > /dev/null 2> /dev/null"
+case "$krb5kdc" in
+*/krb5kdc)
+	run_kdc="$krb5kdc -r EXAMPLE.COM -n > /dev/null 2> /dev/null"
+	;;
+*/kdc)
+	run_kdc="$krb5kdc -c $KRB5_CONFIG > /dev/null 2> /dev/null"
+	;;
+*)
+	echo "Don't know how to start the KDC."
+	exit 1
+	;;
+esac
+case "$kpasswdd" in
+*/kadmind)
+	run_kadmind="$kpasswdd -r EXAMPLE.COM -nofork > /dev/null 2> /dev/null"
+	;;
+*/kpasswdd)
+	run_kadmind="$kpasswdd -c $KRB5_CONFIG -r EXAMPLE.COM -p 8803 > @abs_builddir@/kdc/kadmind.log 2>&1"
+	;;
+*)
+	echo "Don't know how to start the password-change server."
+	exit 1
+	;;
+esac
+case "$kadmin" in
+*/kadmin)
+	;;
+*/kadmin.local)
+	;;
+*)
+	echo "Don't know how to start the local kadmin client."
+	exit 1
+	;;
+esac
 
-test_kdcinitdb() {
-	test -d @abs_builddir@/kdc || mkdir -p @abs_builddir@/kdc
-	kdb5_util destroy -f 2> /dev/null > /dev/null
-	rm -f @abs_builddir@/kdc/krb5.keytab > /dev/null
-	((echo .; echo .; echo .) | kdb5_util create -s -W || (echo .; echo .; echo .) | kdb5_util create -s ) 2> /dev/null > /dev/null
-	(cd @abs_builddir@/kdc; make-certs.sh @TESTHOST@ root sign encrypt tls-server id-pkinit-kdc krbtgt/EXAMPLE.COM@EXAMPLE.COM) 2> /dev/null > /dev/null
-	(cd @abs_builddir@/kdc; make-certs.sh "$test_principal" "$test_principal" sign encrypt tls-server id-pkinit-client "$test_principal"@EXAMPLE.COM) 2> /dev/null > /dev/null
-	(cd @abs_builddir@/kdc; openssl pkcs12 -export -inkey "$test_principal".key -in "$test_principal".crt -name "$test_principal" -out test-pw.p12 -passout pass:p12eh) > /dev/null
-	$kadmin -q 'addpol -minlength 6 minimum_six' 2> /dev/null > /dev/null
-	$kadmin -q 'ank +requires_preauth -pw foo '$test_principal 2> /dev/null > /dev/null
-	$kadmin -q 'ank +requires_preauth -randkey WELLKNOWN/ANONYMOUS' 2> /dev/null > /dev/null
-	$kadmin -q 'ank -randkey 'host/${test_host} 2> /dev/null > /dev/null
-	$kadmin -q 'ktadd -k @abs_builddir@/kdc/krb5.keytab 'host/${test_host} 2> /dev/null > /dev/null
-	$kadmin -q 'modprinc -maxrenewlife "1 day" -maxlife "7 day" krbtgt/EXAMPLE.COM' 2> /dev/null > /dev/null
-	$kadmin -q 'modprinc -maxrenewlife "1 day" -maxlife "7 day" '$test_principal 2> /dev/null > /dev/null
-}
-setpw() {
-	$kadmin -q 'cpw -pw '"$2  $1" 2> /dev/null > /dev/null
-}
-pwexpire() {
-	$kadmin -q 'modprinc -pwexpire '"$2  $1" 2> /dev/null > /dev/null
-}
+case "$kadmin" in
+*/kadmin.local)
+	function test_kdcinitdb() {
+		test -d @abs_builddir@/kdc || mkdir -p @abs_builddir@/kdc
+		kdb5_util destroy -f 2> /dev/null > /dev/null
+		rm -f @abs_builddir@/kdc/krb5.keytab > /dev/null
+		((echo .; echo .; echo .) | kdb5_util create -s -W || (echo .; echo .; echo .) | kdb5_util create -s ) 2> /dev/null > /dev/null
+		(cd @abs_builddir@/kdc; make-certs.sh @TESTHOST@ root sign encrypt tls-server id-pkinit-kdc krbtgt/EXAMPLE.COM@EXAMPLE.COM) 2> /dev/null > /dev/null
+		(cd @abs_builddir@/kdc; make-certs.sh "$test_principal" "$test_principal" sign encrypt tls-server id-pkinit-client "$test_principal"@EXAMPLE.COM) 2> /dev/null > /dev/null
+		(cd @abs_builddir@/kdc; openssl pkcs12 -export -inkey "$test_principal".key -in "$test_principal".crt -name "$test_principal" -out test-pw.p12 -passout pass:p12eh) > /dev/null
+		$kadmin -q 'addpol -minlength 6 minimum_six' 2> /dev/null > /dev/null
+		$kadmin -q 'ank +requires_preauth -pw foo '$test_principal 2> /dev/null > /dev/null
+		$kadmin -q 'ank +requires_preauth -randkey WELLKNOWN/ANONYMOUS' 2> /dev/null > /dev/null
+		$kadmin -q 'ank -randkey 'host/${test_host} 2> /dev/null > /dev/null
+		$kadmin -q 'ktadd -k @abs_builddir@/kdc/krb5.keytab 'host/${test_host} 2> /dev/null > /dev/null
+		$kadmin -q 'modprinc -maxrenewlife "1 day" -maxlife "7 day" krbtgt/EXAMPLE.COM' 2> /dev/null > /dev/null
+		$kadmin -q 'modprinc -maxrenewlife "1 day" -maxlife "7 day" '$test_principal 2> /dev/null > /dev/null
+	}
+	function setpw() {
+		$kadmin -q 'cpw -pw '"$2  $1" 2> /dev/null > /dev/null
+	}
+	function pwexpire() {
+		$kadmin -q 'modprinc -pwexpire '"$2  $1" 2> /dev/null > /dev/null
+	}
+	;;
+*/kadmin)
+	kadmin="$kadmin --local"
+	function test_kdcinitdb() {
+		test -d @abs_builddir@/kdc || mkdir -p @abs_builddir@/kdc
+		rm -f @abs_builddir@/kdc/hdb* > /dev/null
+		rm -f @abs_builddir@/kdc/krb5.keytab > /dev/null
+		(echo;echo;echo;echo;echo;echo) | $kadmin init EXAMPLE.COM 2> /dev/null > /dev/null
+		(cd @abs_builddir@/kdc; make-certs.sh @TESTHOST@ root sign encrypt tls-server id-pkinit-kdc krbtgt/EXAMPLE.COM@EXAMPLE.COM) 2> /dev/null > /dev/null
+		(cd @abs_builddir@/kdc; make-certs.sh "$test_principal" "$test_principal" sign encrypt tls-server id-pkinit-client "$test_principal"@EXAMPLE.COM) 2> /dev/null > /dev/null
+		(cd @abs_builddir@/kdc; openssl pkcs12 -export -inkey "$test_principal".key -in "$test_principal".crt -name "$test_principal" -out test-pw.p12 -passout pass:p12eh) > /dev/null
+		(echo;echo;echo;echo)|$kadmin ank --attributes=requires-pre-auth -p foo "$test_principal" 2> /dev/null > /dev/null
+		(echo;echo;echo;echo)|$kadmin ank --attributes=requires-pre-auth -r WELLKNOWN/ANONYMOUS 2> /dev/null > /dev/null
+		(echo;echo;echo;echo)|$kadmin ank -r "host/${test_host}" 2> /dev/null > /dev/null
+		$kadmin ext_keytab -k @abs_builddir@/kdc/krb5.keytab "host/${test_host}" 2> /dev/null > /dev/null
+		$kadmin modify --max-renewable-life="1 day" --max-ticket-life="7 day" krbtgt/EXAMPLE.COM 2> /dev/null > /dev/null
+		$kadmin modify --max-renewable-life="1 day" --max-ticket-life="7 day" "$test_principal" 2> /dev/null > /dev/null
+	}
+	function setpw() {
+		$kadmin cpw -p "$2" "$1" 2> /dev/null > /dev/null
+	}
+	function pwexpire() {
+		$kadmin modify --pw-expiration-time="$2" "$1" 2> /dev/null > /dev/null
+	}
+	;;
+*)
+	echo "Don't know how to manage a database."
+	exit 1
+	;;
+esac
 
-test_kdcprep() {
+function test_kdcprep() {
 	rm -f @abs_builddir@/kdc/krb5kdc.log
 	rm -f @abs_builddir@/kdc/kadmind.log
 	rm -f @abs_builddir@/kdc/krb5libs.log
 }
 
-test_run() {
+function test_run() {
 	# Filter out the module path and clean up messages.
-	@abs_builddir@/tools/pam_harness "$@" 2>&1 | sed s,"\`.*pam",'\`pam',g | test_cleanmsg
+	#VALGRIND="valgrind --log-file=valgrind.log.%p"
+	$VALGRIND @abs_builddir@/tools/pam_harness "$@" 2>&1 | sed s,"\`.*pam",'\`pam',g | test_cleanmsg
 }

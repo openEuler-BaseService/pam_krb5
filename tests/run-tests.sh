@@ -11,7 +11,7 @@ getent hosts "$test_host"
 
 # Tell the caller where the binaries are.
 test -n "$krb5kdc" && echo Using krb5kdc binary: $krb5kdc
-test -n "$kadmind" && echo Using kadmind binary: $kadmind
+test -n "$kpasswdd" && echo Using kpasswdd binary: $kpasswdd
 test -n "$kadmin"  && echo Using kadmin.local binary: $kadmin
 
 # Run each test with clear log files and a fresh copy of the KDC and kadmind.
@@ -24,7 +24,7 @@ for test in ${@:-"$testdir"/0*} ; do
 	echo -n .
 	test_kdcprep
 	echo -n ." "
-	meanwhile "$run_kdc" -w "grepcommencing.sh $test/../kdc/krb5kdc.log" "$run_kadmind" -w "grepstarting.sh $test/../kdc/kadmind.log" "$test/run.sh" > $test/stdout 2> $test/stderr
+	meanwhile "$run_kdc" -w "waitforkdc.sh $test/../kdc/krb5kdc.log" "$run_kadmind" -w "waitforkpasswdd.sh $test/../kdc/kadmind.log" "$test/run.sh" > $test/stdout 2> $test/stderr
 	kdcport=`expr $kdcport + 3`
 	kadminport=`expr $kdcport + 1`
 	kpasswdport=`expr $kadminport + 1`
