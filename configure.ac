@@ -465,7 +465,7 @@ AC_DEFINE_UNQUOTED(DEFAULT_KEYTAB_LOCATION,"$default_keytab",[Define to the defa
 DEFAULT_KEYTAB="$default_keytab"
 AC_SUBST(DEFAULT_KEYTAB)
 AC_MSG_RESULT([Using "$default_keytab" as the default keytab.])
-AC_ARG_ENABLE(default-token-strategy,AC_HELP_STRING([--enable-default-token-strategy=STRATEGY],[default list of methods pam_krb5 should attempt to use to set AFS tokens (default is 2b,rxk5)]),default_token_strategy=$enableval,default_token_strategy=[2b,rxk5])
+AC_ARG_ENABLE(default-token-strategy,AC_HELP_STRING([--enable-default-token-strategy=STRATEGY],[default list of methods pam_krb5 should attempt to use to set AFS tokens (default is 2b)]),default_token_strategy=$enableval,default_token_strategy=[2b])
 AC_DEFINE_UNQUOTED(DEFAULT_TOKEN_STRATEGY,"$default_token_strategy",[Define to the ordered list of methods which should be used when attempting to set AFS tokens.])
 DEFAULT_TOKEN_STRATEGY="$default_token_strategy"
 AC_SUBST(DEFAULT_TOKEN_STRATEGY)
