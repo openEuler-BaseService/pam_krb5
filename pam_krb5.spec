@@ -6,7 +6,7 @@
 
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
-Version: 2.4.4
+Version: 2.4.5
 Release: 1%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz
 #Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
@@ -27,8 +27,11 @@ using Kerberos 5, and to change user passwords.
 
 %build
 configure_flags=
-%if 0%{?fedora} > 17 || 0%{?rhel} > 6
+%if 0%{?fedora} > 17
 configure_flags=--enable-default-ccname-template=DIR:/run/user/%%U/krb5cc_XXXXXX
+%endif
+%if 0%{?fedora} > 18 || 0%{?rhel} > 6
+configure_flags=--enable-default-ccname-template=DIR:/run/user/%%U/krb5cc
 %endif
 %configure --libdir=/%{security_parent_dir} \
 	--with-default-use-shmem="sshd" \
@@ -64,6 +67,11 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %{_mandir}/man8/*
 
 %changelog
+* Tue Apr 23 2013 Nalin Dahyabhai <nalin@redhat.com> - 2.4.5-1
+- update to 2.4.5
+  - handle non-unique ccname templates
+- switch to a non-unique default ccname template on newer releases
+
 * Wed Feb 20 2013 Nalin Dahyabhai <nalin@redhat.com> - 2.4.4-1
 - update to 2.4.4
   - fix compile errors against other versions of Kerberos

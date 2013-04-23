@@ -1,3 +1,7 @@
+- 2.4.5: * handle ccname templates that don't include a template suffix
+	   by accepting the location at create-time if the permissions
+	   look right, and not deleting the creds at cleanup-time
+	 * fix some memory leaks
 - 2.4.4: * compilation fixes
 - 2.4.3: * translation updates
 - 2.4.2: * handle different function signatures for krb5_trace_callback
