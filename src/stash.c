@@ -566,6 +566,11 @@ _pam_krb5_stash_get(pam_handle_t *pamh, const char *user,
 		warn("error initializing kerberos");
 		return NULL;
 	}
+#ifdef HAVE_KRB5_SET_TRACE_CALLBACK
+	if (options->trace) {
+		krb5_set_trace_callback(ctx, &trace, NULL);
+	}
+#endif
 
 	stash = malloc(sizeof(struct _pam_krb5_stash));
 	if (stash == NULL) {
