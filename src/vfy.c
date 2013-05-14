@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 Red Hat, Inc.
+ * Copyright 2010,2013 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -63,11 +63,16 @@ main(int argc, const char **argv)
 {
 	krb5_context ctx;
 	krb5_ccache ccache;
-	krb5_creds mcreds, creds;
+	krb5_auth_context cctx, sctx;
+	krb5_creds mcreds, creds, *ncreds;
 	krb5_keytab keytab;
+	krb5_ticket *ticket;
 	krb5_principal server;
 	krb5_verify_init_creds_opt opts;
+	krb5_flags ap_opts;
+	krb5_data req, transited;
 	int ret;
+	unsigned int i;
 
 	ctx = NULL;
 	ret = krb5_init_context(&ctx);
@@ -98,35 +103,78 @@ main(int argc, const char **argv)
 		     v5_error_message(ret));
 		return ret;
 	}
-	ret = krb5_build_principal_ext(ctx, &mcreds.server,
-				       v5_princ_realm_length(mcreds.client),
-				       v5_princ_realm_contents(mcreds.client),
-				       KRB5_TGS_NAME_SIZE,
-				       KRB5_TGS_NAME,
-				       v5_princ_realm_length(mcreds.client),
-				       v5_princ_realm_contents(mcreds.client),
-				       0);
-	if (ret != 0) {
-		crit("error building ticket granting server name: %s",
-		     v5_error_message(ret));
-		return ret;
-	}
 
-	ret = krb5_cc_retrieve_cred(ctx, ccache, 0, &mcreds, &creds);
-	if (ret != 0) {
-		crit("error reading ccache: %s", v5_error_message(ret));
-		return ret;
-	}
-	krb5_cc_close(ctx, ccache);
-
-	krb5_verify_init_creds_opt_init(&opts);
-	ret = krb5_verify_init_creds(ctx, &creds,
-				     server, keytab, NULL,
-				     &opts);
-	if (ret != 0) {
-		crit("error verifying creds: %s", v5_error_message(ret));
+	if (argc > 1) {
+		ret = krb5_parse_name(ctx, argv[1], &server);
+		if (ret != 0) {
+			crit("error parsing principal name %s: %s", argv[1],
+			     v5_error_message(ret));
+		}
+		mcreds.server = server;
+		ret = krb5_get_credentials(ctx, 0, ccache, &mcreds, &ncreds);
+		if (ret != 0) {
+			crit("error getting creds: %s", v5_error_message(ret));
+			return ret;
+		}
+		memset(&cctx, 0, sizeof(cctx));
+		ret = krb5_mk_req_extended(ctx, &cctx, 0, NULL, ncreds, &req);
+		if (ret != 0) {
+			crit("error making AP-REQ: %s", v5_error_message(ret));
+			return ret;
+		}
+		memset(&sctx, 0, sizeof(sctx));
+		ap_opts = 0;
+		ticket = NULL;
+		ret = krb5_rd_req(ctx, &sctx, &req, server, keytab, &ap_opts,
+				  &ticket);
+		if (ret != 0) {
+			crit("error parsing AP-REQ: %s", v5_error_message(ret));
+			return ret;
+		}
+		if (ticket->enc_part2 != NULL) {
+			printf("transited: \"");
+			transited = ticket->enc_part2->transited.tr_contents;
+			for (i = 0; i < transited.length; i++) {
+				if (transited.data[i] > 32 &&
+			            transited.data[i] < 126) {
+					printf("%c", transited.data[i]);
+				} else {
+					printf("\%02x", transited.data[i]);
+				}
+			}
+			printf("\"\n");
+		}
+		printf("OK (%s)\n", argv[1]);
 	} else {
-		printf("OK\n");
+		ret = krb5_build_principal_ext(ctx, &mcreds.server,
+					       v5_princ_realm_length(mcreds.client),
+					       v5_princ_realm_contents(mcreds.client),
+					       KRB5_TGS_NAME_SIZE,
+					       KRB5_TGS_NAME,
+					       v5_princ_realm_length(mcreds.client),
+					       v5_princ_realm_contents(mcreds.client),
+					       0);
+		if (ret != 0) {
+			crit("error building ticket granting server name: %s",
+			     v5_error_message(ret));
+			return ret;
+		}
+
+		ret = krb5_cc_retrieve_cred(ctx, ccache, 0, &mcreds, &creds);
+		if (ret != 0) {
+			crit("error reading ccache: %s", v5_error_message(ret));
+			return ret;
+		}
+		krb5_verify_init_creds_opt_init(&opts);
+		ret = krb5_verify_init_creds(ctx, &creds,
+					     server, keytab, NULL,
+					     &opts);
+		if (ret != 0) {
+			crit("error verifying creds: %s",
+			     v5_error_message(ret));
+		} else {
+			printf("OK\n");
+		}
 	}
 
 	_pam_krb5_free_ctx(ctx);
