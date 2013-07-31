@@ -48,5 +48,5 @@ specifiers).  A specifier can refer to a substring matched in its regexp by
 specifying a "$" and the relative location of the substring in the regexp.
   [appdefaults]
    pam = {
-     mappings = TEST\\(.*) $1@TEST.EXAMPLE.COM
+     mappings = ^TEST\\(.*)$ $1@TEST.EXAMPLE.COM
    }

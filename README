@@ -93,7 +93,7 @@ o mappings = regex regex [regex regex...]
   if it matches, formulating a principal name using the second regex.  Multiple
   pairs of regular expressions can be used.
   For example,
-    mappings = EXAMPLE\\(.*) $1@EXAMPLE.COM
+    mappings = ^EXAMPLE\\(.*)$ $1@EXAMPLE.COM
   would map any user with a name of the form "EXAMPLE\whatever" to a principal
   name of "whatever@EXAMPLE.COM".  This is primarily targeted at allowing
   pam_krb5 to be used to authenticate users whose user information is provided
