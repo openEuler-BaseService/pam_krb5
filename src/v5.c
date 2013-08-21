@@ -203,7 +203,7 @@ v5_user_info_subst(krb5_context ctx,
 				i++;
 				break;
 			case 'r':
-				len += strlen(options->realm);
+				len += strlen(userinfo->realm);
 				i++;
 				break;
 			case 'h':
@@ -264,7 +264,7 @@ v5_user_info_subst(krb5_context ctx,
 				j = strlen(ret);
 				break;
 			case 'r':
-				strcat(ret, options->realm);
+				strcat(ret, userinfo->realm);
 				i++;
 				j = strlen(ret);
 				break;

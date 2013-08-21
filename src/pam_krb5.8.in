@@ -1,4 +1,4 @@
-.TH pam_krb5 8 2012/08/29 "@OS_DISTRIBUTION@" "System Administrator's Manual"
+.TH pam_krb5 8 2013/09/21 "@OS_DISTRIBUTION@" "System Administrator's Manual"
 
 .SH NAME
 pam_krb5 \- Kerberos 5 authentication
@@ -90,7 +90,7 @@ are substituted:
   %u	login name
   %U	login UID
   %p	principal name
-  %r	realm name
+  %r	principal's realm name
   %h	home directory
   %d	the default ccache directory (as set with \fIccache_dir\fR)
   %P	the current process ID
@@ -205,7 +205,7 @@ validation will be suppressed.
 @MAN_HPKINIT@  %u	login name
 @MAN_HPKINIT@  %U	login UID
 @MAN_HPKINIT@  %p	principal name
-@MAN_HPKINIT@  %r	realm name
+@MAN_HPKINIT@  %r	principal's realm name
 @MAN_HPKINIT@  %h	home directory
 @MAN_HPKINIT@  %d	the default ccache directory
 @MAN_HPKINIT@  %P	the current process ID
@@ -223,7 +223,7 @@ validation will be suppressed.
 @MAN_MPREAUTH@  %u	login name
 @MAN_MPREAUTH@  %U	login UID
 @MAN_MPREAUTH@  %p	principal name
-@MAN_MPREAUTH@  %r	realm name
+@MAN_MPREAUTH@  %r	principal's realm name
 @MAN_MPREAUTH@  %h	home directory
 @MAN_MPREAUTH@  %d	the default ccache directory
 @MAN_MPREAUTH@  %P	the current process ID

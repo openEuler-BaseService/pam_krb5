@@ -1,3 +1,5 @@
+- 2.4.6: * fix handling of ccaches for users who are mapped to principal
+	   names in a realm other than the configured default realm (#999604)
 - 2.4.5: * handle ccname templates that don't include a template suffix
 	   by accepting the location at create-time if the permissions
 	   look right, and not deleting the creds at cleanup-time
