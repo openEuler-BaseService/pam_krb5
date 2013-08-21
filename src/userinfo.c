@@ -1,5 +1,5 @@
 /*
- * Copyright 2003,2004,2005,2006,2009,2012 Red Hat, Inc.
+ * Copyright 2003,2004,2005,2006,2009,2012,2013 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -126,12 +126,22 @@ _pam_krb5_user_info_init(krb5_context ctx, const char *name,
 		free(ret);
 		return NULL;
 	}
+	if (v5_princ_realm_length(ret->principal_name) > 0) {
+		ret->realm = xstrndup(v5_princ_realm_contents(ret->principal_name),
+				      v5_princ_realm_length(ret->principal_name));
+	} else {
+		warn("error duplicating realm name for principal name '%s'",
+		     qualified_name);
+		free(ret);
+		return NULL;
+	}
 
 	/* Convert the principal back to a full principal name string. */
 	if (krb5_unparse_name(ctx, ret->principal_name,
 			      &ret->unparsed_name) != 0) {
 		warn("error converting principal name to string");
 		krb5_free_principal(ctx, ret->principal_name);
+		xstrfree(ret->realm);
 		free(ret);
 		return NULL;
 	}
@@ -149,6 +159,7 @@ _pam_krb5_user_info_init(krb5_context ctx, const char *name,
 			     local_name);
 			v5_free_unparsed_name(ctx, ret->unparsed_name);
 			krb5_free_principal(ctx, ret->principal_name);
+			xstrfree(ret->realm);
 			free(ret);
 			return NULL;
 		}
@@ -165,6 +176,7 @@ _pam_krb5_user_info_init(krb5_context ctx, const char *name,
 void
 _pam_krb5_user_info_free(krb5_context ctx, struct _pam_krb5_user_info *info)
 {
+	xstrfree(info->realm);
 	krb5_free_principal(ctx, info->principal_name);
 	v5_free_unparsed_name(ctx, info->unparsed_name);
 	xstrfree(info->homedir);

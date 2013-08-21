@@ -1,5 +1,5 @@
 /*
- * Copyright 2003,2012 Red Hat, Inc.
+ * Copyright 2003,2012,2013 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,7 +40,7 @@ struct _pam_krb5_user_info {
 	gid_t gid;
 	char *homedir;
 	krb5_principal principal_name;
-	char *unparsed_name;
+	char *unparsed_name, *realm;
 };
 
 struct _pam_krb5_user_info *_pam_krb5_user_info_init(krb5_context ctx,
