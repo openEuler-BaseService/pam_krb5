@@ -108,8 +108,8 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags,
 		return PAM_SERVICE_ERR;
 	}
 	if (options->debug) {
-		debug("called to authenticate '%s', realm '%s'", user,
-		      options->realm);
+		debug("called to authenticate '%s', configured realm '%s'",
+		      user, options->realm);
 	}
 	_pam_krb5_set_init_opts(ctx, gic_options, options);
 
