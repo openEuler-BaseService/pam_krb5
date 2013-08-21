@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Red Hat, Inc.
+ * Copyright 2012,2013 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -277,6 +277,7 @@ _pam_krb5_cchelper_run(const char *helper, const char *flag, const char *ccname,
 static int
 _pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
 			     struct _pam_krb5_options *options,
+			     const char *realm,
 			     unsigned char **blob, ssize_t *blob_size)
 {
 	krb5_ccache fccache, mccache;
@@ -289,7 +290,7 @@ _pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
 	/* Check that we have creds. */
 	if ((stash->v5ccache == NULL) ||
 	    (v5_ccache_has_tgt(ctx, stash->v5ccache,
-			       options->realm, NULL) != 0)) {
+			       realm, NULL) != 0)) {
 		warn("no creds to save");
 		return -1;
 	}
@@ -299,7 +300,7 @@ _pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
 		warn("error creating temporary credential cache");
 		return -1;
 	}
-	if (v5_cc_copy(stash->v5ctx, options->realm,
+	if (v5_cc_copy(stash->v5ctx, realm,
 		       stash->v5ccache, &mccache) != 0) {
 		warn("error writing to temporary credential cache \"%s\"",
 		     ccname);
@@ -325,7 +326,7 @@ _pam_krb5_cchelper_cred_blob(krb5_context ctx, struct _pam_krb5_stash *stash,
 		krb5_cc_destroy(stash->v5ctx, mccache);
 		return -1;
 	}
-	if (v5_cc_copy(stash->v5ctx, options->realm,
+	if (v5_cc_copy(stash->v5ctx, realm,
 		       mccache, &fccache) != 0) {
 		warn("error writing to credential cache file \"%s\"",
 		     ccname + 5);
@@ -407,7 +408,7 @@ _pam_krb5_cchelper_create(krb5_context ctx, struct _pam_krb5_stash *stash,
 	}
 
 	cred_blob = NULL;
-	if (_pam_krb5_cchelper_cred_blob(ctx, stash, options,
+	if (_pam_krb5_cchelper_cred_blob(ctx, stash, options, userinfo->realm,
 					 &cred_blob, &cred_blob_size) != 0) {
 		free(ccpattern);
 		return -1;
@@ -459,7 +460,7 @@ _pam_krb5_cchelper_update(krb5_context ctx, struct _pam_krb5_stash *stash,
 	ssize_t cred_blob_size, osize;
 
 	cred_blob = NULL;
-	if (_pam_krb5_cchelper_cred_blob(ctx, stash, options,
+	if (_pam_krb5_cchelper_cred_blob(ctx, stash, options, userinfo->realm,
 					 &cred_blob, &cred_blob_size) != 0) {
 		return -1;
 	}
