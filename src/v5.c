@@ -1378,6 +1378,7 @@ v5_validate(krb5_context ctx, krb5_creds *creds, krb5_ccache ccache,
 static void
 v5_setup_armor_ccache_keytab(krb5_context ctx,
 			     struct _pam_krb5_options *options,
+			     const char *realm,
 			     krb5_creds *creds,
 			     krb5_ccache *armor_ccache)
 {
@@ -1427,7 +1428,7 @@ v5_setup_armor_ccache_keytab(krb5_context ctx,
 		krb5_kt_close(ctx, keytab);
 		return;
 	}
-	v5_set_principal_realm(ctx, &guess_client, options->realm);
+	v5_set_principal_realm(ctx, &guess_client, realm);
 	/* Try to select a more suitable client name. */
 	if (creds->client != NULL) {
 		krb5_free_principal(ctx, creds->client);
@@ -1483,6 +1484,7 @@ v5_setup_armor_ccache_keytab(krb5_context ctx,
 static void
 v5_setup_armor_ccache_pkinit(krb5_context ctx,
 			     struct _pam_krb5_options *options,
+			     const char *realm,
 			     krb5_creds *creds,
 			     krb5_ccache *armor_ccache)
 {
@@ -1518,8 +1520,8 @@ v5_setup_armor_ccache_pkinit(krb5_context ctx,
 		creds->client = NULL;
 	}
 	if (krb5_build_principal(ctx, &creds->client,
-				 strlen(options->realm),
-				 options->realm,
+				 strlen(realm),
+				 realm,
 				 wellknown,
 				 anonymous,
 				 NULL) == 0) {
@@ -1588,6 +1590,7 @@ v5_setup_armor_ccache_pkinit(krb5_context ctx,
 static void
 v5_setup_armor_ccache(krb5_context ctx,
 		      struct _pam_krb5_options *options,
+		      const char *realm,
 		      krb5_ccache *armor_ccache)
 {
 	krb5_creds creds;
@@ -1599,6 +1602,7 @@ v5_setup_armor_ccache(krb5_context ctx,
 		const char *name;
 		void (*fn)(krb5_context,
 			   struct _pam_krb5_options *,
+			   const char *,
 			   krb5_creds *,
 			   krb5_ccache *);
 	} methods[] = {
@@ -1611,10 +1615,10 @@ v5_setup_armor_ccache(krb5_context ctx,
 	}
 	memset(&creds, 0, sizeof(creds));
 	i = krb5_build_principal(ctx, &creds.server,
-				 strlen(options->realm),
-				 options->realm,
+				 strlen(realm),
+				 realm,
 				 KRB5_TGS_NAME,
-				 options->realm,
+				 realm,
 				 NULL);
 	if (i != 0) {
 		return;
@@ -1637,7 +1641,7 @@ v5_setup_armor_ccache(krb5_context ctx,
 				continue;
 			}
 			if (memcmp(p, methods[u].name, len) == 0) {
-				(*(methods[u].fn))(ctx, options, &creds,
+				(*(methods[u].fn))(ctx, options, realm, &creds,
 						   armor_ccache);
 			}
 		}
@@ -1648,7 +1652,7 @@ v5_setup_armor_ccache(krb5_context ctx,
 	 * up the armor ccache directly. */
 	if (v5_creds_check_initialized(ctx, &creds) == 0) {
 		if (v5_ccache_has_tgt(ctx, *armor_ccache,
-				      options->realm, NULL) != 0) {
+				      realm, NULL) != 0) {
 			if (krb5_cc_initialize(ctx, *armor_ccache,
 					       creds.client) != 0) {
 				krb5_free_cred_contents(ctx, &creds);
@@ -1668,7 +1672,7 @@ v5_setup_armor_ccache(krb5_context ctx,
 	/* Now if we still haven't got suitable creds, abandon this. */
 	if ((*armor_ccache != NULL) &&
 	    (v5_ccache_has_tgt(ctx, *armor_ccache,
-			       options->realm, NULL) != 0)) {
+			       realm, NULL) != 0)) {
 		krb5_cc_destroy(ctx, *armor_ccache);
 		*armor_ccache = NULL;
 	}
@@ -1698,7 +1702,6 @@ v5_get_creds(krb5_context ctx,
 	int i;
 	char realm_service[LINE_MAX];
 	char *opt;
-	const char *realm;
 	struct pam_message message;
 	struct _pam_krb5_prompter_data prompter_data;
 	krb5_creds creds;
@@ -1717,14 +1720,9 @@ v5_get_creds(krb5_context ctx,
 	memset(&creds, 0, sizeof(creds));
 
 	/* Check some string lengths. */
-	if (strchr(userinfo->unparsed_name, '@') != NULL) {
-		realm = strchr(userinfo->unparsed_name, '@') + 1;
-	} else {
-		realm = options->realm;
-	}
 	if (strlen(service) + 1 +
-	    strlen(realm) + 1 +
-	    strlen(realm) + 1 >= sizeof(realm_service)) {
+	    strlen(userinfo->realm) + 1 +
+	    strlen(userinfo->realm) + 1 >= sizeof(realm_service)) {
 		return PAM_SERVICE_ERR;
 	}
 
@@ -1735,13 +1733,13 @@ v5_get_creds(krb5_context ctx,
 	} else {
 		strcpy(realm_service, service);
 		strcat(realm_service, "/");
-		strcat(realm_service, realm);
+		strcat(realm_service, userinfo->realm);
 	}
 	if (strchr(realm_service, '@') != NULL) {
-		strcpy(strchr(realm_service, '@') + 1, realm);
+		strcpy(strchr(realm_service, '@') + 1, userinfo->realm);
 	} else {
 		strcat(realm_service, "@");
-		strcat(realm_service, realm);
+		strcat(realm_service, userinfo->realm);
 	}
 	if (options->debug) {
 		debug("authenticating '%s' to '%s'",
@@ -1830,7 +1828,8 @@ v5_get_creds(krb5_context ctx,
     defined(HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_FLAGS)
 	if ((options->armor) && (armor_ccache != NULL)) {
 		if (*armor_ccache == NULL) {
-			v5_setup_armor_ccache(ctx, options, armor_ccache);
+			v5_setup_armor_ccache(ctx, options, userinfo->realm,
+					      armor_ccache);
 		}
 		if (*armor_ccache != NULL) {
 			opt = NULL;
@@ -1876,9 +1875,10 @@ v5_get_creds(krb5_context ctx,
 	switch (i) {
 	case 0:
 		/* Flat-out success.  Initialize the ccache, store the creds to
-		 * it, and validate the TGT if it's actually a TGT, if we can. */
+		 * it, and validate the TGT if it's actually a TGT, and if we
+		 * have something we can use to do so. */
 		if (v5_ccache_has_tgt(ctx, *ccache,
-				      options->realm, NULL) != 0) {
+				      userinfo->realm, NULL) != 0) {
 			krb5_cc_initialize(ctx, *ccache,
 					   userinfo->principal_name);
 			krb5_cc_store_cred(ctx, *ccache, &creds);
@@ -1923,7 +1923,7 @@ v5_get_creds(krb5_context ctx,
 		 * get a password-changing ticket, which we should be able
 		 * to get with an expired password. */
 		snprintf(realm_service, sizeof(realm_service),
-			 PASSWORD_CHANGE_PRINCIPAL "@%s", realm);
+			 PASSWORD_CHANGE_PRINCIPAL "@%s", userinfo->realm);
 		if (options->debug) {
 			debug("key is expired. attempting to verify password "
 			      "by obtaining credentials for %s", realm_service);
@@ -2015,7 +2015,7 @@ v5_save(krb5_context ctx,
 
 	/* Ensure that we have credentials for saving. */
 	if (v5_ccache_has_tgt(ctx, stash->v5ccache,
-			      options->realm, NULL) != 0) {
+			      userinfo->realm, NULL) != 0) {
 		if (options->debug) {
 			debug("credentials not initialized");
 		}
