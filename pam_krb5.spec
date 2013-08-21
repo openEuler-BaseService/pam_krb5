@@ -6,7 +6,7 @@
 
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
-Version: 2.4.5
+Version: 2.4.6
 Release: 1%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz
 #Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
@@ -67,6 +67,13 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %{_mandir}/man8/*
 
 %changelog
+* Wed Aug 21 2013 Nalin Dahyabhai <nalin@redhat.com> - 2.4.6-1
+- handle ccache creation correctly for users who are mapped to principal
+  names in realms other than the default (#999604)
+
+* Sat Aug 03 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.4.5-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
+
 * Tue Apr 23 2013 Nalin Dahyabhai <nalin@redhat.com> - 2.4.5-1
 - update to 2.4.5
   - handle non-unique ccname templates
