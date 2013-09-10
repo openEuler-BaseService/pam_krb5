@@ -461,7 +461,7 @@ fi
 fi
 fi
 fi
-if $default_ccname_from_libkrb5=true ; then
+if $default_ccname_from_libkrb5 ; then
 	MAN_CCNAME_FROM_LIBKRB5=""
 	NO_MAN_CCNAME_FROM_LIBKRB5=".\\\" "
 else
