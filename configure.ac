@@ -367,6 +367,7 @@ AC_CHECK_MEMBERS(krb5_principal_data.name.name_string.val,,,[$headers])
 AC_CHECK_MEMBERS(krb5_principal_data.realm,,,[$headers])
 AC_CHECK_MEMBERS(krb5_ticket.client,,,[$headers])
 AC_CHECK_MEMBERS(krb5_ticket.enc_part2,,,[$headers])
+AC_CHECK_MEMBERS(krb5_ticket.ticket.transited.contents,,,[$headers])
 
 LIBSsave="$LIBS"
 AC_CHECK_FUNC(dlopen,,[AC_CHECK_LIB(dl,dlopen)])
@@ -598,6 +599,7 @@ AC_SUBST(TESTHOST)
 AC_SUBST(default_ccache_dir)
 AC_SUBST(default_ccname_template)
 
+AC_PROG_MKDIR_P
 AM_GNU_GETTEXT([external])
 AM_GNU_GETTEXT_VERSION([0.18])
 

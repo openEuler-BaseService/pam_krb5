@@ -131,19 +131,40 @@ main(int argc, const char **argv)
 			crit("error parsing AP-REQ: %s", v5_error_message(ret));
 			return ret;
 		}
+#ifdef HAVE_KRB5_TICKET_ENC_PART2
 		if (ticket->enc_part2 != NULL) {
 			printf("transited: \"");
 			transited = ticket->enc_part2->transited.tr_contents;
 			for (i = 0; i < transited.length; i++) {
-				if (transited.data[i] > 32 &&
-			            transited.data[i] < 126) {
-					printf("%c", transited.data[i]);
+				unsigned char u;
+				u = transited.data[i];
+				if (u > 32 && u < 126) {
+					printf("%c", u);
 				} else {
-					printf("\%02x", transited.data[i]);
+					printf("\%02x", u);
 				}
 			}
 			printf("\"\n");
 		}
+#endif
+#ifdef HAVE_KRB5_TICKET_TICKET_TRANSITED_CONTENTS
+		if (ticket->ticket.transited.contents.length > 0) {
+			printf("transited: \"");
+			for (i = 0;
+			     i < ticket->ticket.transited.contents.length;
+			     i++) {
+				unsigned char *pu, u;
+				pu = ticket->ticket.transited.contents.data;
+				u = pu[i];
+				if (u > 32 && u < 126) {
+					printf("%c", u);
+				} else {
+					printf("\%02x", u);
+				}
+			}
+			printf("\"\n");
+		}
+#endif
 		printf("OK (%s)\n", argv[1]);
 	} else {
 		ret = krb5_build_principal_ext(ctx, &mcreds.server,
