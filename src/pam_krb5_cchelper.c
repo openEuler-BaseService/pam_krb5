@@ -307,7 +307,9 @@ main(int argc, const char **argv)
 			/* Nothing we can do if this fails. */
 		} 
 #ifdef HAVE_KEYUTILS_H
-		if ((i == 0) && (strncmp(ccname, "KEYRING:", 8) == 0)) {
+		if ((i == 0) &&
+		   (strncmp(ccname, "KEYRING:", 8) == 0) &&
+		   (strchr(ccname + 8, ':') == NULL)) {
 			id = keyctl_search(KEY_SPEC_SESSION_KEYRING,
 					   "keyring", ccname + 8, 0);
 			if (id != (long) -1) {
@@ -500,7 +502,8 @@ main(int argc, const char **argv)
 			}
 		}
 #ifdef HAVE_KEYUTILS_H
-	} else if (strncmp(ccname, "KEYRING:", 8) == 0) {
+	} else if ((strncmp(ccname, "KEYRING:", 8) == 0) &&
+		   (strchr(ccname + 8, ':') == NULL)) {
 		if ((p = strstr(ccname, "XXXXXX")) != NULL) {
 			/* Check that we're in create mode, and create
 			 * a new keyring. */

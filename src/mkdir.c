@@ -55,10 +55,6 @@
 
 #include KRB5_H
 
-#ifdef HAVE_KEYUTILS_H
-#include <keyutils.h>
-#endif
-
 #ifdef USE_SELINUX
 #include <selinux/label.h>
 #include <selinux/selinux.h>
