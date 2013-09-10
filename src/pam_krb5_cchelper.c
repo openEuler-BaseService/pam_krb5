@@ -133,6 +133,22 @@ cc_resolve_and_initialize(krb5_context ctx, const char *ccname,
 	return err;
 }
 
+#ifdef HAVE_KEYUTILS_H
+static int
+is_original_keyring(const char *residual)
+{
+	if ((strncmp(residual, "thread:", 7) == 0) ||
+	    (strncmp(residual, "process:", 8) == 0) ||
+	    (strncmp(residual, "session:", 8) == 0) ||
+	    (strncmp(residual, "user:", 5) == 0) ||
+	    (strncmp(residual, "persistent:", 11) == 0)) {
+		return FALSE;
+	}
+	return TRUE;
+
+}
+#endif
+
 /* A simple (hopefully) helper which creates a file using mkstemp() and a
  * supplied pattern, attempts to set the ownership of that file, stores
  * whatever it reads from stdin in that file, and then prints the file's name
@@ -308,8 +324,8 @@ main(int argc, const char **argv)
 		} 
 #ifdef HAVE_KEYUTILS_H
 		if ((i == 0) &&
-		   (strncmp(ccname, "KEYRING:", 8) == 0) &&
-		   (strchr(ccname + 8, ':') == NULL)) {
+		    (strncmp(ccname, "KEYRING:", 8) == 0) &&
+		    (is_original_keyring(ccname + 8))) {
 			id = keyctl_search(KEY_SPEC_SESSION_KEYRING,
 					   "keyring", ccname + 8, 0);
 			if (id != (long) -1) {
@@ -503,7 +519,7 @@ main(int argc, const char **argv)
 		}
 #ifdef HAVE_KEYUTILS_H
 	} else if ((strncmp(ccname, "KEYRING:", 8) == 0) &&
-		   (strchr(ccname + 8, ':') == NULL)) {
+		   is_original_keyring(ccname + 8)) {
 		if ((p = strstr(ccname, "XXXXXX")) != NULL) {
 			/* Check that we're in create mode, and create
 			 * a new keyring. */
@@ -562,6 +578,9 @@ main(int argc, const char **argv)
 				}
 			}
 		}
+	} else if ((strncmp(ccname, "KEYRING:", 8) == 0) &&
+		   !is_original_keyring(ccname + 8)) {
+		/* Leave it for libkrb5. */
 #endif
 	} else {
 		/* Unsupported ccache type. */
