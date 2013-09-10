@@ -190,6 +190,9 @@ AC_CHECK_FUNCS(krb5_cc_support_switch)
 AC_CHECK_FUNCS(krb5_cc_cache_match)
 AC_CHECK_FUNCS(krb5_cc_new_unique)
 AC_CHECK_FUNCS(krb5_free_keytab_entry_contents)
+AC_CHECK_HEADERS(profile.h)
+AC_CHECK_FUNCS(krb5_get_profile profile_release)
+AC_CHECK_FUNCS(profile_get_string profile_release_string)
 LIBS="$LIBSsave"
 headers='
 #include <stdio.h>
@@ -444,6 +447,30 @@ AC_SUBST(SELINUX_LIBS)
 AC_ARG_ENABLE(default-realm,AC_HELP_STRING([--enable-default-realm=REALM],[last-ditch fallback realm (default is EXAMPLE.COM)]),default_realm=$enableval,default_realm=EXAMPLE.COM)
 AC_DEFINE_UNQUOTED(DEFAULT_REALM,"$default_realm",[Define to the realm name which will be used if no realm is given as a parameter and none is given in krb5.conf.])
 AC_MSG_RESULT([Using "$default_realm" as the default realm.])
+
+default_ccname_from_libkrb5=false
+if test x$ac_cv_header_profile_h = xyes ; then
+if test x$ac_cv_func_krb5_get_profile = xyes ; then
+if test x$ac_cv_func_profile_release = xyes ; then
+if test x$ac_cv_func_profile_get_string = xyes ; then
+if test x$ac_cv_func_profile_release_string = xyes ; then
+	AC_DEFINE(DEFAULT_CCNAME_FROM_LIBKRB5,1,[Define if we should read the default ccname from libkrb5.])
+	default_ccname_from_libkrb5=true
+fi
+fi
+fi
+fi
+fi
+if $default_ccname_from_libkrb5=true ; then
+	MAN_CCNAME_FROM_LIBKRB5=""
+	NO_MAN_CCNAME_FROM_LIBKRB5=".\\\" "
+else
+	MAN_CCNAME_FROM_LIBKRB5=".\\\" "
+	NO_MAN_CCNAME_FROM_LIBKRB5=""
+fi
+AC_SUBST(MAN_CCNAME_FROM_LIBKRB5)
+AC_SUBST(NO_MAN_CCNAME_FROM_LIBKRB5)
+AM_CONDITIONAL(DEFAULT_CCNAME_FROM_LIBKRB5,[$default_ccname_from_libkrb5])
 AC_ARG_ENABLE(default-ccache-dir,AC_HELP_STRING([--enable-default-ccache-dir=DIRECTORY],[default directory in which ccache files will be stored (default is /tmp)]),default_ccache_dir=$enableval,default_ccache_dir=/tmp)
 AC_DEFINE_UNQUOTED(DEFAULT_CCACHE_DIR,"$default_ccache_dir",[Define to the name of the directory in which ccache files will be stored by default.])
 AC_ARG_ENABLE(default-ccname-template,AC_HELP_STRING([--enable-default-ccname-template=TEMPLATE],[default location to store the user's session-specific credentials (default is CCACHE_DIR/krb5cc_%U_XXXXXX)]),default_ccname_template=$enableval,default_ccname_template=FILE:%d/krb5cc_%U_XXXXXX)

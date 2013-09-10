@@ -176,6 +176,7 @@ v5_user_info_subst(krb5_context ctx,
 {
 	char *ret;
 	int i, j, len;
+
 	ret = NULL;
 	len = strlen(template_value);
 	for (i = 0; template_value[i] != '\0'; i++) {
@@ -215,6 +216,39 @@ v5_user_info_subst(krb5_context ctx,
 				len += strlen(options->ccache_dir);
 				i++;
 				break;
+			case '{':
+				if (strncasecmp(template_value + i + 1,
+						"{uid}", 5) == 0) {
+#ifdef HAVE_LONG_LONG
+					len += sizeof(unsigned long long) * 4;
+#else
+					len += sizeof(unsigned long) * 4;
+#endif
+					i += 5;
+				} else
+				if (strncasecmp(template_value + i + 1,
+						"{euid}", 6) == 0) {
+#ifdef HAVE_LONG_LONG
+					len += sizeof(unsigned long long) * 4;
+#else
+					len += sizeof(unsigned long) * 4;
+#endif
+					i += 6;
+				} else
+				if (strncasecmp(template_value + i + 1,
+						"{userid}", 8) == 0) {
+#ifdef HAVE_LONG_LONG
+					len += sizeof(unsigned long long) * 4;
+#else
+					len += sizeof(unsigned long) * 4;
+#endif
+					i += 8;
+				} else
+				if (strncasecmp(template_value + i + 1,
+						"{username}", 10) == 0) {
+					len += strlen(user);
+					i += 10;
+				}
 				break;
 			default:
 			case '%':
@@ -279,6 +313,62 @@ v5_user_info_subst(krb5_context ctx,
 				strcat(ret, options->ccache_dir);
 				i++;
 				j = strlen(ret);
+				break;
+			case '{':
+				if (strncasecmp(template_value + i + 1,
+						"{uid}", 5) == 0) {
+#ifdef HAVE_LONG_LONG
+				sprintf(ret + j, "%llu",
+					options->user_check ?
+					(unsigned long long) userinfo->uid :
+					(unsigned long long) getuid());
+#else
+				sprintf(ret + j, "%lu",
+					options->user_check ?
+					(unsigned long) userinfo->uid :
+					(unsigned long) getuid());
+#endif
+					i += 5;
+					j = strlen(ret);
+				} else
+				if (strncasecmp(template_value + i + 1,
+						"{euid}", 6) == 0) {
+#ifdef HAVE_LONG_LONG
+				sprintf(ret + j, "%llu",
+					options->user_check ?
+					(unsigned long long) userinfo->uid :
+					(unsigned long long) geteuid());
+#else
+				sprintf(ret + j, "%lu",
+					options->user_check ?
+					(unsigned long) userinfo->uid :
+					(unsigned long) geteuid());
+#endif
+					i += 6;
+					j = strlen(ret);
+				} else
+				if (strncasecmp(template_value + i + 1,
+						"{userid}", 8) == 0) {
+#ifdef HAVE_LONG_LONG
+				sprintf(ret + j, "%llu",
+					options->user_check ?
+					(unsigned long long) userinfo->uid :
+					(unsigned long long) getuid());
+#else
+				sprintf(ret + j, "%lu",
+					options->user_check ?
+					(unsigned long) userinfo->uid :
+					(unsigned long) getuid());
+#endif
+					i += 8;
+					j = strlen(ret);
+				} else
+				if (strncasecmp(template_value + i + 1,
+						"{username}", 10) == 0) {
+					strcat(ret, user);
+					i += 10;
+					j = strlen(ret);
+				}
 				break;
 			case '%':
 				strcat(ret, "%");

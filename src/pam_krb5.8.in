@@ -98,7 +98,11 @@ are substituted:
 .br
 If the resulting template does not end with "XXXXXX", a suffix will be added to
 the configured value.
-The default setting is "\fI@default_ccname_template@\fR".
+@MAN_CCNAME_FROM_LIBKRB5@If not set, the module attempts to read the default
+@MAN_CCNAME_FROM_LIBKRB5@used by libkrb5 from \fBkrb5.conf\fP(5), and if one
+@MAN_CCNAME_FROM_LIBKRB5@is not found, the default is
+@MAN_CCNAME_FROM_LIBKRB5@\fI@default_ccname_template@\fR".
+@NO_MAN_CCNAME_FROM_LIBKRB5@The default is \fI@default_ccname_template@\fR".
 
 .IP chpw_prompt
 tells pam_krb5.so to allow expired passwords to be changed during

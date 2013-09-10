@@ -51,6 +51,10 @@
 
 #include KRB5_H
 
+#ifdef HAVE_PROFILE_H
+#include <profile.h>
+#endif
+
 #include "items.h"
 #include "log.h"
 #include "options.h"
@@ -322,7 +326,7 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 	struct _pam_krb5_options *options;
 	int try_first_pass, use_first_pass, initial_prompt, subsequent_prompt;
 	int i;
-	char *default_realm, **list;
+	char *default_realm, *default_ccname, **list;
 	char *service;
 
 	options = malloc(sizeof(struct _pam_krb5_options));
@@ -748,10 +752,34 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 	if (options->debug && options->ccache_dir) {
 		debug("ccache dir: %s", options->ccache_dir);
 	}
+	default_ccname = NULL;
+#ifdef DEFAULT_CCNAME_FROM_LIBKRB5
+	{
+		profile_t profile;
+		if (krb5_get_profile(ctx, &profile) == 0) {
+			char *profile_value = NULL;
+			if (profile_get_string(profile,
+					       "libdefaults",
+					       "default_ccache_name",
+					       NULL,
+					       NULL,
+					       &profile_value) == 0) {
+				if (strlen(profile_value) > 0) {
+					default_ccname = xstrdup(profile_value);
+				}
+				profile_release_string(profile_value);
+			}
+			profile_release(profile);
+		}
+	}
+#endif
 	options->ccname_template = option_s(argc, argv,
 					    ctx, options->realm,
 					    "ccname_template",
+					    default_ccname ?
+					    default_ccname :
 					    DEFAULT_CCNAME_TEMPLATE);
+	xstrfree(default_ccname);
 	if (strlen(options->ccname_template) == 0) {
 		xstrfree(options->ccname_template);
 		options->ccname_template = xstrdup(DEFAULT_CCNAME_TEMPLATE);
