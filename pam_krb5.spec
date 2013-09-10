@@ -6,7 +6,7 @@
 
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
-Version: 2.4.6
+Version: 2.4.7
 Release: 1%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz
 #Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
@@ -30,7 +30,7 @@ configure_flags=
 %if 0%{?fedora} > 17
 configure_flags=--enable-default-ccname-template=DIR:/run/user/%%U/krb5cc_XXXXXX
 %endif
-%if 0%{?fedora} > 18 || 0%{?rhel} > 6
+%if 0%{?fedora} > 18 && 0%{?fedora} < 21
 configure_flags=--enable-default-ccname-template=DIR:/run/user/%%U/krb5cc
 %endif
 %configure --libdir=/%{security_parent_dir} \
@@ -67,6 +67,18 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %{_mandir}/man8/*
 
 %changelog
+* Tue Sep 10 2013 Nalin Dahyabhai <nalin@redhat.com> - 2.4.7-1
+- drop some no-longer-necessary code to cede ownership of keyring ccaches
+  to an unprivileged user at login-time to work better with upcoming changes
+  to libkrb5's keyring ccache support (libkrb5: #991148, this one's #1005376)
+- if we don't have a ccname_template, if we're built against a libkrb5 that
+  provides interfaces for reading its configuration files, try to read the
+  default_ccache_name value from the [libdefaults] section before falling
+  back to the default we've set at compile-time (#more of #1005376)
+- stop specifying a default ccache location at compile-time on F21 and later,
+  to make our unconfigured default better line up with libkrb5's unconfigured
+  default
+
 * Wed Aug 21 2013 Nalin Dahyabhai <nalin@redhat.com> - 2.4.6-1
 - handle ccache creation correctly for users who are mapped to principal
   names in realms other than the default (#999604)
