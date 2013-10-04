@@ -1,3 +1,4 @@
+- 2.4.8: * handle when the [libdefaults] default_ccache_name setting is not set
 - 2.4.7: * try to read the [libdefaults] default_ccache_name setting, and
 	   handle the %{uid}, %{euid}, %{userid}, and %{username} substitutions
 	 * stop trying to fix ownership on keyring ccaches, since we stopped

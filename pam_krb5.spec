@@ -6,7 +6,7 @@
 
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
-Version: 2.4.7
+Version: 2.4.8
 Release: 1%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz
 #Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
@@ -67,6 +67,9 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %{_mandir}/man8/*
 
 %changelog
+* Fri Oct  4 2013 Nalin Dahyabhai <nalin@redhat.com> - 2.4.8-1
+- properly handle cases where default_ccache_name isn't set (#1015479)
+
 * Tue Sep 10 2013 Nalin Dahyabhai <nalin@redhat.com> - 2.4.7-1
 - drop some no-longer-necessary code to cede ownership of keyring ccaches
   to an unprivileged user at login-time to work better with upcoming changes

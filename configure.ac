@@ -1,4 +1,4 @@
-AC_INIT(pam_krb5,2.4.7)
+AC_INIT(pam_krb5,2.4.8)
 AC_PREREQ(2.59)
 AM_INIT_AUTOMAKE([foreign])
 AC_PROG_CC

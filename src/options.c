@@ -764,10 +764,13 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 					       NULL,
 					       NULL,
 					       &profile_value) == 0) {
-				if (strlen(profile_value) > 0) {
-					default_ccname = xstrdup(profile_value);
+				if (profile_value != NULL) {
+					if (strlen(profile_value) > 0) {
+						default_ccname =
+							xstrdup(profile_value);
+					}
+					profile_release_string(profile_value);
 				}
-				profile_release_string(profile_value);
 			}
 			profile_release(profile);
 		}
