@@ -30,7 +30,7 @@ configure_flags=
 %if 0%{?fedora} > 17
 configure_flags=--enable-default-ccname-template=DIR:/run/user/%%U/krb5cc_XXXXXX
 %endif
-%if 0%{?fedora} > 18 && 0%{?fedora} < 21
+%if 0%{?fedora} > 18 && 0%{?fedora} < 20
 configure_flags=--enable-default-ccname-template=DIR:/run/user/%%U/krb5cc
 %endif
 %configure --libdir=/%{security_parent_dir} \
@@ -69,6 +69,9 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %changelog
 * Fri Oct  4 2013 Nalin Dahyabhai <nalin@redhat.com> - 2.4.8-1
 - properly handle cases where default_ccache_name isn't set (#1015479)
+
+* Fri Sep 13 2013 Nalin Dahyabhai <nalin@redhat.com> - 2.4.7-2
+- pull the newer F21 defaults back to F20 (sgallagh)
 
 * Tue Sep 10 2013 Nalin Dahyabhai <nalin@redhat.com> - 2.4.7-1
 - drop some no-longer-necessary code to cede ownership of keyring ccaches
