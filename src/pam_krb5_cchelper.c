@@ -201,8 +201,15 @@ main(int argc, const char **argv)
 
 	/* We'll need a writable string for use as the template. */
 	ccname = xstrdup(argv[2]);
-	if ((ccname == NULL) || (strchr(ccname, ':') == NULL)) {
+	if (ccname == NULL) {
 		return 4;
+	}
+	if (strchr(ccname, ':') == NULL) {
+		p = malloc(strlen(ccname) + 6);
+		if (p != NULL) {
+			snprintf(p, strlen(ccname) + 6, "FILE:%s", ccname);
+			ccname = p;
+		}
 	}
 	workccname = NULL;
 
