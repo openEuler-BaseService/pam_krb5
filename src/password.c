@@ -1,5 +1,5 @@
 /*
- * Copyright 2003,2004,2005,2006,2007,2008,2009,2010,2011 Red Hat, Inc.
+ * Copyright 2003,2004,2005,2006,2007,2008,2009,2010,2011,2014 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -103,7 +103,8 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 		_pam_krb5_free_ctx(ctx);
 		return PAM_SERVICE_ERR;
 	}
-	options = _pam_krb5_options_init(pamh, argc, argv, ctx);
+	options = _pam_krb5_options_init(pamh, argc, argv, ctx,
+					 _pam_krb5_option_role_chauthtok);
 	if (options == NULL) {
 		warn("error parsing options (shouldn't happen)");
 		v5_free_get_init_creds_opt(ctx, gic_options);

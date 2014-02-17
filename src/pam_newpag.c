@@ -1,5 +1,5 @@
 /*
- * Copyright 2006 Red Hat, Inc.
+ * Copyright 2006,2008,2012,2014 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -76,7 +76,8 @@ maybe_setpag(const char *fn, pam_handle_t *pamh, int flags,
 	}
 
 	/* Read our options. */
-	options = _pam_krb5_options_init(pamh, argc, argv, ctx);
+	options = _pam_krb5_options_init(pamh, argc, argv, ctx,
+					 _pam_krb5_option_role_general);
 	if (options == NULL) {
 		warn("error parsing options (shouldn't happen)");
 		_pam_krb5_free_ctx(ctx);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013 Red Hat, Inc.
+ * Copyright 2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -321,7 +321,8 @@ free_l(char **l)
 struct _pam_krb5_options *
 _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 		       PAM_KRB5_MAYBE_CONST char **argv,
-		       krb5_context ctx)
+		       krb5_context ctx,
+		       enum _pam_krb5_option_role role)
 {
 	struct _pam_krb5_options *options;
 	int try_first_pass, use_first_pass, initial_prompt, subsequent_prompt;
@@ -622,7 +623,7 @@ _pam_krb5_options_init(pam_handle_t *pamh, int argc,
 	/* private option */
 	options->use_first_pass = 1;
 	options->use_second_pass = 1;
-	options->use_third_pass = 1;
+	options->use_third_pass = (role != _pam_krb5_option_role_chauthtok);
 	options->permit_password_callback = 0;
 	use_first_pass = option_b(argc, argv,
 				  ctx, options->realm,

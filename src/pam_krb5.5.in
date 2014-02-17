@@ -1,4 +1,4 @@
-.TH pam_krb5 5 2013/09/21 "@OS_DISTRIBUTION@" "System Administrator's Manual"
+.TH pam_krb5 5 2014/02/11 "@OS_DISTRIBUTION@" "System Administrator's Manual"
 
 .SH NAME
 pam_krb5 \- Kerberos 5 authentication
@@ -220,7 +220,8 @@ controls whether or not pam_krb5.so will allow the Kerberos library to ask
 the user for a password or other information, if the previously-entered
 password is somehow insufficient for authenticating the user.  This is
 commonly needed to allow a user to log in when that user's password has
-expired.  The default is \fBtrue\fR.
+expired.  The default is \fBfalse\fR during password changes, and
+\fBtrue\fR otherwise.
 
 If the calling application does not properly support PAM conversations
 (possibly due to limitations of a network protocol which it is serving),

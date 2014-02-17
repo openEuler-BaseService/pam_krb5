@@ -1,5 +1,5 @@
 /*
- * Copyright 2003,2004,2005,2006,2007,2008,2009,2011 Red Hat, Inc.
+ * Copyright 2003,2004,2005,2006,2007,2008,2009,2011,2014 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -91,7 +91,8 @@ _pam_krb5_open_session(pam_handle_t *pamh, int flags,
 	}
 
 	/* Read our options. */
-	options = _pam_krb5_options_init(pamh, argc, argv, ctx);
+	options = _pam_krb5_options_init(pamh, argc, argv, ctx,
+					 _pam_krb5_option_role_general);
 	if (options == NULL) {
 		warn("error parsing options (shouldn't happen)");
 		_pam_krb5_free_ctx(ctx);
@@ -288,7 +289,8 @@ _pam_krb5_close_session(pam_handle_t *pamh, int flags,
 	}
 
 	/* Read our options. */
-	options = _pam_krb5_options_init(pamh, argc, argv, ctx);
+	options = _pam_krb5_options_init(pamh, argc, argv, ctx,
+					 _pam_krb5_option_role_general);
 	if (options == NULL) {
 		_pam_krb5_free_ctx(ctx);
 		return PAM_SERVICE_ERR;
