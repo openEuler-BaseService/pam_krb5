@@ -1,5 +1,5 @@
 /*
- * Copyright 2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013 Red Hat, Inc.
+ * Copyright 2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1987,6 +1987,7 @@ v5_get_creds(krb5_context ctx,
 				break;
 			}
 		}
+		krb5_free_cred_contents(ctx, &creds);
 		return PAM_SUCCESS;
 		break;
 	case KRB5KDC_ERR_CLIENT_REVOKED:
