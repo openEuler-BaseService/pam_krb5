@@ -6,7 +6,7 @@
 
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
-Version: 2.4.8
+Version: 2.4.9
 Release: 1%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz
 #Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
@@ -67,6 +67,12 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %{_mandir}/man8/*
 
 %changelog
+* Thu Mar  6 2014 Nalin Dahyabhai <nalin@redhat.com> - 2.4.9-1
+- fix a memory leak when obtaining credentials (static analysis)
+- change the default for subsequent_prompt to be false when the module is
+  called to change passwords, so that we only prompt for passwords when
+  we're called to change passwords (#1063933)
+
 * Fri Oct  4 2013 Nalin Dahyabhai <nalin@redhat.com> - 2.4.8-1
 - properly handle cases where default_ccache_name isn't set (#1015479)
 

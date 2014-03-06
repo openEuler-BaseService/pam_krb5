@@ -1,3 +1,6 @@
+- 2.4.9: * fix a memory leak when acquiring creds
+	 * change the default for subsequent_prompt to be false when the
+	   module is called to change passwords (#1063933)
 - 2.4.8: * handle when the [libdefaults] default_ccache_name setting is not set
 - 2.4.7: * try to read the [libdefaults] default_ccache_name setting, and
 	   handle the %{uid}, %{euid}, %{userid}, and %{username} substitutions
