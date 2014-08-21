@@ -130,6 +130,10 @@ tells pam_krb5.so to use Kerberos credentials provided by the calling
 application during session setup.
 @MAN_AFS@This is most often useful for obtaining AFS tokens.
 
+@MAN_AFS@.IP "ignore_afs=\fItrue\fR|\fIfalse\fR|\fIservice [...]\fR"
+@MAN_AFS@tells pam_krb5.so to completely ignore the presence of AFS, preventing
+@MAN_AFS@any attempts to obtain new tokens on behalf of the calling application.
+@MAN_AFS@
 .IP ignore_k5login
 specifies that pam_krb5 should skip checking the user's .k5login
 file to verify that the principal name of the client being authenticated is
