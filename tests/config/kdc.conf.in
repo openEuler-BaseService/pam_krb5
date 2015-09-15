@@ -11,7 +11,7 @@
   dict_file = /usr/share/dict/words
   database_name = @TESTDIR@/kdc/principal
   key_stash_file = @TESTDIR@/kdc/stash_file
-  supported_enctypes = aes256-cts:normal rc4-hmac:none des3-cbc-sha1:normal des-cbc-crc:normal
+  supported_enctypes = aes256-cts:normal rc4-hmac:normal des3-cbc-sha1:normal des-cbc-crc:normal
   kpasswd_port = 8802
   kadmind_port = 8803
  }
