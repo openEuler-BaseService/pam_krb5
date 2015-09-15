@@ -9,6 +9,9 @@ echo "Running tests using test principal \"$test_principal\"".
 echo "Running tests using KDC on \"$test_host\"".
 getent hosts "$test_host"
 
+# Avoid leaking the keyring to tests if we can.
+keyctl new_session > /dev/null 2> /dev/null
+
 # Tell the caller where the binaries are.
 test -n "$krb5kdc" && echo Using krb5kdc binary: $krb5kdc
 test -n "$kpasswdd" && echo Using kpasswdd binary: $kpasswdd
