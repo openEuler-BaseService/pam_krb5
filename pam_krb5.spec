@@ -6,7 +6,7 @@
 
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
-Version: 2.4.9
+Version: 2.4.10
 Release: 1%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz
 #Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
@@ -67,6 +67,10 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %{_mandir}/man8/*
 
 %changelog
+* Tue Sep 15 2015 Nalin Dahyabhai <nalin@redhat.com> - 2.4.10-1
+- don't close descriptors when we fork but don't exec to call kuserok(),
+  because that can really confuse libraries that won't know we did that
+
 * Thu Mar  6 2014 Nalin Dahyabhai <nalin@redhat.com> - 2.4.9-1
 - fix a memory leak when obtaining credentials (static analysis)
 - change the default for subsequent_prompt to be false when the module is
