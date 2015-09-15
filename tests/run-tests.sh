@@ -33,10 +33,12 @@ for test in ${@:-"$testdir"/0*} ; do
 	kpasswdport=`expr $kadminport + 1`
 	if test -s $test/stdout.expected ; then
 		if ! cmp -s $test/stdout.expected $test/stdout ; then
-			echo ""
-			diff -u $test/stdout.expected $test/stdout | sed "s|$testdir/||g"
-			echo "Test $test stdout unexpected error!"
-			exit 1
+			if ! test -s $test/stdout.expected.2 || ! cmp -s $test/stdout.expected.2 $test/stdout ; then
+				echo ""
+				diff -u $test/stdout.expected $test/stdout | sed "s|$testdir/||g"
+				echo "Test $test stdout unexpected error!"
+				exit 1
+			fi
 		fi
 		if ! cmp -s $test/stderr.expected $test/stderr ; then
 			echo ""
