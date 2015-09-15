@@ -10,9 +10,14 @@ GITTAG=$(PACKAGE)-$(VERSION)
 distdir=$(GITTAG)
 DISTCLEANFILES = tests/kdc/krb5cc_* tests/kdc/tkt*
 
-tag:
+all-gmo:
+	zanata-cli pull -B
+	cd po ; for po in *.po ; do make `basename $$po .po`.gmo ; done
+	$(MAKE) -C po update-po
+	zanata-cli push -B
+
+tag: all-gmo
 	test $(GITTAG) = $(PACKAGE)-$(SVERSION)
-	tx pull
 	git tag $(GITTAG)
 
 force-tag:
