@@ -1,5 +1,5 @@
 /*
- * Copyright 2008,2009,2010,2012 Red Hat, Inc.
+ * Copyright 2008,2009,2010,2012,2015 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -119,14 +119,6 @@ _pam_krb5_kuserok(krb5_context ctx,
 	case 0:
 		/* We're the child. */
 		close(outpipe[0]);
-		for (i = 0; i < sysconf(_SC_OPEN_MAX); i++) {
-			if ((i != outpipe[1]) &&
-			    (i != STDIN_FILENO) &&
-			    (i != STDOUT_FILENO) &&
-			    (i != STDERR_FILENO)) {
-				close(i);
-			}
-		}
 		setgroups(0, NULL);
 		/* Now, attempt to assume the desired uid/gid pair.  Note that
 		 * if we're not root, this is allowed to fail. */
