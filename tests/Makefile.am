@@ -63,4 +63,5 @@ EXTRA_DIST = run-tests.sh testenv.sh.in pwhelp.txt \
 	026-options-ccpattern-global/stdout.expected
 
 check: all testenv.sh
+	test -x ./tools/kd_tests && ./tools/kd_tests
 	$(srcdir)/run-tests.sh

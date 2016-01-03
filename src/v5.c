@@ -619,6 +619,16 @@ v5_creds_check_initialized_pwc(krb5_context ctx, krb5_creds *creds)
 		(v5_principal_compare_no_realm(ctx, creds->server,
 					       PASSWORD_CHANGE_PRINCIPAL) == 0)) ? 0 : 1;
 }
+krb5_keyblock *
+v5_creds_key(krb5_creds *creds)
+{
+	return &creds->keyblock;
+}
+int
+v5_creds_key_type(krb5_creds *creds)
+{
+	return creds->keyblock.enctype;
+}
 int
 v5_creds_key_length(krb5_creds *creds)
 {
@@ -656,6 +666,16 @@ v5_creds_check_initialized_pwc(krb5_context ctx, krb5_creds *creds)
 	return ((creds->session.keyvalue.length > 0) &&
 		(v5_principal_compare_no_realm(ctx, creds->server,
 					       PASSWORD_CHANGE_PRINCIPAL) == 0)) ? 0 : 1;
+}
+krb5_keyblock *
+v5_creds_key(krb5_creds *creds)
+{
+	return &creds->session;
+}
+int
+v5_creds_key_type(krb5_creds *creds)
+{
+	return creds->session.keytype;
 }
 int
 v5_creds_key_length(krb5_creds *creds)

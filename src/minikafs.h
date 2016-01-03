@@ -1,5 +1,5 @@
 /*
- * Copyright 2004,2005 Red Hat, Inc.
+ * Copyright 2004,2005,2016 Red Hat, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -64,5 +64,14 @@ int minikafs_log(krb5_context ctx, krb5_ccache ccache,
 		 struct _pam_krb5_options *options,
 		 const char *cell, const char *hint_principal,
 		 uid_t uid, const int *methods, int n_methods);
+
+/* Not really for external use, but exported so that we can unit test them. */
+krb5_boolean minikafs_key_is_weak(const unsigned char *key);
+krb5_boolean minikafs_r2k_is_identity(krb5_context ctx, krb5_enctype etype);
+int minikafs_hmac_md5(krb5_context ctx, const unsigned char *kd, size_t kd_size,
+		      krb5_data *in, krb5_data *out);
+int minikafs_kd_derive(krb5_context ctx, const unsigned char *kd,
+		       size_t kd_size, unsigned char *key);
+void minikafs_des3_k2r(const unsigned char *k, unsigned char *r);
 
 #endif

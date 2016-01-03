@@ -113,6 +113,8 @@ int v5_set_principal_realm(krb5_context ctx, krb5_principal *principal,
 
 int v5_cc_retrieve_match(void);
 
+krb5_keyblock *v5_creds_key(krb5_creds *creds);
+int v5_creds_key_type(krb5_creds *creds);
 int v5_creds_key_length(krb5_creds *creds);
 const unsigned char *v5_creds_key_contents(krb5_creds *creds);
 krb5_flags v5_creds_get_flags(krb5_creds *creds);

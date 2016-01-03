@@ -1,5 +1,5 @@
 /*
- * Copyright 2004,2005,2006,2007,2008,2009,2010 Red Hat, Inc.
+ * Copyright 2004,2005,2006,2007,2008,2009,2010,2012,2014,2015,2016 Red Hat, Inc.
  * Copyright 2004 Kungliga Tekniska Högskolan
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
   *   http://grand.central.org/numbers/pioctls.html
   *   http://www.afsig.se/afsig/space/rxgk-client-integration
   *   auth/afs_token.xg
+  *   http://lists.openafs.org/pipermail/afs3-standardization/2013-July/002738.html
   */
 
 #include "../config.h"
@@ -570,25 +571,352 @@ minikafs_settoken(const void *ticket, uint32_t ticket_size,
 	return i;
 }
 
+/* Check if a 64-bit key is one of the known weak or semi-weak DES keys. */
+krb5_boolean
+minikafs_key_is_weak(const unsigned char *key)
+{
+	unsigned int i, j;
+	const unsigned char weak[][8] = {
+		/* weak keys */
+		{0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01},
+		{0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe},
+		{0xe0, 0xe0, 0xe0, 0xe0, 0xf1, 0xf1, 0xf1, 0xf1},
+		{0x1f, 0x1f, 0x1f, 0x1f, 0x0e, 0x0e, 0x0e, 0x0e},
+		/* semi-weak keys */
+		{0x01, 0x1f, 0x01, 0x1f, 0x01, 0x0e, 0x01, 0x0e},
+		{0x1f, 0x01, 0x1f, 0x01, 0x0e, 0x01, 0x0e, 0x01},
+		{0x01, 0xe0, 0x01, 0xe0, 0x01, 0xf1, 0x01, 0xf1},
+		{0xe0, 0x01, 0xe0, 0x01, 0xf1, 0x01, 0xf1, 0x01},
+		{0x01, 0xfe, 0x01, 0xfe, 0x01, 0xfe, 0x01, 0xfe},
+		{0xfe, 0x01, 0xfe, 0x01, 0xfe, 0x01, 0xfe, 0x01},
+		{0x1f, 0xe0, 0x1f, 0xe0, 0x0e, 0xf1, 0x0e, 0xf1},
+		{0xe0, 0x1f, 0xe0, 0x1f, 0xf1, 0x0e, 0xf1, 0x0e},
+		{0x1f, 0xfe, 0x1f, 0xfe, 0x0e, 0xfe, 0x0e, 0xfe},
+		{0xfe, 0x1f, 0xfe, 0x1f, 0xfe, 0x0e, 0xfe, 0x0e},
+		{0xe0, 0xfe, 0xe0, 0xfe, 0xf1, 0xfe, 0xf1, 0xfe},
+		{0xfe, 0xe0, 0xfe, 0xe0, 0xfe, 0xf1, 0xfe, 0xf1},
+	};
+	for (i = 0; i < sizeof(weak) / sizeof(weak[0]); i++) {
+		/* We could use memcmp() to do this, but since the lowest bit
+		 * is a parity bit, and the values we're checking against might
+		 * have them set correctly, or not, do it bytewise. */
+		for (j = 0; j < 8; j++) {
+			if ((key[j] & 0xfe) != (weak[i][j] & 0xfe)) {
+				break;
+			}
+		}
+		/* All eight bytes match up, more or less, so it's weak. */
+		if (j == 8) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/* Check if the random-to-key derivation for a given enctype is just "use it
+ * as-is", because that and DES-style key-to-random is all we know how to do. */
+krb5_boolean
+minikafs_r2k_is_identity(krb5_context ctx, krb5_enctype etype)
+{
+	int result = -1;
+	size_t kbytes, klength;
+	krb5_data rdata;
+	krb5_keyblock rkey, key;
+
+	memset(&rkey, 0, sizeof(rkey));
+	memset(&key, 0, sizeof(key));
+	memset(&rdata, 0, sizeof(rdata));
+	kbytes = 0;
+	klength = 0;
+	if (krb5_c_keylengths(ctx, etype, &kbytes, &klength) != 0) {
+		result = 0;
+		goto done;
+	}
+	if ((klength == 0) || (kbytes != klength)) {
+		result = 0;
+		goto done;
+	}
+	key.contents = malloc(klength);
+	key.length = klength;
+	key.enctype = etype;
+	if (key.contents == NULL) {
+		result = 0;
+		goto done;
+	}
+	if (krb5_c_make_random_key(ctx, etype, &rkey) != 0) {
+		result = 0;
+		goto done;
+	}
+	rdata.data = (char *) rkey.contents;
+	rdata.length = rkey.length;
+	if (krb5_c_random_to_key(ctx, etype, &rdata, &key) != 0) {
+		result = 0;
+		goto done;
+	}
+	result = (rdata.length == key.length) && (memcmp(rdata.data, key.contents, key.length) == 0);
+done:
+	if (rkey.contents != NULL) {
+		krb5_free_keyblock_contents(ctx, &rkey);
+	}
+	free(key.contents);
+	return result == 1;
+}
+
+/* The basic building block of our KD PRF - compute an MD5 HMAC over "in" using
+ * "kd" as the key. */
+int
+minikafs_hmac_md5(krb5_context ctx, const unsigned char *kd, size_t kd_size,
+		  krb5_data *in, krb5_data *out)
+{
+	int ret = -1;
+	unsigned int i;
+	krb5_data input;
+	krb5_checksum kcksum, icksum, ocksum;
+	unsigned char *inner = NULL, *outer = NULL, *kd_tmp = NULL;
+	const unsigned char *kd_use = NULL;
+	const size_t ibsize = 64, obsize = 16;
+
+	memset(out, 0, sizeof(*out));
+	memset(&input, 0, sizeof(input));
+	memset(&kcksum, 0, sizeof(kcksum));
+	memset(&icksum, 0, sizeof(icksum));
+	memset(&ocksum, 0, sizeof(ocksum));
+	/* Hash down the key, if we need to do so in order to make it fit. */
+	if (kd_size > ibsize) {
+		input.data = (char *) kd;
+		input.length = kd_size;
+		if (krb5_c_make_checksum(ctx, CKSUMTYPE_RSA_MD5, NULL, 0,
+					 &input, &kcksum) != 0) {
+			goto done;
+		}
+		kd_tmp = malloc(kcksum.length);
+		if (kd_tmp == NULL) {
+			goto done;
+		}
+		memcpy(kd_tmp, kcksum.contents, kcksum.length);
+		kd_use = (const unsigned char *) kd_tmp;
+		kd_size = kcksum.length;
+	} else {
+		kd_use = kd;
+	}
+	/* Set up the inner buffer: the key with padding, plus the text. */
+	inner = malloc(ibsize + in->length);
+	if (inner == NULL) {
+		goto done;
+	}
+	memset(inner, 0, ibsize + in->length);
+	memcpy(inner, kd_use, kd_size);
+	for (i = 0; i < ibsize; i++) {
+		inner[i] ^= 0x36; /* ipad */
+	}
+	memcpy(inner + ibsize, in->data, in->length);
+	/* Inner hash. */
+	input.data = (char *) inner;
+	input.length = ibsize + in->length;
+	if (krb5_c_make_checksum(ctx, CKSUMTYPE_RSA_MD5, NULL, 0, &input,
+				 &icksum) != 0) {
+		goto done;
+	}
+	/* Check that we were right about sizes. */
+	if (icksum.length != obsize) {
+		goto done;
+	}
+	/* Set up the outer buffer: the key with padding, plus the inner result. */
+	outer = malloc(ibsize + obsize);
+	if (outer == NULL) {
+		goto done;
+	}
+	memset(outer, 0, ibsize + obsize);
+	memcpy(outer, kd_use, kd_size);
+	memcpy(outer + ibsize, icksum.contents, icksum.length);
+	for (i = 0; i < ibsize; i++) {
+		outer[i] ^= 0x5c; /* opad */
+	}
+	/* Now the outer hash. */
+	input.data = (char *) outer;
+	input.length = ibsize + obsize;
+	if (krb5_c_make_checksum(ctx, CKSUMTYPE_RSA_MD5, NULL, 0, &input,
+				 &ocksum) != 0) {
+		goto done;
+	}
+	/* Copy the result out. */
+	if ((out->data == NULL) || (out->length < ocksum.length)) {
+		free(out->data);
+		out->data = malloc(ocksum.length);
+		if (out->data == NULL) {
+			goto done;
+		}
+	}
+	memcpy(out->data, ocksum.contents, ocksum.length);
+	out->length = ocksum.length;
+	ret = 0;
+done:
+	if (kcksum.contents != NULL) {
+		krb5_free_checksum_contents(ctx, &kcksum);
+	}
+	if (icksum.contents != NULL) {
+		krb5_free_checksum_contents(ctx, &icksum);
+	}
+	if (ocksum.contents != NULL) {
+		krb5_free_checksum_contents(ctx, &ocksum);
+	}
+	free(inner);
+	free(outer);
+	free(kd_tmp);
+	return ret;
+}
+
+/* Derive a 64-bit key from a larger one, per
+ * http://lists.openafs.org/pipermail/afs3-standardization/2013-July/002738.html
+ * Given original randomly-generated bits that we've recovered from a key,
+ * generate an MD5 HMAC using the key as the key, over a plaintext included in
+ * the document.  Then use the initial portion of the HMAC value as random
+ * input for generating a DES key. */
+int
+minikafs_kd_derive(krb5_context ctx, const unsigned char *kd, size_t kd_size,
+		   unsigned char *key)
+{
+	krb5_data in, out;
+	unsigned char indata[11] = {0, 'r', 'x', 'k', 'a', 'd', 0, 0, 0, 0, 64};
+	unsigned int i, j, k, p;
+
+	memset(&in, 0, sizeof(in));
+	in.data = (char *) indata;
+	in.length = 11;
+	for (i = 1; i < 256; i++) {
+		indata[0] = i;
+		memset(&out, 0, sizeof(out));
+		if (minikafs_hmac_md5(ctx, kd, kd_size, &in, &out) == 0) {
+			if (out.length < 8) {
+				return -1;
+			}
+			for (j = 0; j < 8; j++) {
+				key[j] = out.data[j];
+				key[j] &= 0xfe;
+				p = 1;
+				for (k = 1; k < 8; k++) {
+					p ^= ((key[j] >> k) & 1);
+				}
+				key[j] |= p;
+			}
+			if (!minikafs_key_is_weak(key)) {
+				return 0;
+			}
+			free(out.data);
+		}
+	}
+	return -1;
+}
+
+/* Undo the random-to-key transformation for triple-DES keys.
+ * The transformation collects the lower bits of the seven random bytes and
+ * maps them into the eighth byte, the first byte's in bit 1, the second byte's
+ * in bit 2, and so on, and replaces them with parity bits, including bit 0 in
+ * the last byte of the key.
+ * Undoing that means replacing the parity (low) bit in the first seven bytes
+ * with their corresponding original random bits from the last byte in the key
+ * block. */
+void
+minikafs_des3_k2r(const unsigned char *k, unsigned char *r)
+{
+	unsigned int i, j;
+	unsigned char p, b;
+
+	for (i = 0; i < 3; i++) {
+		for (j = 0; j < 7; j++) {
+			b = k[i * 8 + j];
+			p = (k[i * 8 + 7]) >> (j + 1);
+			r[i * 7 + j] = (b & 0xfe) | (p & 1);
+		}
+	}
+}
+
 /* Stuff the ticket and key from a credentials structure into the kernel. */
 static int
-minikafs_5settoken(const char *cell, krb5_creds *creds, uid_t uid)
+minikafs_5settoken(krb5_context ctx, const char *cell, krb5_creds *creds,
+		   uid_t uid)
 {
-	/* Assume that the only 8-byte keys are DES keys, and sanity-check. */
-	if (v5_creds_key_length(creds) != 8) {
+	unsigned char key[8], key3[21];
+	const unsigned char *kd = NULL, *tmp = NULL;
+	size_t kd_size = 0;
+	int ret;
+
+	/* How we do this depends on the session key type. */
+	switch (v5_creds_key_type(creds)) {
+	/* Keys of these types are not suitable. */
+	case ENCTYPE_NULL:
+	case ENCTYPE_DES_CBC_RAW:
+	case ENCTYPE_DES3_CBC_RAW:
+	case ENCTYPE_DES_HMAC_SHA1:
+#ifdef ENCTYPE_DSA_SHA1_CMS
+	case ENCTYPE_DSA_SHA1_CMS:
+#endif
+#ifdef ENCTYPE_MD5_RSA_CMS
+	case ENCTYPE_MD5_RSA_CMS:
+#endif
+#ifdef ENCTYPE_SHA1_RSA_CMS
+	case ENCTYPE_SHA1_RSA_CMS:
+#endif
+#ifdef ENCTYPE_RC2_CBC_ENV
+	case ENCTYPE_RC2_CBC_ENV:
+#endif
+#ifdef ENCTYPE_RSA_ENV
+	case ENCTYPE_RSA_ENV:
+#endif
+#ifdef ENCTYPE_RSA_ES_OAEP_ENV
+	case ENCTYPE_RSA_ES_OAEP_ENV:
+#endif
+#ifdef ENCTYPE_DES3_CBC_ENV
+	case ENCTYPE_DES3_CBC_ENV:
+#endif
+		/* Key not random, per draft-kaduk-afs3-rxkad-kdf-03. */
 		return -1;
+	case ENCTYPE_DES_CBC_CRC:
+	case ENCTYPE_DES_CBC_MD4:
+	case ENCTYPE_DES_CBC_MD5:
+		/* Single DES: use as-is. */
+		memcpy(key, v5_creds_key_contents(creds), 8);
+		break;
+	case ENCTYPE_DES3_CBC_SHA:
+	case ENCTYPE_DES3_CBC_SHA1:
+		/* Triple DES: recover the lowest bits of the first 7 bytes of
+		 * each 8 bytes of key to get the original bits. */
+		tmp = v5_creds_key_contents(creds);
+		memset(key3, 0, sizeof(key3));
+		minikafs_des3_k2r(tmp, key3);
+		kd = key3;
+		kd_size = 21;
+		break;
+	default:
+		/* For everything else, if the random-to-key procedure is to
+		 * just use the random bits as-is, then we know what to do. */
+		if (minikafs_r2k_is_identity(ctx, v5_creds_key_type(creds))) {
+			/* kd as-is. */
+			kd = v5_creds_key_contents(creds);
+			kd_size = v5_creds_key_length(creds);
+		} else {
+			/* ... otherwise, we don't. */
+			return -1;
+		}
 	}
-	return minikafs_settoken(creds->ticket.data,
-				 creds->ticket.length,
-				 0x100, /* magic number, signals OpenAFS
-					 * 1.2.8 and later that the ticket
-					 * is actually a v5 ticket */
-				 v5_creds_key_contents(creds),
-				 uid,
-				 creds->times.starttime,
-				 creds->times.endtime,
-				 0,
-				 cell);
+	if (kd != NULL) {
+		if (minikafs_kd_derive(ctx, kd, kd_size, key) != 0) {
+			return -1;
+		}
+	}
+	ret = minikafs_settoken(creds->ticket.data,
+				creds->ticket.length,
+				0x100, /* magic number, signals OpenAFS 1.2.8 and
+					* later that the ticket is actually a v5
+					* ticket */
+				key,
+				uid,
+				creds->times.starttime,
+				creds->times.endtime,
+				0,
+				cell);
+	memset(key, 0, sizeof(key));
+	return ret;
 }
 
 /* Clear our tokens. */
@@ -667,11 +995,6 @@ minikafs_5log_with_principal(krb5_context ctx,
 	krb5_principal server, client;
 	krb5_creds mcreds, creds, *new_creds;
 	char *unparsed_client;
-	krb5_enctype v5_2b_etypes[] = {
-		ENCTYPE_DES_CBC_CRC,
-		ENCTYPE_DES_CBC_MD4,
-		ENCTYPE_DES_CBC_MD5,
-	};
 	krb5_enctype rxk5_enctypes[16];
 	krb5_enctype *etypes;
 	int i, n_etypes;
@@ -694,14 +1017,18 @@ minikafs_5log_with_principal(krb5_context ctx,
 			etypes = NULL;
 			n_etypes = 1; /* hack: we want to try at least once */
 		}
-	} else {
-		etypes = v5_2b_etypes;
-		n_etypes = sizeof(v5_2b_etypes) / sizeof(v5_2b_etypes[0]);
+	} else
+	if (use_v5_2b) {
 #ifdef HAVE_KRB5_ALLOW_WEAK_CRYPTO
 		if (krb5_allow_weak_crypto(ctx, TRUE) != 0) { /* XXX */
 			warn("error enabling weak crypto (DES), continuing");
 		}
 #endif
+		etypes = NULL;
+		n_etypes = 1; /* hack: we want to try at least once */
+	} else {
+		etypes = NULL;
+		n_etypes = 1; /* hack: we want to try at least once */
 	}
 
 	if (krb5_cc_get_principal(ctx, ccache, &client) != 0) {
@@ -761,7 +1088,7 @@ minikafs_5log_with_principal(krb5_context ctx,
 				return 0;
 			} else
 			if (use_v5_2b &&
-			    (minikafs_5settoken(cell, &creds, uid) == 0)) {
+			    (minikafs_5settoken(ctx, cell, &creds, uid) == 0)) {
 				krb5_free_cred_contents(ctx, &creds);
 				v5_free_unparsed_name(ctx, unparsed_client);
 				krb5_free_principal(ctx, client);
@@ -793,7 +1120,7 @@ minikafs_5log_with_principal(krb5_context ctx,
 				return 0;
 			} else
 			if (use_v5_2b &&
-			    (minikafs_5settoken(cell, new_creds, uid) == 0)) {
+			    (minikafs_5settoken(ctx, cell, new_creds, uid) == 0)) {
 				krb5_free_creds(ctx, new_creds);
 				v5_free_unparsed_name(ctx, unparsed_client);
 				krb5_free_principal(ctx, client);

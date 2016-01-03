@@ -1,4 +1,4 @@
-AC_INIT(pam_krb5,2.4.11)
+AC_INIT(pam_krb5,2.4.12)
 AC_PREREQ(2.59)
 AM_INIT_AUTOMAKE([foreign])
 AC_PROG_CC
@@ -599,7 +599,6 @@ AC_SUBST(TESTHOST)
 AC_SUBST(default_ccache_dir)
 AC_SUBST(default_ccname_template)
 
-AC_PROG_MKDIR_P
 AM_GNU_GETTEXT([external])
 AM_GNU_GETTEXT_VERSION([0.18])
 
