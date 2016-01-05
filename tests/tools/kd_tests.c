@@ -159,6 +159,7 @@ check_hmac(krb5_context ctx)
 			free(out.data);
 			exit(1);
 		}
+		free(out.data);
 	}
 }
 
