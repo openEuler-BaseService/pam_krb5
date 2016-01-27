@@ -65,7 +65,6 @@ _get_pw_nam(const char *name, long id, uid_t *uid, gid_t *gid, char **homedir)
 
 		/* Give it a shot. */
 		pwd = NULL;
-		errno = 0;
 #if defined(HAVE_GETPWNAM_R) && !defined(sun)
 		if (name != NULL) {
 			i = getpwnam_r(name, &passwd, buffer, size, &pwd);
@@ -92,9 +91,9 @@ _get_pw_nam(const char *name, long id, uid_t *uid, gid_t *gid, char **homedir)
 		xstrfree(buffer);
 		buffer = NULL;
 
-		/* We need to use more space if we got ERANGE back, and errno
-		 * is ERANGE, so bail on any other condition. */
-		if ((i != ERANGE) || (errno != ERANGE)) {
+		/* We need to use more space if we got ERANGE back, so bail on
+		 * any other condition. */
+		if (i != ERANGE) {
 			return 1;
 		}
 
