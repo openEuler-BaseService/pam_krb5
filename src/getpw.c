@@ -65,6 +65,7 @@ _get_pw_nam(const char *name, long id, uid_t *uid, gid_t *gid, char **homedir)
 
 		/* Give it a shot. */
 		pwd = NULL;
+		errno = 0;
 #if defined(HAVE_GETPWNAM_R) && !defined(sun)
 		if (name != NULL) {
 			i = getpwnam_r(name, &passwd, buffer, size, &pwd);
