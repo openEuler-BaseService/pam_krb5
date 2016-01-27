@@ -6,7 +6,7 @@
 
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
-Version: 2.4.12
+Version: 2.4.13
 Release: 1%{?dist}
 Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz
 #Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
@@ -67,6 +67,10 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %{_mandir}/man8/*
 
 %changelog
+* Wed Jan 27 2016 Nalin Dahyabhai <nalin@redhat.com> - 2.4.13-1
+- fix a bug which could cause looping when looking up user information
+  (#1302414)
+
 * Sun Jan  3 2016 Nalin Dahyabhai <nalin@redhat.com> - 2.4.12-1
 - learn to set AFS tokens by deriving DES keys from session keys that aren't
   single-key DES keys, for better compatibility with OpenAFS 1.4.15/1.6.5 and
