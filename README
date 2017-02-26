@@ -168,4 +168,4 @@ Configuration file only:
 o afs_cells = cell1 cell2 cell3 cell4=afs/cell4@EXAMPLE.COM
 
 This module is hosted on fedorahosted.org.  For more information, point a
-web browser at "http://fedorahosted.org/pam_krb5/".
+web browser at "https://pagure.io/pam_krb5/".

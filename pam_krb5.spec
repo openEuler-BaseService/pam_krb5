@@ -7,12 +7,12 @@
 Summary: A Pluggable Authentication Module for Kerberos 5
 Name: pam_krb5
 Version: 2.4.13
-Release: 1%{?dist}
-Source0: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz
-#Source1: https://fedorahosted.org/released/pam_krb5/pam_krb5-%{version}.tar.gz.sig
+Release: 4%{?dist}
+Source0: https://releases.pagure.io/pam_krb5/pam_krb5-%{version}.tar.gz
+Source1: https://releases.pagure.io/pam_krb5/pam_krb5-%{version}.tar.gz.sig
 License: BSD or LGPLv2+
 Group: System Environment/Base
-URL: https://fedorahosted.org/pam_krb5/
+URL: https://pagure.io/pam_krb5/
 BuildRequires: keyutils-libs-devel, krb5-devel, pam-devel, libselinux-devel
 # Needed by tests.
 # BuildRequires: krb5-server, krb5-workstation
@@ -67,6 +67,15 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 %{_mandir}/man8/*
 
 %changelog
+* Sun Feb 26 2017 Nalin Dahyabhai <nalin@redhat.com> - 2.4.13-4
+- update upstream location pointers to point to pagure.io
+
+* Sat Feb 11 2017 Fedora Release Engineering <releng@fedoraproject.org> - 2.4.13-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_26_Mass_Rebuild
+
+* Thu Feb 04 2016 Fedora Release Engineering <releng@fedoraproject.org> - 2.4.13-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_24_Mass_Rebuild
+
 * Wed Jan 27 2016 Nalin Dahyabhai <nalin@redhat.com> - 2.4.13-1
 - fix a bug which could cause looping when looking up user information
   (#1302414)
