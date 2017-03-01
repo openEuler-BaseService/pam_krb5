@@ -1,4 +1,4 @@
-EXTRA_DIST = pam_krb5.spec TODO README README.heimdal-pkinit README.mit-pkinit README.winbind
+EXTRA_DIST = pam_krb5.spec TODO docs README*
 
 CONFIGURE_DEPENDENCIES = $(top_srcdir)/pam_krb5.spec
 

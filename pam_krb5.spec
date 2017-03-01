@@ -58,7 +58,7 @@ sed -ri -e 's|/lib(64)?/|/\$LIB/|g' $RPM_BUILD_ROOT/%{_mandir}/man*/pam_krb5*.8*
 
 %files -f %{name}.lang
 %defattr(-,root,root,-)
-%doc README* COPYING* ChangeLog NEWS
+%doc README* docs/* COPYING* ChangeLog NEWS
 %{_bindir}/*
 %{security_parent_dir}/security/*.so
 %{security_parent_dir}/security/pam_krb5
